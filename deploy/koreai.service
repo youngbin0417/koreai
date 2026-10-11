@@ -1,0 +1,19 @@
+# Install as ~/.config/systemd/user/koreai.service.
+# Change WorkingDirectory, ExecStart and key path to match your installation.
+[Unit]
+Description=KoreAI local Korean service gateway
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/koreai
+ExecStart=/usr/bin/node %h/koreai/dist/server.js --headless --data-dir %h/.local/share/koreai
+Environment=NODE_ENV=production
+Environment=KOREAI_MASTER_KEY_FILE=%h/.config/koreai/master.key
+UMask=0077
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=30
+
+[Install]
+WantedBy=default.target

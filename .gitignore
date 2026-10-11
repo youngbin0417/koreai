@@ -1,0 +1,17 @@
+node_modules/
+dist/
+web-dist/
+.koreai/
+.test-data/
+.cache/
+.codex/
+.agents/
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
+*.secret.json
+master.key
+coverage/
+*.log
+.env*
+!.env.example

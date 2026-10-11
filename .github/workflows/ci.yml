@@ -1,0 +1,33 @@
+name: Validate
+on: [push, pull_request]
+jobs:
+  validate:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            browser: chromium
+          - os: windows-latest
+            browser: msedge
+    runs-on: ${{ matrix.os }}
+    env:
+      KOREAI_TEST_BROWSER_CHANNEL: ${{ matrix.browser }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Install Chromium and Linux dependencies
+        if: runner.os == 'Linux'
+        run: npx playwright install --with-deps chromium
+      - run: npm run check
+      - run: npm run build
+      - run: npm test
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ui-screenshots-${{ matrix.os }}
+          path: .test-data/screenshots
