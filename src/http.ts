@@ -15,6 +15,8 @@ import { BrowserRunner, browserActions } from './connectors/browser.js';
 import { RemoteRegistry } from './connectors/remote.js';
 import { registerReviewedExtensions } from './connectors/extensions.js';
 import { LifestyleConnections } from './connectors/lifestyle/index.js';
+import { draftActions, draftExecutor, draftExample, previewDraftRequest } from './connectors/drafts/index.js';
+import { appApiBacklog } from './research/app-api-backlog.js';
 import { services } from './catalog.js';
 import { ActionError, type Evidence, type Principal } from './types.js';
 
@@ -35,6 +37,7 @@ async function createUnlockedRuntime(options:RuntimeOptions){
     const defaults=browserDefaults();
     browser=new BrowserRunner(options.dataDir,options.channel??defaults.channel,options.headless??defaults.headless);engine.register(browserActions,browser.execute);
     connections=new LifestyleConnections(store);engine.register(connections.actions,connections.execute);
+    engine.register(draftActions,draftExecutor);
     registerReviewedExtensions(engine);
   }catch(error){store.close();throw error;}
   const remote=new RemoteRegistry(engine);const oauth=new OAuth(engine,options.fetcher);
@@ -99,6 +102,11 @@ async function createUnlockedRuntime(options:RuntimeOptions){
   app.get('/api/session',(_req,res)=>res.json({principal:principal(res)}));
   app.post('/api/logout',onlyAdmin,(req,res)=>{const cookie=req.headers.cookie?.split(';').map(v=>v.trim()).find(v=>v.startsWith('koreai_session='))?.slice(15);if(cookie)sessions.delete(hash(cookie));res.clearCookie('koreai_session',{path:'/'});res.json({ok:true});});
   app.get('/api/actions',(req,res)=>res.json(engine.discover(principal(res),typeof req.query.q==='string'?req.query.q:'',typeof req.query.service==='string'?req.query.service:undefined)));
+  app.get('/api/backlog',onlyAdmin,(_req,res)=>res.json(appApiBacklog));
+  app.get('/api/drafts/:id/example',onlyAdmin,(req,res)=>{
+    const example=draftExample(String(req.params.id));if(!example)throw new ActionError('NOT_FOUND','연결 초안을 찾을 수 없습니다.');res.json(example);
+  });
+  app.post('/api/drafts/:id/preview',onlyAdmin,(req,res)=>res.json(previewDraftRequest(String(req.params.id),req.body)));
   app.get('/api/actions/:id',(req,res)=>{const action=engine.discover(principal(res)).find(a=>a.id===req.params.id);if(!action)throw new ActionError('NOT_FOUND','행동을 찾을 수 없습니다.');res.json(action);});
   app.get('/api/accounts',(_req,res)=>res.json(engine.accounts(principal(res))));
   app.get('/api/connections',(_req,res)=>{
@@ -130,7 +138,7 @@ async function createUnlockedRuntime(options:RuntimeOptions){
   app.post('/api/browser/close',onlyAdmin,async(_req,res)=>{await browser.close();res.json({ok:true});});
   app.post('/api/remotes',onlyAdmin,async(req,res)=>res.status(201).json(await remote.add(req.body)));
   app.delete('/api/remotes/:id',onlyAdmin,async(req,res)=>{await remote.remove(String(req.params.id));res.json({ok:true});});
-  app.get('/api/state',onlyAdmin,(_req,res)=>res.json({services,connections:connections.list(),actions:engine.discover(admin),accounts:engine.accounts(),clients:engine.clients(),jobs:engine.jobs().map(j=>({...j,approvalDigest:engine.actions.has(j.actionId)?engine.digest(j):null})),metrics:engine.metrics(),evidence:store.list<Evidence>('evidence').slice(0,200),browser:browser.status(),runtime:{platform:process.platform,vault:options.vault?'custom':process.platform==='win32'?'windows-dpapi':'file-aes-256-gcm'},remotes:remote.list(),oauthRedirectUri:`${baseUrl}/oauth/callback`,defaultTimezone:'Asia/Seoul',mcpConfig:{command:process.execPath,args:[resolve('dist/mcp.js')],env:{KOREAI_URL:baseUrl}}}));
+  app.get('/api/state',onlyAdmin,(_req,res)=>res.json({services,backlog:appApiBacklog,connections:connections.list(),actions:engine.discover(admin),accounts:engine.accounts(),clients:engine.clients(),jobs:engine.jobs().map(j=>({...j,approvalDigest:engine.actions.has(j.actionId)?engine.digest(j):null})),metrics:engine.metrics(),evidence:store.list<Evidence>('evidence').slice(0,200),browser:browser.status(),runtime:{platform:process.platform,vault:options.vault?'custom':process.platform==='win32'?'windows-dpapi':'file-aes-256-gcm'},remotes:remote.list(),oauthRedirectUri:`${baseUrl}/oauth/callback`,defaultTimezone:'Asia/Seoul',mcpConfig:{command:process.execPath,args:[resolve('dist/mcp.js')],env:{KOREAI_URL:baseUrl}}}));
   app.use('/api',(_req,res)=>res.status(404).json({error:{code:'NOT_FOUND',message:'API를 찾을 수 없습니다.'}}));
   const uiDir=options.uiDir??resolve('web-dist');
   if(existsSync(join(uiDir,'index.html'))){app.use(express.static(uiDir));app.get('/{*path}',(_req,res)=>res.sendFile(join(uiDir,'index.html')));}

@@ -1,4 +1,5 @@
 import type { Service } from './types.js';
+import { expansionServices } from './research/app-api-backlog.js';
 
 type Row = [string, string, string, string[]];
 const groups: [string, Row[]][] = [
@@ -88,3 +89,4 @@ const notes: Record<string,string> = {
   'kakaotalk':'첫 버전은 나에게 보내기만 구현합니다. 일반 대화방 읽기·임의 상대 발송을 지원하지 않습니다.',
 };
 for(const s of services) if(notes[s.id])s.note=notes[s.id]!;
+services.push(...expansionServices(new Set(services.map(s=>s.id))));

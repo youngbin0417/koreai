@@ -11,7 +11,7 @@
 | 메서드 | 경로 | 동작 |
 |---|---|---|
 | GET | `/api/health` | 인증 없이 로컬 엔진 상태 확인 |
-| GET | `/api/services` | 52개 조사 대상·후보 행동과 클라이언트에게 허용된 구현 행동 |
+| GET | `/api/services` | 71개 조사 대상·후보 행동과 클라이언트에게 허용된 행동·초안 |
 | GET | `/api/connections` | 클라이언트의 행동 범위에 포함된 기본 커넥터의 준비 상태·진입 경로 |
 | GET | `/api/actions?q=검색어&service=서비스ID` | 허용된 행동 검색 |
 | GET | `/api/actions/:id` | JSON Schema, 계정 요구사항, 범위, 근거·검증 상태 |
@@ -77,6 +77,9 @@
 기본 행동은 `<서비스ID>.connection.status`, `<서비스ID>.connection.open`입니다. `gangnamunni`, `daangn`, `kurly`, `coupang`, `toss`에 제공하며 입력은 `{}`입니다. 상태 조회는 준비 전에도 실행됩니다. 진입 안내는 준비 전 `awaiting_user`로 대기하며, 사용자가 준비 저장 후 재개할 수 있습니다. 안내 결과는 `url`, `requiresUser: true`, `externalActionExecuted: false`, `accountVerified: false`를 포함합니다. 이 작업의 `succeeded`는 진입 안내 완료이며 외부 서비스 작업 완료를 뜻하지 않습니다. `handoff` 행동 증거는 실제 지원 실적에서 제외됩니다.
 
 - `GET /api/state`: 카탈로그·계정·작업·검증 지표·MCP 연결 설정, `runtime.platform`·`runtime.vault`, 브라우저 `headless` 상태.
+- `GET /api/backlog`: 추가 API 후보 26개의 우선순위·공식 근거·검증 상태·다음 작업. `/api/state.backlog`에도 포함합니다.
+- `GET /api/drafts/:id/example`: 등록된 조회 초안의 예시 입력.
+- `POST /api/drafts/:id/preview`: 본문에 초안 입력 JSON을 보내 요청 템플릿 확인. 외부 요청·작업 생성·비밀 키 조회 없이 동작합니다.
 - `POST /api/accounts`: 계정 생성 또는 `id`로 권한·비밀 키 갱신. 키를 생략하면 기존 값을 유지.
 - `DELETE /api/accounts/:id`: 계정 해제와 관련 진행 작업 취소 요청.
 - `POST /api/accounts/:id/refresh`: 네이버·카카오 OAuth 토큰 갱신.
@@ -96,3 +99,5 @@
 `koreai_find_actions`, `koreai_describe_action`, `koreai_list_accounts`, `koreai_execute`, `koreai_get_job`, `koreai_list_jobs`, `koreai_resume_job`, `koreai_cancel_job`를 제공합니다.
 
 MCP stdio 프로세스는 HTTP 클라이언트 토큰의 범위를 그대로 사용합니다. 엔진 DB를 직접 열거나 별도 승인 엔진을 만들지 않습니다. SDK 클라이언트와 독립 JSON-RPC 클라이언트의 기능 검색·실행을 테스트합니다. 2026 프로토콜의 모든 확장과 모든 외부 제품 UI 호환성을 검증한 것은 아닙니다.
+
+초안 행동도 허용된 행동 ID 안에서 검색할 수 있으며 `implemented: false`, `enabled: false`로 표시됩니다. 실행은 `NOT_IMPLEMENTED`로 거절합니다. 관리자 미리보기 응답의 `request`는 비밀 키 없는 템플릿이며 세부 필드 미확인 초안은 `null`입니다. `networkDispatched: false`는 실제 공급자 호출을 수행하지 않았음을 뜻합니다.

@@ -65,7 +65,9 @@ Linux headless 시험에서는 관리 화면의 **시험 사용자로 로그인*
 
 ## 조사 카탈로그
 
-52개 서비스 목록은 `src/catalog.ts`에서 유지합니다. 후보 행동은 실행 가능한 `Action`과 별개입니다. `/api/services`는 미조사 행동의 `sourceUrl`, `checkedAt`, `method`를 `null`로 내보냅니다. 조사하지 않은 기능에 근거나 허용 상태를 추정해 넣지 않습니다.
+71개 서비스 목록은 `src/catalog.ts`에서 유지합니다. 신규 앱·API 후보 데이터는 `src/research/app-api-backlog.ts`에 있으며 기존 서비스 ID를 재사용해 중복 없이 카탈로그에 추가합니다. 후보 행동은 실행 가능한 `Action`과 별개입니다. `/api/services`는 미조사 행동의 `sourceUrl`, `checkedAt`, `method`를 `null`로 내보냅니다. 조사하지 않은 기능에 근거나 허용 상태를 추정해 넣지 않습니다.
+
+공개 정보 조회 초안 6개는 `src/connectors/drafts/index.ts`에 등록했습니다. 입력·근거·키 종류·결과 확인 규칙을 선언하지만 `implemented: false`이며 실행기는 `NOT_IMPLEMENTED`를 반환합니다. 엔진의 기존 실행 제한도 적용하므로 계정·클라이언트 권한만으로 활성화되지 않습니다. 사용자 확장 등록 전에 기본 초안을 등록해 ID 중복을 검사합니다. [후보 목록과 미리보기](APP_API_BACKLOG.md)를 참고하세요.
 
 생활 서비스 기본 커넥터는 `src/connectors/lifestyle/`에서 서비스별 정의와 공통 준비 저장·진입 안내 실행기를 관리합니다. 현재 5개 서비스의 행동은 모두 `handoff`이며 외부 API 호출 증거로 집계하지 않습니다. 후속 API·브라우저 행동은 새로운 행동 ID로 등록하고 계정 권한·승인·결과 확인을 선언합니다. [확장 단계와 규칙](LIFESTYLE_CONNECTIONS.md)을 참고하세요.
 
