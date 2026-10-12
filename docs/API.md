@@ -6,6 +6,8 @@
 
 관리자는 브라우저 일회용 코드 → HttpOnly 쿠키로 인증됩니다. 쿠키를 사용하는 변경 요청은 같은 출처의 `Origin`이 필요합니다. 클라이언트 토큰으로 관리자 API를 호출할 수 없습니다.
 
+개인 원격 접속은 `--public-url https://장비.네트워크.ts.net` 또는 `KOREAI_PUBLIC_URL`로 HTTPS 출처 한 개를 설정합니다. 경로·쿼리·인증정보가 포함된 URL은 받지 않습니다. 서버는 루프백에 바인딩하며 설정된 Host·Origin만 허용합니다. HTTPS 로그인 쿠키에 Secure를 적용하고 세션 해시·30일 만료를 SQLite에 저장해 재시작 후 유지합니다. `POST /api/logout`은 현재 세션을 해제합니다. [GCP·Tailscale 설정](GCP_DEPLOYMENT.md)
+
 ## 에이전트 API
 
 | 메서드 | 경로 | 동작 |
@@ -69,6 +71,23 @@
 ## 관리자 API
 
 관리 화면이 사용하는 API입니다. 외부 에이전트의 토큰으로 접근할 수 없습니다.
+
+### DeepSeek 대화
+
+| 메서드 | 경로 | 동작 |
+|---|---|---|
+| GET | `/api/ai` | `{model: "deepseek-flash", configured}`; 키 값 제외 |
+| POST | `/api/ai/key` | `{apiKey}`를 운영체제별 암호화 저장소에 저장 |
+| GET | `/api/chats` | 저장된 대화 목록 |
+| POST | `/api/chats` | `{title?, allowedActions?}`로 대화 생성, HTTP 201 |
+| GET | `/api/chats/:id` | 대화·메시지·작업 ID·상태 조회 |
+| POST | `/api/chats/:id/messages` | `{requestId: "UUID", content}` 제출, HTTP 202 |
+
+`allowedActions`는 현재 실행 가능한 행동만 받습니다. 빈 배열은 도구 없는 대화입니다. 같은 요청 ID·내용은 기존 상태를 반환하며 내용이 바뀌면 409입니다. 메시지는 1~8,000자, 대화 상태는 `ready`, `running`, `failed`, `interrupted`입니다. 202 이후 상태를 조회해 답변·오류를 확인하세요. 키 등록 성공은 저장 완료이며 실제 모델 접근 확인을 뜻하지 않습니다.
+
+대화마다 별도 에이전트 권한을 적용합니다. 쓰기 승인은 기존 관리자 작업 API에서 수행하며 모델에는 승인 권한이 없습니다. 같은 대화의 동일 계정·행동·내용 쓰기는 멱등키를 재사용합니다. 대화 응답에 키·에이전트 토큰·내부 모델 추론을 포함하지 않습니다. 서버 중단 상태는 보존하고 자동으로 다시 실행하지 않습니다.
+
+### 계정과 작업 관리
 
 - `PUT /api/connections/:serviceId`: `{ "routeId": "consumer" }`로 기본 연결 준비를 저장합니다. 등록된 경로 ID만 받으며 키·쿠키·임의 URL은 받지 않습니다.
 - `DELETE /api/connections/:serviceId`: 연결 준비를 해제합니다. 서비스 계정의 로그아웃이나 권한 회수를 수행하는 API는 아닙니다.

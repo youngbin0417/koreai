@@ -10,6 +10,35 @@ import { TestVault,tempDir,providerMock } from './helpers.js';
 import { browserDefaults, type BrowserChannel } from '../src/core/platform.js';
 const testChannel=(process.env.KOREAI_TEST_BROWSER_CHANNEL??browserDefaults().channel) as BrowserChannel;
 
+test('mobile chat registers Flash, keeps history, approves a write and continues without duplication',async()=>{
+  const mock=providerMock();let jobId='';
+  const aiFetcher:typeof fetch=async(_url,init)=>{
+    const body=JSON.parse(String(init?.body));assert.equal(body.model,'deepseek-flash');
+    const last=body.messages.at(-1);
+    if(last.role==='tool'){const result=JSON.parse(last.content);jobId=result.id??jobId;return Response.json({choices:[{finish_reason:'stop',message:{role:'assistant',content:result.state==='succeeded'?'게시 완료를 확인했습니다.':'사용자 승인을 기다립니다.'}}]});}
+    if(!body.tools)return Response.json({choices:[{finish_reason:'stop',message:{role:'assistant',content:'안녕하세요. 필요한 일을 요청해주세요.'}}]});
+    return Response.json({choices:[{finish_reason:'tool_calls',message:{role:'assistant',content:null,reasoning_content:'internal reasoning',tool_calls:[{id:crypto.randomUUID(),type:'function',function:{name:jobId?'koreai_get_job':'koreai_execute',arguments:JSON.stringify(jobId?{jobId}:{actionId:'band.publish',input:{bandKey:'band_1',content:'휴대폰에서 요청한 글'}})}}]}}]});
+  };
+  const r=await createRuntime({dataDir:tempDir('chat-ui'),port:0,vault:new TestVault(),fetcher:mock.fetcher,aiFetcher,bootstrapCode:'chat-ui-bootstrap',headless:true,evidenceMode:'mock'});let browser:Browser|undefined;
+  try{
+    await r.engine.saveAccount({label:'시험 밴드',credentialType:'band-user',allowedActions:['band.publish'],secrets:{accessToken:'band-ui-private-token'}});
+    browser=await chromium.launch({channel:testChannel,headless:true});const page=await browser.newPage({viewport:{width:390,height:844}});const errors:string[]=[];page.on('pageerror',error=>errors.push(error.message));
+    await page.goto(`${r.baseUrl}/#setup=chat-ui-bootstrap`);await page.getByRole('button',{name:'로컬 엔진 연결'}).click();await page.getByRole('heading',{name:'AI와 대화'}).waitFor();
+    await page.getByLabel('DeepSeek API 키',{exact:true}).fill('sk-chat-ui-private-123456789');await page.getByRole('button',{name:'키 저장',exact:true}).click();
+    await page.getByLabel('보낼 메시지').fill('안녕');await page.getByRole('button',{name:'보내기',exact:true}).click();await page.getByText('안녕하세요. 필요한 일을 요청해주세요.',{exact:true}).waitFor();
+    const first=r.chats.list()[0]!;await page.reload();await page.getByLabel('대화 기록').selectOption(first.id);await page.getByText('안녕하세요. 필요한 일을 요청해주세요.',{exact:true}).waitFor();
+    await page.getByRole('button',{name:'＋ 새 대화',exact:true}).click();await page.locator('.chat-grants summary').click();await page.getByLabel('밴드 글 작성',{exact:false}).check();
+    await page.getByLabel('보낼 메시지').fill('밴드에 글을 작성해줘');await page.getByRole('button',{name:'보내기',exact:true}).click();await page.getByText('사용자 승인을 기다립니다.',{exact:true}).waitFor();
+    assert.equal(mock.requests.length,0);await page.getByRole('button',{name:/내용 확인·승인 필요/}).click();await page.getByRole('button',{name:'이 내용으로 승인하고 실행'}).click();await page.getByRole('heading',{name:'실행 결과',exact:true}).waitFor();assert.equal(mock.requests.length,1);
+    await page.getByRole('button',{name:'닫기',exact:true}).click();await page.getByRole('button',{name:'결과 이어서 확인'}).click();await page.getByText('게시 완료를 확인했습니다.',{exact:true}).waitFor();assert.equal(mock.requests.length,1);
+    const text=await page.locator('body').innerText();assert(!text.includes('sk-chat-ui-private'));assert(!text.includes('band-ui-private-token'));assert(!text.includes('internal reasoning'));
+    assert(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth));assert.deepEqual(errors,[]);
+    const screenshots=resolve('.test-data/screenshots');mkdirSync(screenshots,{recursive:true});await page.screenshot({path:resolve(screenshots,'chat-mobile.png'),fullPage:true});
+    await page.setViewportSize({width:1440,height:1000});await page.screenshot({path:resolve(screenshots,'chat-desktop.png'),fullPage:true});
+    const manifest=await (await fetch(`${r.baseUrl}/manifest.webmanifest`)).json();assert.equal(manifest.display,'standalone');assert.equal(manifest.start_url,'/');
+  }finally{await browser?.close();await r.close();}
+});
+
 test('owned browser handles login, approval, result receipts, profile persistence and changed pages',async()=>{
   const r=await createRuntime({dataDir:tempDir('browser'),port:0,vault:new TestVault(),headless:true,channel:testChannel,evidenceMode:'mock'});
   try{
@@ -31,7 +60,7 @@ test('React dashboard supports onboarding, expanded catalog, basic connections, 
   try{
     browser=await chromium.launch({channel:testChannel,headless:true});
     const page=await browser.newPage({viewport:{width:1440,height:1000}});const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
-    await page.goto(`${r.baseUrl}/#setup=ui-bootstrap`);await page.getByRole('button',{name:'로컬 엔진 연결'}).click();await page.getByRole('heading',{name:'일상에 필요한 연결을 한곳에.'}).waitFor();
+    await page.goto(`${r.baseUrl}/#setup=ui-bootstrap`);await page.getByRole('button',{name:'로컬 엔진 연결'}).click();await page.getByRole('button',{name:'둘러보기',exact:false}).click();await page.getByRole('heading',{name:'일상에 필요한 연결을 한곳에.'}).waitFor();
     assert.equal(new URL(page.url()).hash,'');
     const screenshotDir=resolve('.test-data/screenshots');mkdirSync(screenshotDir,{recursive:true});await page.screenshot({path:resolve(screenshotDir,'dashboard.png'),fullPage:true});
     assert.equal(await page.locator('.stat').filter({hasText:'구현된 API 행동'}).locator('strong').textContent(),'21↗');
