@@ -10,7 +10,7 @@ export class TestVault implements Vault {
   async seal(value:Record<string,string>){const iv=randomBytes(12);const cipher=createCipheriv('aes-256-gcm',this.key,iv);const bytes=Buffer.concat([cipher.update(JSON.stringify(value),'utf8'),cipher.final()]);return Buffer.concat([iv,cipher.getAuthTag(),bytes]).toString('base64');}
   async open(value:string){const b=Buffer.from(value,'base64');const decipher=createDecipheriv('aes-256-gcm',this.key,b.subarray(0,12));decipher.setAuthTag(b.subarray(12,28));return JSON.parse(Buffer.concat([decipher.update(b.subarray(28)),decipher.final()]).toString('utf8'));}
 }
-export function tempDir(name='run'){const base=resolve('.test-data');mkdirSync(base,{recursive:true});return mkdtempSync(join(base,`${name}-`));}
+export function tempDir(name='run'){const base=resolve(process.env.KOREAI_TEST_DATA_DIR??'.test-data');mkdirSync(base,{recursive:true,mode:0o700});return mkdtempSync(join(base,`${name}-`));}
 export const fakeSecrets={clientId:'mock-client-id-12345',clientSecret:'mock-client-secret-12345',accessToken:'mock-access-token-12345',restApiKey:'mock-rest-key-12345',serviceKey:'mock-public-key-12345'};
 export function secretsFor(action:Action){return Object.fromEntries(action.requiredSecrets.map(k=>[k,fakeSecrets[k as keyof typeof fakeSecrets]]));}
 export function inputFor(id:string):Record<string,unknown>{
@@ -43,6 +43,12 @@ export function providerMock(){
     else if(url.hostname==='kapi.kakao.com')body={result_code:0};
     else if(url.hostname==='dapi.kakao.com')body={documents:[{place_name:'서울 도서관',x:'126.97',y:'37.56'}],meta:{total_count:1}};
     else if(url.hostname==='api.odcloud.kr')body={data:[{서비스ID:'GOV-123',서비스명:'청년 지원'}],totalCount:1};
+    else if(url.pathname.endsWith('/getUltraSrtNcst'))body={
+      response:{header:{resultCode:'00',resultMsg:'OK'},body:{
+        pageNo:Number(url.searchParams.get('pageNo')),numOfRows:Number(url.searchParams.get('numOfRows')),totalCount:1,
+        items:{item:[{baseDate:url.searchParams.get('base_date'),baseTime:url.searchParams.get('base_time'),nx:Number(url.searchParams.get('nx')),ny:Number(url.searchParams.get('ny')),category:'T1H',obsrValue:'21.5'}]},
+      }},
+    };
     else throw new Error('Unexpected provider endpoint');
     return Response.json(body);
   };

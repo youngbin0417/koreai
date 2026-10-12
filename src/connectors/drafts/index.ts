@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { zodToJsonSchema } from 'zod-to-json-schema';
 import { appApiBacklog } from '../../research/app-api-backlog.js';
 import { ActionError, type Action, type Executor } from '../../types.js';
+import { kmaAction, kmaExample, kmaRequestTemplate } from '../kma.js';
 
 const nonempty = (description: string, max = 100) => z.string().trim().min(1).max(max).describe(description);
 const page = z.number().int().min(1).max(1000).default(1);
@@ -37,11 +38,11 @@ const dataRequest = (path: string, query: DraftRequest['query'], responseFormat:
 const definitions: Definition[] = [
   {
     serviceId: 'kma', title: '기상청 초단기실황 조회',
-    description: '발표일·정시·기상청 격자로 관측값을 조회하는 초안입니다. 입력은 한국 표준시 기준이며 주소 변환과 최신 발표 시각 계산은 후속 구현입니다.',
-    schema: z.object({ date: date.describe('발표일, Asia/Seoul'), time: z.string().regex(/^(?:[01]\d|2[0-3])00$/).describe('발표 정시 HH00, Asia/Seoul'), nx: z.number().int().min(1).max(1000).describe('기상청 격자 X, 경도가 아님'), ny: z.number().int().min(1).max(1000).describe('기상청 격자 Y, 위도가 아님'), page, limit }).strict(),
+    description: kmaAction.description,
+    schema: kmaAction.schema,
     example: { date: '2026-10-10', time: '0900', nx: 60, ny: 127 },
     resultCheck: '정상 resultCode와 요청한 baseDate/baseTime·nx/ny 일치, 관측 항목·단위·결측값·출처를 검증합니다.',
-    request: input => dataRequest('1360000/VilageFcstInfoService_2.0/getUltraSrtNcst', { dataType: 'JSON', base_date: input.date.replaceAll('-', ''), base_time: input.time, nx: input.nx, ny: input.ny, pageNo: input.page, numOfRows: input.limit }, 'json', 'ServiceKey'),
+    request: kmaRequestTemplate,
   },
   {
     serviceId: 'airkorea', title: '에어코리아 대기질 예보 조회',
@@ -83,7 +84,8 @@ const definitions: Definition[] = [
   },
 ];
 
-export const draftActions: Action[] = definitions.map(definition => {
+export const planningActions: Action[] = definitions.map(definition => {
+  if (definition.serviceId === 'kma') return kmaAction;
   const candidate = appApiBacklog.find(c => c.serviceId === definition.serviceId)!;
   const domains = definition.request ? ['apis.data.go.kr'] : definition.serviceId === 'neis' ? ['open.neis.go.kr'] : ['www.kobis.or.kr'];
   return {
@@ -96,6 +98,7 @@ export const draftActions: Action[] = definitions.map(definition => {
     domains, version: '0.1.0-draft.1', maintainer: 'KoreAI', origin: 'bundled', implemented: false,
   };
 });
+export const draftActions = planningActions.filter(action => !action.implemented);
 
 export interface DraftPreview {
   actionId: string;
@@ -106,13 +109,14 @@ export interface DraftPreview {
   nextStep: string;
 }
 export function draftExample(actionId: string): Record<string, unknown> | undefined {
-  const index = draftActions.findIndex(a => a.id === actionId);
+  if (actionId === kmaAction.id) return kmaExample();
+  const index = planningActions.findIndex(a => a.id === actionId);
   return index < 0 ? undefined : structuredClone(definitions[index]!.example);
 }
 export function previewDraftRequest(actionId: string, raw: unknown): DraftPreview {
-  const index = draftActions.findIndex(a => a.id === actionId);
+  const index = planningActions.findIndex(a => a.id === actionId);
   if (index < 0) throw new ActionError('NOT_FOUND', '연결 초안을 찾을 수 없습니다.');
-  const action = draftActions[index]!;
+  const action = planningActions[index]!;
   const input = action.schema.parse(raw) as Record<string, unknown>;
   const definition = definitions[index]!;
   return {

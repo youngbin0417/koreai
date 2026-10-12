@@ -1,0 +1,6 @@
+{
+  "id": "/", "name": "KoreAI 생활 도우미", "short_name": "KoreAI", "lang": "ko",
+  "start_url": "/", "scope": "/", "display": "standalone",
+  "background_color": "#f5f7f3", "theme_color": "#182b24",
+  "icons": [{"src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable"}]
+}

@@ -1,0 +1,18 @@
+[Unit]
+Description=KoreAI personal assistant
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/koreai
+ExecStart=%h/.local/lib/koreai-node24/bin/node %h/koreai/dist/server.js --headless --data-dir %h/.local/share/koreai
+Environment=NODE_ENV=production
+Environment=KOREAI_MASTER_KEY_FILE=%h/.config/koreai/master.key
+EnvironmentFile=-%h/.config/koreai/server.env
+UMask=0077
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=45
+
+[Install]
+WantedBy=default.target

@@ -5,7 +5,7 @@ import type { DraftPreview } from '../src/connectors/drafts';
 const accessLabels: Record<ApiCandidate['access'], string> = {
   'public-key': '공개 정보 · 공급자 키 필요', merchant: '판매자 API · 소비자 권한 별도', unknown: '접근 경로 조사 필요',
 };
-export function ExpansionPlan({ candidates, openDraft }: { candidates: ApiCandidate[]; openDraft: (id: string) => void }) {
+export function ExpansionPlan({ candidates, openAction }: { candidates: ApiCandidate[]; openAction: (id: string) => void }) {
   const [priority, setPriority] = useState('all');
   const [query, setQuery] = useState('');
   const visible = candidates.filter(c => (priority === 'all' || String(c.priority) === priority) && `${c.name} ${c.proposedActions.join(' ')}`.toLowerCase().includes(query.toLowerCase()));
@@ -23,13 +23,13 @@ export function ExpansionPlan({ candidates, openDraft }: { candidates: ApiCandid
       <p className="muted small">{c.checkedAt ? `문서 확인: ${c.checkedAt} · 계정 미검증` : '미조사 · 홈페이지를 조사 시작점으로 등록'}</p>
       <h3>먼저 정의할 행동</h3><ul>{c.proposedActions.map(a => <li key={a}>{a}</li>)}</ul>
       <h3>다음 작업</h3><p>{c.nextStep}</p>
-      <div className="button-row">{c.draftActionIds.map(id => <button key={id} onClick={() => openDraft(id)}>조회 초안 열기</button>)}<a href={c.sourceUrl} target="_blank" rel="noreferrer">{c.checkedAt ? '공식 근거' : '공식 서비스'} ↗</a></div>
+      <div className="button-row">{c.implementedActionIds.map(id => <button key={id} onClick={() => openAction(id)}>조회 기능 열기</button>)}{c.draftActionIds.map(id => <button key={id} onClick={() => openAction(id)}>조회 초안 열기</button>)}<a href={c.sourceUrl} target="_blank" rel="noreferrer">{c.checkedAt ? '공식 근거' : '공식 서비스'} ↗</a></div>
     </article>)}</div>
     {visible.length === 0 && <p role="status">검색 조건에 맞는 확장 후보가 없습니다.</p>}
   </>;
 }
 
-export function DraftInspector({ actionId, input, changeInput }: { actionId: string; input: string; changeInput: (value: string) => void }) {
+export function DraftInspector({ actionId, input, changeInput, implemented = false }: { actionId: string; input: string; changeInput: (value: string) => void; implemented?: boolean }) {
   const [busy, setBusy] = useState(false);
   const [preview, setPreview] = useState<{ input: string; data: DraftPreview }>();
   const [error, setError] = useState<{ input: string; message: string }>();
@@ -45,17 +45,17 @@ export function DraftInspector({ actionId, input, changeInput }: { actionId: str
         signal: requestController.signal, ...(example ? {} : { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(JSON.parse(input)) }),
       });
       const data = await response.json();
-      if (!response.ok) throw new Error(data.error?.message ?? '초안을 확인하지 못했습니다.');
+      if (!response.ok) throw new Error(data.error?.message ?? '요청 구조를 확인하지 못했습니다.');
       if (!requestController.signal.aborted) {
         if (example) changeInput(JSON.stringify(data, null, 2));
         else setPreview({ input: requestedInput, data: data as DraftPreview });
       }
     } catch (e) {
-      if (!requestController.signal.aborted) setError({ input: requestedInput, message: e instanceof Error ? e.message : '초안을 확인하지 못했습니다.' });
+      if (!requestController.signal.aborted) setError({ input: requestedInput, message: e instanceof Error ? e.message : '요청 구조를 확인하지 못했습니다.' });
     } finally { if (!requestController.signal.aborted) setBusy(false); }
   }
-  return <section className="draft-inspector" aria-label="연결 초안 검토">
-    <p>초안 단계입니다. 예시 입력과 요청 구조를 검토할 수 있습니다. 외부 호출·계정 검증은 후속 단계입니다.</p>
+  return <section className="draft-inspector" aria-label={implemented ? '조회 요청 검토' : '연결 초안 검토'}>
+    <p>{implemented ? '예시와 미리보기는 외부에 전송하지 않습니다. 계정을 연결한 뒤 실행 요청으로 조회하세요. 기상청 예시는 한국 표준시의 최근 발표 정시와 서울 격자를 사용합니다.' : '초안 단계입니다. 예시 입력과 요청 구조를 검토할 수 있습니다. 외부 호출·계정 검증은 후속 단계입니다.'}</p>
     <div className="button-row"><button disabled={busy} onClick={() => void inspect(true)}>예시 입력 불러오기</button><button disabled={busy} onClick={() => void inspect(false)}>요청 구조 미리보기</button></div>
     {error?.input === input && <p role="alert" className="warning">{error.message}</p>}
     {preview?.input === input && <><h3>요청 구조 · 외부 호출 없음</h3><p>{preview.data.request ? '공식 문서 기준 요청 템플릿입니다. 실제 키 응답 검증은 아직 수행하지 않았습니다.' : '입력 규격 제안입니다. 공급자 요청 필드 매핑은 상세 문서 검토 후 구현합니다.'}</p><pre>{JSON.stringify(preview.data, null, 2)}</pre></>}

@@ -12,14 +12,14 @@ export class DeepSeekError extends Error {
   constructor(readonly status: number, readonly code: string, message: string) { super(message); }
 }
 export class DeepSeekClient {
-  constructor(private readonly apiKey: string, private readonly fetcher: typeof fetch = fetch) {}
+  constructor(private readonly apiKey: string, private readonly fetcher: typeof fetch = fetch, private readonly signal?: AbortSignal) {}
   private async request(path: '/models' | '/responses' | '/chat/completions', body?: unknown) {
     let response: Response;
     try {
       response = await this.fetcher(`${DEEPSEEK_BASE_URL}${path}`, {
         method: body ? 'POST' : 'GET', redirect: 'error',
         headers: { Authorization: `Bearer ${this.apiKey}`, ...(body ? { 'Content-Type': 'application/json' } : {}) },
-        ...(body ? { body: JSON.stringify(body) } : {}), signal: AbortSignal.timeout(body ? 120_000 : 30_000),
+        ...(body ? { body: JSON.stringify(body) } : {}), signal: AbortSignal.any([AbortSignal.timeout(body ? 120_000 : 30_000), ...(this.signal ? [this.signal] : [])]),
       });
     } catch { throw new DeepSeekError(0, 'NETWORK_ERROR', 'DeepSeek에 연결하지 못했습니다. 네트워크와 API 접근 상태를 확인하세요.'); }
     if (!response.ok) {
@@ -48,12 +48,12 @@ export class DeepSeekClient {
     return { text: String(redact(text, [this.apiKey])), model: DEEPSEEK_MODEL, status: redact(value.status, [this.apiKey]), usage: redact(value.usage, [this.apiKey]) };
   }
   async chat(messages: ChatMessage[], tools: ChatTool[]) {
-    if (!messages.length || messages.length > 100 || !tools.length || tools.length > 10) throw new Error('AI 테스트 대화 또는 도구 범위가 올바르지 않습니다.');
-    const value = await this.request('/chat/completions', { model: DEEPSEEK_MODEL, messages, tools, tool_choice: 'auto',
+    if (!messages.length || messages.length > 100 || tools.length > 10) throw new Error('AI 대화가 너무 길거나 도구 범위가 올바르지 않습니다. 새 대화를 시작하세요.');
+    const value = await this.request('/chat/completions', { model: DEEPSEEK_MODEL, messages, ...(tools.length ? { tools, tool_choice: 'auto' } : {}),
       thinking: { type: 'enabled' }, reasoning_effort: 'low', max_tokens: 4096, stream: false });
     const choices = Array.isArray(value.choices) ? value.choices as { message?: unknown; finish_reason?: string }[] : [];
     const parsed = assistantSchema.safeParse(choices[0]?.message);
     if (!parsed.success || choices[0]?.finish_reason === 'length') throw new DeepSeekError(200, 'INVALID_RESPONSE', 'DeepSeek 도구 호출 응답이 올바르지 않거나 출력 한도를 초과했습니다.');
-    return { message: parsed.data as ChatMessage, requestedModel: DEEPSEEK_MODEL, responseModel: redact(value.model, [this.apiKey]), usage: redact(value.usage, [this.apiKey]) };
+    return { message: redact(parsed.data, [this.apiKey]) as ChatMessage, requestedModel: DEEPSEEK_MODEL, responseModel: redact(value.model, [this.apiKey]), usage: redact(value.usage, [this.apiKey]) };
   }
 }

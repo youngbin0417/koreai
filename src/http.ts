@@ -7,10 +7,11 @@ import { Engine, admin } from './core/engine.js';
 import { Store } from './core/store.js';
 import { constantEqual, hash, token, type Vault } from './core/security.js';
 import { createPlatformVault } from './core/linux-vault.js';
-import { browserDefaults, type BrowserChannel } from './core/platform.js';
+import { browserDefaults, publicOrigin, type BrowserChannel } from './core/platform.js';
 import { OAuth } from './core/oauth.js';
 import { acquireLock } from './core/lock.js';
 import { officialActions, officialExecutor } from './connectors/official.js';
+import { kmaAction, kmaExecutor } from './connectors/kma.js';
 import { BrowserRunner, browserActions } from './connectors/browser.js';
 import { RemoteRegistry } from './connectors/remote.js';
 import { registerReviewedExtensions } from './connectors/extensions.js';
@@ -19,21 +20,26 @@ import { draftActions, draftExecutor, draftExample, previewDraftRequest } from '
 import { appApiBacklog } from './research/app-api-backlog.js';
 import { services } from './catalog.js';
 import { ActionError, type Evidence, type Principal } from './types.js';
+import { DeepSeekCredentials } from './ai/credentials.js';
+import { Conversations } from './ai/conversations.js';
 
-export interface RuntimeOptions {dataDir:string;port?:number;vault?:Vault;masterKeyFile?:string;fetcher?:typeof fetch;bootstrapCode?:string;headless?:boolean;channel?:BrowserChannel;dev?:boolean;uiDir?:string;evidenceMode?:'live'|'mock'}
+export interface RuntimeOptions {dataDir:string;port?:number;vault?:Vault;masterKeyFile?:string;fetcher?:typeof fetch;aiFetcher?:typeof fetch;publicUrl?:string;bootstrapCode?:string;headless?:boolean;channel?:BrowserChannel;dev?:boolean;uiDir?:string;evidenceMode?:'live'|'mock'}
 const escapeHtml=(v:string)=>v.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]!));
 const page=(title:string,body:string)=>`<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title}</title><style>body{font:16px system-ui;max-width:760px;margin:48px auto;padding:24px;background:#f5f7f3;color:#183126}label{display:block;margin:16px 0}input,textarea,button{font:inherit;padding:12px;border:1px solid #bbc9bc;border-radius:8px}input,textarea{display:block;width:90%;margin-top:8px}button{background:#245840;color:white;cursor:pointer}article{padding:16px;background:white;border-radius:12px;margin:12px 0;white-space:pre-wrap}a{color:#245840}</style></head><body>${body}</body></html>`;
 
 export async function createRuntime(options:RuntimeOptions){
+  publicOrigin(options.publicUrl);
   const unlock=acquireLock(options.dataDir);
   try{const runtime=await createUnlockedRuntime(options);return {...runtime,close:async()=>{try{await runtime.close();}finally{unlock();}}};}
   catch(error){unlock();throw error;}
 }
 async function createUnlockedRuntime(options:RuntimeOptions){
   const store=new Store(join(options.dataDir,'koreai.sqlite'));
+  let vault:Vault;
   let engine:Engine;let browser:BrowserRunner;let connections:LifestyleConnections;
-  try{engine=new Engine(store,options.vault??createPlatformVault(options.dataDir,options.masterKeyFile??process.env.KOREAI_MASTER_KEY_FILE),options.evidenceMode??'live');
+  try{vault=options.vault??createPlatformVault(options.dataDir,options.masterKeyFile??process.env.KOREAI_MASTER_KEY_FILE,{allowCreate:!existsSync(join(options.dataDir,'deepseek.secret.json'))});engine=new Engine(store,vault,options.evidenceMode??'live');
     engine.register(officialActions,officialExecutor(options.fetcher));
+    engine.register([kmaAction],kmaExecutor(options.fetcher));
     const defaults=browserDefaults();
     browser=new BrowserRunner(options.dataDir,options.channel??defaults.channel,options.headless??defaults.headless);engine.register(browserActions,browser.execute);
     connections=new LifestyleConnections(store);engine.register(connections.actions,connections.execute);
@@ -43,9 +49,11 @@ async function createUnlockedRuntime(options:RuntimeOptions){
   const remote=new RemoteRegistry(engine);const oauth=new OAuth(engine,options.fetcher);
   const app=express();app.disable('x-powered-by');
   const bootstrapCode=options.bootstrapCode??token();let bootstrapUsed=false;
-  const sessions=new Map<string,number>();let failedBootstrap=0;let attemptWindow=Date.now();
+  const sessionAge=30*24*60*60*1000;let failedBootstrap=0;let attemptWindow=Date.now();
   let baseUrl='';let server:Server;
-  const origins=()=>[baseUrl,...(options.dev?['http://127.0.0.1:5173']:[])];
+  const publicUrl=publicOrigin(options.publicUrl);
+  const chats=new Conversations(engine,store,vault!,new DeepSeekCredentials(options.dataDir,vault!),()=>baseUrl,options.aiFetcher);
+  const origins=()=>[baseUrl,...(publicUrl?[publicUrl]:[]),...(options.dev?['http://127.0.0.1:5173']:[])];
   const principal=(res:Response)=>res.locals.principal as Principal;
   app.use((req,res,next)=>{
     if(!['127.0.0.1','::1','::ffff:127.0.0.1'].includes(req.socket.remoteAddress??'')){res.status(403).end();return;}
@@ -63,8 +71,8 @@ async function createUnlockedRuntime(options:RuntimeOptions){
     if(failedBootstrap>=10){res.status(429).json({error:{code:'RATE_LIMIT',message:'잠시 후 다시 시도하세요.'}});return;}
     const code=z.object({code:z.string().max(200)}).strict().parse(req.body).code;
     if(bootstrapUsed||!constantEqual(code,bootstrapCode)){failedBootstrap++;res.status(401).json({error:{code:'INVALID_CODE',message:'연결 코드가 틀렸거나 만료됐습니다. 엔진을 재시작하면 새 코드가 발급됩니다.'}});return;}
-    bootstrapUsed=true;const session=token();sessions.set(hash(session),Date.now()+8*60*60*1000);
-    res.cookie('koreai_session',session,{httpOnly:true,sameSite:'strict',maxAge:8*60*60*1000,path:'/'});res.json({ok:true});
+    bootstrapUsed=true;const session=token();store.put('web-session',hash(session),{expiresAt:Date.now()+sessionAge});
+    res.cookie('koreai_session',session,{httpOnly:true,sameSite:'strict',secure:!!publicUrl&&req.headers.origin===publicUrl,maxAge:sessionAge,path:'/'});res.json({ok:true});
   });
   app.get('/oauth/callback',async(req,res)=>{
     const state=typeof req.query.state==='string'?req.query.state:'';
@@ -91,7 +99,7 @@ async function createUnlockedRuntime(options:RuntimeOptions){
     if(bearer){const p=engine.authenticate(bearer);if(p){res.locals.principal=p;next();return;}}
     else {
       const cookie=req.headers.cookie?.split(';').map(v=>v.trim()).find(v=>v.startsWith('koreai_session='))?.slice('koreai_session='.length);
-      if(cookie&&(sessions.get(hash(cookie))??0)>Date.now()){
+      if(cookie&&(store.get<{expiresAt:number}>('web-session',hash(cookie))?.expiresAt??0)>Date.now()){
         if(!['GET','HEAD'].includes(req.method)&&(!req.headers.origin||!origins().includes(req.headers.origin))){res.status(403).json({error:{code:'ORIGIN_REQUIRED',message:'관리 화면에서 실행하세요.'}});return;}
         res.locals.principal=admin;next();return;
       }
@@ -100,7 +108,13 @@ async function createUnlockedRuntime(options:RuntimeOptions){
   });
   const onlyAdmin=(_req:Request,res:Response,next:NextFunction)=>{if(principal(res).role!=='admin'){res.status(403).json({error:{code:'FORBIDDEN',message:'관리 화면에서만 가능한 작업입니다.'}});return;}next();};
   app.get('/api/session',(_req,res)=>res.json({principal:principal(res)}));
-  app.post('/api/logout',onlyAdmin,(req,res)=>{const cookie=req.headers.cookie?.split(';').map(v=>v.trim()).find(v=>v.startsWith('koreai_session='))?.slice(15);if(cookie)sessions.delete(hash(cookie));res.clearCookie('koreai_session',{path:'/'});res.json({ok:true});});
+  app.post('/api/logout',onlyAdmin,(req,res)=>{const cookie=req.headers.cookie?.split(';').map(v=>v.trim()).find(v=>v.startsWith('koreai_session='))?.slice(15);if(cookie)store.delete('web-session',hash(cookie));res.clearCookie('koreai_session',{path:'/',httpOnly:true,sameSite:'strict',secure:!!publicUrl&&req.headers.origin===publicUrl});res.json({ok:true});});
+  app.get('/api/ai',onlyAdmin,(_req,res)=>res.json(chats.settings()));
+  app.post('/api/ai/key',onlyAdmin,async(req,res)=>res.json(await chats.saveKey(req.body)));
+  app.get('/api/chats',onlyAdmin,(_req,res)=>res.json(chats.list()));
+  app.post('/api/chats',onlyAdmin,async(req,res)=>res.status(201).json(await chats.create(req.body)));
+  app.get('/api/chats/:id',onlyAdmin,(req,res)=>res.json(chats.get(String(req.params.id))));
+  app.post('/api/chats/:id/messages',onlyAdmin,(req,res)=>res.status(202).json(chats.submit(String(req.params.id),req.body)));
   app.get('/api/actions',(req,res)=>res.json(engine.discover(principal(res),typeof req.query.q==='string'?req.query.q:'',typeof req.query.service==='string'?req.query.service:undefined)));
   app.get('/api/backlog',onlyAdmin,(_req,res)=>res.json(appApiBacklog));
   app.get('/api/drafts/:id/example',onlyAdmin,(req,res)=>{
@@ -138,7 +152,7 @@ async function createUnlockedRuntime(options:RuntimeOptions){
   app.post('/api/browser/close',onlyAdmin,async(_req,res)=>{await browser.close();res.json({ok:true});});
   app.post('/api/remotes',onlyAdmin,async(req,res)=>res.status(201).json(await remote.add(req.body)));
   app.delete('/api/remotes/:id',onlyAdmin,async(req,res)=>{await remote.remove(String(req.params.id));res.json({ok:true});});
-  app.get('/api/state',onlyAdmin,(_req,res)=>res.json({services,backlog:appApiBacklog,connections:connections.list(),actions:engine.discover(admin),accounts:engine.accounts(),clients:engine.clients(),jobs:engine.jobs().map(j=>({...j,approvalDigest:engine.actions.has(j.actionId)?engine.digest(j):null})),metrics:engine.metrics(),evidence:store.list<Evidence>('evidence').slice(0,200),browser:browser.status(),runtime:{platform:process.platform,vault:options.vault?'custom':process.platform==='win32'?'windows-dpapi':'file-aes-256-gcm'},remotes:remote.list(),oauthRedirectUri:`${baseUrl}/oauth/callback`,defaultTimezone:'Asia/Seoul',mcpConfig:{command:process.execPath,args:[resolve('dist/mcp.js')],env:{KOREAI_URL:baseUrl}}}));
+  app.get('/api/state',onlyAdmin,(_req,res)=>res.json({services,backlog:appApiBacklog,ai:chats.settings(),connections:connections.list(),actions:engine.discover(admin),accounts:engine.accounts(),clients:engine.clients(),jobs:engine.jobs().map(j=>({...j,approvalDigest:engine.actions.has(j.actionId)?engine.digest(j):null})),metrics:engine.metrics(),evidence:store.list<Evidence>('evidence').slice(0,200),browser:browser.status(),runtime:{platform:process.platform,vault:options.vault?'custom':process.platform==='win32'?'windows-dpapi':'file-aes-256-gcm'},remotes:remote.list(),oauthRedirectUri:`${publicUrl??baseUrl}/oauth/callback`,defaultTimezone:'Asia/Seoul',mcpConfig:{command:process.execPath,args:[resolve('dist/mcp.js')],env:{KOREAI_URL:baseUrl}}}));
   app.use('/api',(_req,res)=>res.status(404).json({error:{code:'NOT_FOUND',message:'API를 찾을 수 없습니다.'}}));
   const uiDir=options.uiDir??resolve('web-dist');
   if(existsSync(join(uiDir,'index.html'))){app.use(express.static(uiDir));app.get('/{*path}',(_req,res)=>res.sendFile(join(uiDir,'index.html')));}
@@ -151,8 +165,8 @@ async function createUnlockedRuntime(options:RuntimeOptions){
   try{await new Promise<void>((resolveStart,reject)=>{server=app.listen(options.port??4318,'127.0.0.1',()=>resolveStart());server.on('error',reject);});}
   catch(error){await browser.close();store.close();throw error;}
   const address=server!.address();if(!address||typeof address==='string')throw new Error('주소를 확인할 수 없습니다.');
-  baseUrl=`http://127.0.0.1:${address.port}`;browser.baseUrl=baseUrl;oauth.baseUrl=baseUrl;
-  return {app,server:server!,engine,store,browser,remote,oauth,baseUrl,bootstrapCode,
-    close:async()=>{await engine.close();await browser.close();server!.closeAllConnections();await new Promise<void>((resolveClose,reject)=>server!.close(e=>e?reject(e):resolveClose()));store.close();},
+  baseUrl=`http://127.0.0.1:${address.port}`;browser.baseUrl=baseUrl;oauth.baseUrl=publicUrl??baseUrl;
+  return {app,server:server!,engine,store,browser,remote,oauth,chats,baseUrl,publicUrl,bootstrapCode,
+    close:async()=>{await chats.close();await engine.close();await browser.close();server!.closeAllConnections();await new Promise<void>((resolveClose,reject)=>server!.close(e=>e?reject(e):resolveClose()));store.close();},
   };
 }

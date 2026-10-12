@@ -13,20 +13,21 @@ export interface ApiCandidate {
   documentedScope: string | null;
   proposedActions: string[];
   draftActionIds: string[];
+  implementedActionIds: string[];
   nextStep: string;
 }
 
 const checkedAt = '2026-10-11';
-type CandidateInput = Omit<ApiCandidate, 'verification' | 'checkedAt' | 'draftActionIds'> & { draftActionIds?: string[] };
+type CandidateInput = Omit<ApiCandidate, 'verification' | 'checkedAt' | 'draftActionIds' | 'implementedActionIds'> & { draftActionIds?: string[]; implementedActionIds?: string[]; checkedAt?: string };
 function candidate(input: CandidateInput): ApiCandidate {
-  return { ...input, draftActionIds: input.draftActionIds ?? [], verification: input.documentedScope ? 'documented' : 'unresearched', checkedAt: input.documentedScope ? checkedAt : null };
+  return { ...input, draftActionIds: input.draftActionIds ?? [], implementedActionIds: input.implementedActionIds ?? [], verification: input.documentedScope ? 'documented' : 'unresearched', checkedAt: input.documentedScope ? input.checkedAt ?? checkedAt : null };
 }
 
 // Proposed actions are product ideas; documentedScope describes only the reviewed source.
 export const appApiBacklog: ApiCandidate[] = [
-  candidate({ serviceId: 'kma', name: '기상청 날씨', category: '날씨·환경', homeUrl: 'https://www.weather.go.kr', priority: 1, access: 'public-key',
+  candidate({ serviceId: 'kma', name: '기상청 날씨', category: '날씨·환경', homeUrl: 'https://www.weather.go.kr', priority: 1, access: 'public-key', checkedAt: '2026-10-12',
     sourceUrl: 'https://www.data.go.kr/data/15084084/openapi.do', documentedScope: '초단기실황·초단기예보·단기예보 조회, JSON/XML, 공공데이터포털 키.',
-    proposedActions: ['동네 날씨 조회', '시간별 예보 조회'], draftActionIds: ['kma.observation'], nextStep: '발표 시각·격자 변환과 결측값 처리를 구현하고 실제 키로 응답 검증.' }),
+    proposedActions: ['동네 날씨 조회', '시간별 예보 조회'], implementedActionIds: ['kma.observation'], nextStep: '초단기실황 실행기 구현·모의 검증 완료. 실제 키 검증과 주소→격자 변환·예보 조회는 다음 단계.' }),
   candidate({ serviceId: 'airkorea', name: '에어코리아', category: '날씨·환경', homeUrl: 'https://www.airkorea.or.kr', priority: 1, access: 'public-key',
     sourceUrl: 'https://www.data.go.kr/data/15073861/openapi.do', documentedScope: '대기오염 측정·대기질 예보 조회, JSON/XML. 출처표시·변경금지 조건과 운영 심사 확인 필요.',
     proposedActions: ['대기질 예보 조회', '동네 미세먼지 조회'], draftActionIds: ['airkorea.forecast'], nextStep: '예보와 관측을 구분하고 측정 시각·단위·출처 표시 및 실제 키 응답 검증.' }),

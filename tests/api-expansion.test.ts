@@ -5,7 +5,7 @@ import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { appApiBacklog } from '../src/research/app-api-backlog.js';
-import { draftActions, draftExample, draftExecutor, previewDraftRequest } from '../src/connectors/drafts/index.js';
+import { draftActions, planningActions, draftExample, draftExecutor, previewDraftRequest } from '../src/connectors/drafts/index.js';
 import { services } from '../src/catalog.js';
 import { Engine, admin } from '../src/core/engine.js';
 import { Store } from '../src/core/store.js';
@@ -17,12 +17,14 @@ test('expansion candidates and draft actions reference unique catalog services a
   assert.equal(appApiBacklog.length, 26);
   assert.equal(new Set(appApiBacklog.map(c => c.serviceId)).size, appApiBacklog.length);
   assert.equal(services.length, 71);
-  assert.equal(draftActions.length, 6);
+  assert.equal(draftActions.length, 5);
+  assert.equal(planningActions.length, 6);
   for (const candidate of appApiBacklog) {
     assert(services.some(s => s.id === candidate.serviceId));
     assert(candidate.sourceUrl.startsWith('https://'));
     assert.equal(candidate.checkedAt === null, candidate.verification === 'unresearched');
     for (const id of candidate.draftActionIds) assert(draftActions.some(a => a.id === id && a.serviceId === candidate.serviceId));
+    for (const id of candidate.implementedActionIds) assert(planningActions.some(a => a.id === id && a.serviceId === candidate.serviceId && a.implemented));
   }
   for (const action of draftActions) {
     assert.equal(action.implemented, false);
@@ -35,7 +37,7 @@ test('expansion candidates and draft actions reference unique catalog services a
 });
 
 test('draft previews map documented query fields, exclude secrets, and distinguish proposed schemas', () => {
-  const weather = previewDraftRequest('kma.observation', draftExample('kma.observation'));
+  const weather = previewDraftRequest('kma.observation', { date: '2026-10-10', time: '0900', nx: 60, ny: 127 });
   assert.equal(weather.request?.endpoint, 'https://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getUltraSrtNcst');
   assert.deepEqual(weather.request?.query, { dataType: 'JSON', base_date: '20261010', base_time: '0900', nx: 60, ny: 127, pageNo: 1, numOfRows: 10 });
   const air = previewDraftRequest('airkorea.forecast', draftExample('airkorea.forecast'));
@@ -47,7 +49,7 @@ test('draft previews map documented query fields, exclude secrets, and distingui
   const hospital = previewDraftRequest('egen.hospitals.search', { region: '서울특별시', district: '강남구', day: 8 });
   assert.deepEqual(hospital.request?.query, { Q0: '서울특별시', Q1: '강남구', QT: 8, pageNo: 1, numOfRows: 10 });
   assert.equal(hospital.request?.responseFormat, 'xml');
-  for (const action of draftActions) {
+  for (const action of planningActions) {
     const preview = previewDraftRequest(action.id, draftExample(action.id));
     assert.equal(preview.networkDispatched, false);
     assert.equal(preview.request?.query.serviceKey, undefined);
@@ -110,7 +112,7 @@ test('HTTP exposes planning to admins, discovers disabled drafts for scoped agen
     const call = (path: string, method = 'GET', body?: unknown, token?: string) => fetch(`${r.baseUrl}/api${path}`, { method, headers: { Origin: r.baseUrl, ...(token ? { Authorization: `Bearer ${token}` } : { Cookie: cookie }), ...(body === undefined ? {} : { 'Content-Type': 'application/json' }) }, ...(body === undefined ? {} : { body: JSON.stringify(body) }) });
     const backlog = await (await call('/backlog')).json(); assert.equal(backlog.length, 26);
     const state = await (await call('/state')).json();
-    assert.equal(state.actions.filter((a: { method: string; implemented: boolean }) => a.method === 'api' && a.implemented).length, 20);
+    assert.equal(state.actions.filter((a: { method: string; implemented: boolean }) => a.method === 'api' && a.implemented).length, 21);
     assert.equal(state.backlog.length, 26);
     const example = await (await call('/drafts/kma.observation/example')).json();
     const preview = await call('/drafts/kma.observation/preview', 'POST', example);
@@ -118,13 +120,13 @@ test('HTTP exposes planning to admins, discovers disabled drafts for scoped agen
     assert.equal((await call('/drafts/kma.observation/preview', 'POST', { ...example, serviceKey: 'never-accepted-in-input' })).status, 400);
     assert.equal((await call('/drafts/band.publish/example')).status, 404);
     assert.equal((await call('/drafts/band.publish/preview', 'POST', {})).status, 404);
-    const client = r.engine.createClient({ name: 'limited draft client', allowedActions: ['kma.observation'], allowedAccountIds: [] });
+    const client = r.engine.createClient({ name: 'limited draft client', allowedActions: ['airkorea.forecast'], allowedAccountIds: [] });
     const actions = await (await call('/actions', 'GET', undefined, client.token)).json();
-    assert.deepEqual(actions.map((a: { id: string }) => a.id), ['kma.observation']); assert.equal(actions[0].enabled, false);
+    assert.deepEqual(actions.map((a: { id: string }) => a.id), ['airkorea.forecast']); assert.equal(actions[0].enabled, false);
     assert.equal((await call('/backlog', 'GET', undefined, client.token)).status, 403);
     assert.equal((await call('/drafts/kma.observation/example', 'GET', undefined, client.token)).status, 403);
     assert.equal((await call('/drafts/kma.observation/preview', 'POST', example, client.token)).status, 403);
-    const blocked = await call('/jobs', 'POST', { actionId: 'kma.observation', input: example, idempotencyKey: randomUUID() }, client.token);
+    const blocked = await call('/jobs', 'POST', { actionId: 'airkorea.forecast', input: draftExample('airkorea.forecast'), idempotencyKey: randomUUID() }, client.token);
     assert.equal(blocked.status, 409); assert.equal((await blocked.json()).error.code, 'NOT_IMPLEMENTED');
     assert.equal(providerCalls, 0); assert.equal(r.engine.jobs().length, 0); assert.equal(r.store.list('evidence').length, 0);
   } finally { await r.close(); }
