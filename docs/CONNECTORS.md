@@ -14,6 +14,7 @@
 | 공공혜택 | `gov.benefits.list`, `.detail` | 목록·상세 정보 조회 |
 | 기상청 | `kma.observation` | 발표일·정시·격자의 초단기실황, 단위·결측·페이지·출처 |
 | 에어코리아 | `airkorea.forecast` | 발표 날짜·PM10/PM25/O3별 예보 통보, 대상 날짜·등급 원문·출처 |
+| TAGO | `tago.cities`, `tago.bus.stops`, `tago.bus.arrivals` | 지원 도시, 이름/번호 정류소 탐색, 노선별 도착예정·차량·남은 정류소 |
 
 공식 문서 확인일은 **2026-09-29**입니다. 모든 기본 행동의 최초 검증 상태는 `documented`입니다. 실제 키·심사·계정 호출이 성공하기 전에는 실사용 지원으로 표시하지 않습니다.
 
@@ -22,6 +23,8 @@
 네이버 카페 텍스트는 문서가 요구하는 UTF-8 URL 인코딩 후 MS949 URL 인코딩을 적용합니다. 이미지 첨부·상품 게시판은 제공하지 않습니다. 캘린더는 UTC iCalendar 시간과 요청 작업 ID 기반 UID를 사용하고, 반환된 UID를 대조합니다. 밴드 페이징 결과의 접근 토큰은 제거합니다. 다음 페이지에는 반환받은 `after` 값만 입력하세요.
 
 에어코리아 추가 행동의 문서 확인일은 **2026-10-14**입니다. 실행기는 [airkorea.ts](../src/connectors/airkorea.ts), 계정 종류는 `airkorea-api`, 필수 키는 `serviceKey`입니다. 고정 HTTPS 주소·`searchDate`·`InformCode`를 사용하며 날짜 조회에 적용되지 않는 페이지 입력은 받지 않습니다. 발표 날짜·항목을 대조하고 예보 대상 날짜·지역 등급·설명 원문과 출처·공공누리 제3유형 조건을 보존합니다. [사용·결과 규격](AIRKOREA.md)
+
+TAGO 추가 행동의 문서 확인일은 **2026-10-14**입니다. [tago.ts](../src/connectors/tago.ts)는 버스도착정보의 `getCtyCodeList`·`getSttnAcctoArvlPrearngeInfoList`, 버스정류소정보의 `getSttnNoList`를 고정 HTTPS로 호출합니다. 계정 종류는 `tago-api`, 필수 값은 `serviceKey`이며 두 API의 권한은 별도 확인합니다. 초 단위 예정값과 표시용 올림 분을 구분하고, 미제공 예정값과 공급자 갱신 시각은 `null`로 보존합니다. [사용·결과 규격](TAGO.md)
 
 ## 새 공식 API 커넥터 추가
 

@@ -43,6 +43,12 @@ export function providerMock(){
     else if(url.hostname==='kapi.kakao.com')body={result_code:0};
     else if(url.hostname==='dapi.kakao.com')body={documents:[{place_name:'서울 도서관',x:'126.97',y:'37.56'}],meta:{total_count:1}};
     else if(url.hostname==='api.odcloud.kr')body={data:[{서비스ID:'GOV-123',서비스명:'청년 지원'}],totalCount:1};
+    else if(url.pathname.endsWith('/getCtyCodeList'))body={response:{header:{resultCode:'00',resultMsg:'OK'},body:{items:{item:[{citycode:25,cityname:'대전광역시'}]}}}};
+    else if(url.pathname.endsWith('/getSttnNoList')||url.pathname.endsWith('/getSttnAcctoArvlPrearngeInfoList')){
+      const stop={nodeid:'DJB8001793',nodenm:'송강전통시장',nodeno:'44810',gpslati:'36.43535',gpslong:'127.3863'};
+      const item=url.pathname.endsWith('/getSttnNoList')?stop:{...stop,routeid:'DJB30300002',routeno:'5',routetp:'마을버스',vehicletp:'저상버스',arrprevstationcnt:15,arrtime:816};
+      body={response:{header:{resultCode:'00',resultMsg:'OK'},body:{pageNo:Number(url.searchParams.get('pageNo')),numOfRows:Number(url.searchParams.get('numOfRows')),totalCount:1,items:{item:[item]}}}};
+    }
     else if(url.pathname.endsWith('/getMinuDustFrcstDspth')){
       const announcement=url.searchParams.get('searchDate')!;
       const target=new Date(`${announcement}T00:00:00Z`);target.setUTCDate(target.getUTCDate()+1);

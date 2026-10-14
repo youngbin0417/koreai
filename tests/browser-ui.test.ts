@@ -39,6 +39,29 @@ test('mobile chat registers Flash, keeps history, approves a write and continues
   }finally{await browser?.close();await r.close();}
 });
 
+test('TAGO mobile UI connects an account and finds a city and stop before requesting arrivals',async()=>{
+  const mock=providerMock();const r=await createRuntime({dataDir:tempDir('tago-ui'),port:0,vault:new TestVault(),fetcher:mock.fetcher,bootstrapCode:'tago-ui-bootstrap',headless:true,evidenceMode:'mock'});let browser:Browser|undefined;
+  try{
+    browser=await chromium.launch({channel:testChannel,headless:true});const page=await browser.newPage({viewport:{width:390,height:844}});const errors:string[]=[];page.on('pageerror',error=>errors.push(error.message));
+    await page.goto(`${r.baseUrl}/#setup=tago-ui-bootstrap`);await page.getByRole('button',{name:'로컬 엔진 연결'}).click();
+    await page.getByRole('button',{name:'연결 계정',exact:false}).first().click();await page.getByRole('button',{name:'＋ 계정 연결'}).click();
+    await page.getByLabel('계정 종류').selectOption('tago-api');await page.getByLabel('내가 알아볼 계정 이름').fill('내 버스 계정');await page.getByLabel('serviceKey',{exact:true}).fill('ui-tago-private-key-12345');
+    for(const name of ['TAGO 지원 도시 목록','TAGO 버스 정류소 찾기','TAGO 버스 도착예정 조회'])await page.getByLabel(name,{exact:false}).check();
+    await page.getByRole('button',{name:'계정 저장',exact:true}).click();await page.getByRole('heading',{name:'내 버스 계정'}).waitFor();assert.equal(mock.requests.length,0);
+    const open=async(name:string)=>{await page.getByRole('button',{name:'확장 계획',exact:false}).click();await page.getByRole('article',{name:'TAGO 대중교통 확장 계획'}).getByRole('button',{name,exact:true}).click();};
+    const submit=async()=>{await page.getByRole('button',{name:'실행 요청',exact:false}).click();await page.getByRole('heading',{name:'실행 결과',exact:true}).waitFor();};
+    const close=async()=>{await page.getByRole('button',{name:'닫기',exact:true}).click();};
+    await open('TAGO 지원 도시 목록');await page.getByRole('button',{name:'요청 구조 미리보기'}).click();await page.getByRole('heading',{name:'요청 구조 · 외부 호출 없음'}).waitFor();assert.equal(mock.requests.length,0);await submit();
+    const cityText=await page.getByRole('dialog').innerText();assert(cityText.includes('대전광역시'));const cityCode=Number(cityText.match(/"cityCode":\s*(\d+)/)![1]);await close();
+    await open('TAGO 버스 정류소 찾기');await page.getByLabel('실행할 내용 · JSON').fill(JSON.stringify({cityCode,name:'송강전통시장'}));await submit();
+    const stopText=await page.getByRole('dialog').innerText();assert(stopText.includes('WGS84'));const nodeId=stopText.match(/"nodeId":\s*"([^"]+)"/)![1];await close();
+    await open('TAGO 버스 도착예정 조회');await page.getByLabel('실행할 내용 · JSON').fill(JSON.stringify({cityCode,nodeId}));await submit();
+    const result=await page.getByRole('dialog').innerText();assert(result.includes('"arrivalSeconds": 816'));assert(result.includes('"arrivalMinutes": 14'));assert(result.includes('저상버스'));assert(result.includes('"providerUpdatedAt": null'));assert(!result.includes('ui-tago-private-key'));assert.equal(mock.requests.length,3);
+    assert(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth));assert.deepEqual(errors,[]);assert.equal(r.engine.metrics().verifiedServices,0);
+    const screenshots=resolve('.test-data/screenshots');mkdirSync(screenshots,{recursive:true});await page.screenshot({path:resolve(screenshots,'tago-mobile.png'),fullPage:true});await page.setViewportSize({width:1440,height:1000});await page.screenshot({path:resolve(screenshots,'tago-desktop.png'),fullPage:true});
+  }finally{await browser?.close();await r.close();}
+});
+
 test('owned browser handles login, approval, result receipts, profile persistence and changed pages',async()=>{
   const r=await createRuntime({dataDir:tempDir('browser'),port:0,vault:new TestVault(),headless:true,channel:testChannel,evidenceMode:'mock'});
   try{
@@ -63,7 +86,7 @@ test('React dashboard supports onboarding, expanded catalog, basic connections, 
     await page.goto(`${r.baseUrl}/#setup=ui-bootstrap`);await page.getByRole('button',{name:'로컬 엔진 연결'}).click();await page.getByRole('button',{name:'둘러보기',exact:false}).click();await page.getByRole('heading',{name:'일상에 필요한 연결을 한곳에.'}).waitFor();
     assert.equal(new URL(page.url()).hash,'');
     const screenshotDir=resolve('.test-data/screenshots');mkdirSync(screenshotDir,{recursive:true});await page.screenshot({path:resolve(screenshotDir,'dashboard.png'),fullPage:true});
-    assert.equal(await page.locator('.stat').filter({hasText:'구현된 API 행동'}).locator('strong').textContent(),'22↗');
+    assert.equal(await page.locator('.stat').filter({hasText:'구현된 API 행동'}).locator('strong').textContent(),'25↗');
     await page.getByRole('button',{name:'서비스 카탈로그',exact:false}).click();assert.equal(await page.locator('.service-card').count(),71);
     await page.getByRole('button',{name:'확장 계획',exact:false}).click();
     assert.equal(await page.locator('.expansion-card').count(),26);

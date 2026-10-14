@@ -5,7 +5,7 @@ import type { DraftPreview } from '../src/connectors/drafts';
 const accessLabels: Record<ApiCandidate['access'], string> = {
   'public-key': '공개 정보 · 공급자 키 필요', merchant: '판매자 API · 소비자 권한 별도', unknown: '접근 경로 조사 필요',
 };
-export function ExpansionPlan({ candidates, openAction }: { candidates: ApiCandidate[]; openAction: (id: string) => void }) {
+export function ExpansionPlan({ candidates, actionTitles, openAction }: { candidates: ApiCandidate[]; actionTitles: Record<string, string>; openAction: (id: string) => void }) {
   const [priority, setPriority] = useState('all');
   const [query, setQuery] = useState('');
   const visible = candidates.filter(c => (priority === 'all' || String(c.priority) === priority) && `${c.name} ${c.proposedActions.join(' ')}`.toLowerCase().includes(query.toLowerCase()));
@@ -23,7 +23,7 @@ export function ExpansionPlan({ candidates, openAction }: { candidates: ApiCandi
       <p className="muted small">{c.checkedAt ? `문서 확인: ${c.checkedAt} · 계정 미검증` : '미조사 · 홈페이지를 조사 시작점으로 등록'}</p>
       <h3>먼저 정의할 행동</h3><ul>{c.proposedActions.map(a => <li key={a}>{a}</li>)}</ul>
       <h3>다음 작업</h3><p>{c.nextStep}</p>
-      <div className="button-row">{c.implementedActionIds.map(id => <button key={id} onClick={() => openAction(id)}>조회 기능 열기</button>)}{c.draftActionIds.map(id => <button key={id} onClick={() => openAction(id)}>조회 초안 열기</button>)}<a href={c.sourceUrl} target="_blank" rel="noreferrer">{c.checkedAt ? '공식 근거' : '공식 서비스'} ↗</a></div>
+      <div className="button-row">{c.implementedActionIds.map(id => <button key={id} onClick={() => openAction(id)}>{c.implementedActionIds.length > 1 ? actionTitles[id] ?? '조회 기능 열기' : '조회 기능 열기'}</button>)}{c.draftActionIds.map(id => <button key={id} onClick={() => openAction(id)}>조회 초안 열기</button>)}<a href={c.sourceUrl} target="_blank" rel="noreferrer">{c.checkedAt ? '공식 근거' : '공식 서비스'} ↗</a></div>
     </article>)}</div>
     {visible.length === 0 && <p role="status">검색 조건에 맞는 확장 후보가 없습니다.</p>}
   </>;

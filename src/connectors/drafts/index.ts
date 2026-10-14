@@ -4,6 +4,7 @@ import { appApiBacklog } from '../../research/app-api-backlog.js';
 import { ActionError, type Action, type Executor } from '../../types.js';
 import { kmaAction, kmaExample, kmaRequestTemplate } from '../kma.js';
 import { airkoreaAction, airkoreaExample, airkoreaRequestTemplate } from '../airkorea.js';
+import { tagoActions, tagoArrivalsAction, tagoCitiesAction, tagoStopsAction, tagoExample, tagoRequestTemplate } from '../tago.js';
 
 const nonempty = (description: string, max = 100) => z.string().trim().min(1).max(max).describe(description);
 const page = z.number().int().min(1).max(1000).default(1);
@@ -21,6 +22,7 @@ export interface DraftRequest {
   responseFormat: 'json' | 'xml';
 }
 interface Definition {
+  actionId?: string;
   serviceId: string;
   title: string;
   description: string;
@@ -54,12 +56,22 @@ const definitions: Definition[] = [
     request: airkoreaRequestTemplate,
   },
   {
-    serviceId: 'tago', title: 'TAGO 버스 도착예정 조회',
-    description: '도시코드와 정류소 ID로 버스 도착 정보를 조회하는 초안입니다. 도시·정류소 탐색은 다음 행동으로 추가합니다.',
-    schema: z.object({ cityCode: z.number().int().min(1).max(999999999), nodeId: nonempty('TAGO 정류소 ID', 30).regex(/^[A-Za-z0-9_-]+$/), page, limit }).strict(),
-    example: { cityCode: 25, nodeId: 'DJB8001793' },
-    resultCheck: '정상 resultCode와 요청 nodeId 일치, 노선·도착 예정 초/분 단위·조회 시점·지역 제공 여부를 검증합니다.',
-    request: input => dataRequest('1613000/ArvlInfoInqireService/getSttnAcctoArvlPrearngeInfoList', { _type: 'json', cityCode: input.cityCode, nodeId: input.nodeId, pageNo: input.page, numOfRows: input.limit }),
+    actionId: tagoArrivalsAction.id, serviceId: 'tago', title: tagoArrivalsAction.title,
+    description: tagoArrivalsAction.description, schema: tagoArrivalsAction.schema,
+    example: tagoExample(tagoArrivalsAction.id)!, resultCheck: tagoArrivalsAction.resultCheck,
+    request: input => tagoRequestTemplate(tagoArrivalsAction.id, input),
+  },
+  {
+    actionId: tagoCitiesAction.id, serviceId: 'tago', title: tagoCitiesAction.title,
+    description: tagoCitiesAction.description, schema: tagoCitiesAction.schema,
+    example: tagoExample(tagoCitiesAction.id)!, resultCheck: tagoCitiesAction.resultCheck,
+    request: input => tagoRequestTemplate(tagoCitiesAction.id, input),
+  },
+  {
+    actionId: tagoStopsAction.id, serviceId: 'tago', title: tagoStopsAction.title,
+    description: tagoStopsAction.description, schema: tagoStopsAction.schema,
+    example: tagoExample(tagoStopsAction.id)!, resultCheck: tagoStopsAction.resultCheck,
+    request: input => tagoRequestTemplate(tagoStopsAction.id, input),
   },
   {
     serviceId: 'egen', title: 'E-Gen 병·의원 찾기',
@@ -88,6 +100,7 @@ const definitions: Definition[] = [
 export const planningActions: Action[] = definitions.map(definition => {
   if (definition.serviceId === 'kma') return kmaAction;
   if (definition.serviceId === 'airkorea') return airkoreaAction;
+  if (definition.serviceId === 'tago') return tagoActions.find(action => action.id === definition.actionId)!;
   const candidate = appApiBacklog.find(c => c.serviceId === definition.serviceId)!;
   const domains = definition.request ? ['apis.data.go.kr'] : definition.serviceId === 'neis' ? ['open.neis.go.kr'] : ['www.kobis.or.kr'];
   return {
