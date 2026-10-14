@@ -5,10 +5,9 @@ import { ActionError, type Action, type Executor } from '../../types.js';
 import { kmaAction, kmaExample, kmaRequestTemplate } from '../kma.js';
 import { airkoreaAction, airkoreaExample, airkoreaRequestTemplate } from '../airkorea.js';
 import { tagoActions, tagoArrivalsAction, tagoCitiesAction, tagoStopsAction, tagoExample, tagoRequestTemplate } from '../tago.js';
+import { egenAction, egenRequestTemplate } from '../egen.js';
 
 const nonempty = (description: string, max = 100) => z.string().trim().min(1).max(max).describe(description);
-const page = z.number().int().min(1).max(1000).default(1);
-const limit = z.number().int().min(1).max(100).default(10);
 const date = z.string().regex(/^\d{4}-\d{2}-\d{2}$/).refine(value => {
   const parsed = new Date(`${value}T00:00:00Z`);
   return Number.isFinite(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value;
@@ -31,10 +30,6 @@ interface Definition {
   resultCheck: string;
   request?: (input: Record<string, any>) => DraftRequest;
 }
-const dataRequest = (path: string, query: DraftRequest['query'], responseFormat: DraftRequest['responseFormat'] = 'json', keyParameter = 'serviceKey'): DraftRequest => ({
-  method: 'GET', endpoint: `https://apis.data.go.kr/${path}`, query,
-  authentication: { secretField: 'serviceKey', queryParameter: keyParameter }, responseFormat,
-});
 
 // Request templates contain no secrets and never dispatch HTTP. Two schemas are
 // KoreAI proposals pending review of the provider's detailed parameter contract.
@@ -75,11 +70,11 @@ const definitions: Definition[] = [
   },
   {
     serviceId: 'egen', title: 'E-Gen 병·의원 찾기',
-    description: '지역과 기관명·진료요일을 조건으로 병·의원 정보를 조회하는 초안입니다. 실시간 진료 가능 판정이나 응급실 가용 병상 확인은 이 행동에 포함되지 않습니다.',
-    schema: z.object({ region: nonempty('시도명', 16), district: nonempty('시군구명', 60).optional(), name: nonempty('병·의원 이름', 100).optional(), day: z.number().int().min(1).max(8).optional().describe('월~일 1~7, 공휴일 8'), page, limit }).strict(),
+    description: egenAction.description,
+    schema: egenAction.schema,
     example: { region: '서울특별시', district: '강남구' },
-    resultCheck: 'XML 정상 결과와 기관 식별자·주소·진료요일·자료 시점을 검증합니다. 목록 조회를 실제 운영 여부로 단정하지 않습니다.',
-    request: input => dataRequest('B552657/HsptlAsembySearchService/getHsptlMdcncListInfoInqire', { Q0: input.region, ...(input.district ? { Q1: input.district } : {}), ...(input.name ? { QN: input.name } : {}), ...(input.day ? { QT: input.day } : {}), pageNo: input.page, numOfRows: input.limit }, 'xml'),
+    resultCheck: egenAction.resultCheck,
+    request: egenRequestTemplate,
   },
   {
     serviceId: 'neis', title: '나이스 학교 급식 조회',
@@ -101,6 +96,7 @@ export const planningActions: Action[] = definitions.map(definition => {
   if (definition.serviceId === 'kma') return kmaAction;
   if (definition.serviceId === 'airkorea') return airkoreaAction;
   if (definition.serviceId === 'tago') return tagoActions.find(action => action.id === definition.actionId)!;
+  if (definition.serviceId === 'egen') return egenAction;
   const candidate = appApiBacklog.find(c => c.serviceId === definition.serviceId)!;
   const domains = definition.request ? ['apis.data.go.kr'] : definition.serviceId === 'neis' ? ['open.neis.go.kr'] : ['www.kobis.or.kr'];
   return {

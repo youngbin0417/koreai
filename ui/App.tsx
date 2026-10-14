@@ -24,6 +24,7 @@ const credentials:Record<string,{name:string;fields:string[];help:string}>={
   'kma-api':{name:'기상청 단기예보',fields:['serviceKey'],help:'공공데이터포털에서 기상청 단기예보 조회서비스를 활용 신청한 뒤 일반 인증키(Decoding)를 입력하세요. 실제 연결 확인은 초단기실황 조회를 실행해 진행합니다.'},
   'airkorea-api':{name:'에어코리아 대기질 예보',fields:['serviceKey'],help:'공공데이터포털에서 한국환경공단 에어코리아 대기오염정보를 활용 신청한 뒤 일반 인증키(Decoding)를 입력하세요. 발표 날짜로 예보 통보를 조회하며 현재 관측값 조회와 구분합니다.'},
   'tago-api':{name:'TAGO 도시·정류소·버스 도착',fields:['serviceKey'],help:'공공데이터포털에서 TAGO 버스도착정보와 버스정류소정보를 각각 활용 신청하고 일반 인증키(Decoding)를 입력하세요. 도시 목록에서 코드를 확인하고 정류소 검색 결과의 nodeId로 도착정보를 조회합니다.'},
+  'egen-api':{name:'E-Gen 병·의원 찾기',fields:['serviceKey'],help:'공공데이터포털의 국립중앙의료원 전국 병·의원 찾기 서비스를 활용 신청하고 일반 인증키(Decoding)를 입력하세요. 진료시간은 제공된 일정이며 현재 진료 가능 여부는 방문 전 기관에 확인하세요.'},
 };
 class ApiError extends Error {constructor(message:string,readonly status:number){super(message);}}
 async function api<T>(path:string,method='GET',body?:unknown):Promise<T>{

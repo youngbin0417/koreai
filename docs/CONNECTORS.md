@@ -15,6 +15,7 @@
 | 기상청 | `kma.observation` | 발표일·정시·격자의 초단기실황, 단위·결측·페이지·출처 |
 | 에어코리아 | `airkorea.forecast` | 발표 날짜·PM10/PM25/O3별 예보 통보, 대상 날짜·등급 원문·출처 |
 | TAGO | `tago.cities`, `tago.bus.stops`, `tago.bus.arrivals` | 지원 도시, 이름/번호 정류소 탐색, 노선별 도착예정·차량·남은 정류소 |
+| E-Gen | `egen.hospitals.search` | 지역·기관명·진료요일 검색, 기관 식별자·주소·전화·제공된 진료시간 |
 
 공식 문서 확인일은 **2026-09-29**입니다. 모든 기본 행동의 최초 검증 상태는 `documented`입니다. 실제 키·심사·계정 호출이 성공하기 전에는 실사용 지원으로 표시하지 않습니다.
 
@@ -25,6 +26,8 @@
 에어코리아 추가 행동의 문서 확인일은 **2026-10-14**입니다. 실행기는 [airkorea.ts](../src/connectors/airkorea.ts), 계정 종류는 `airkorea-api`, 필수 키는 `serviceKey`입니다. 고정 HTTPS 주소·`searchDate`·`InformCode`를 사용하며 날짜 조회에 적용되지 않는 페이지 입력은 받지 않습니다. 발표 날짜·항목을 대조하고 예보 대상 날짜·지역 등급·설명 원문과 출처·공공누리 제3유형 조건을 보존합니다. [사용·결과 규격](AIRKOREA.md)
 
 TAGO 추가 행동의 문서 확인일은 **2026-10-14**입니다. [tago.ts](../src/connectors/tago.ts)는 버스도착정보의 `getCtyCodeList`·`getSttnAcctoArvlPrearngeInfoList`, 버스정류소정보의 `getSttnNoList`를 고정 HTTPS로 호출합니다. 계정 종류는 `tago-api`, 필수 값은 `serviceKey`이며 두 API의 권한은 별도 확인합니다. 초 단위 예정값과 표시용 올림 분을 구분하고, 미제공 예정값과 공급자 갱신 시각은 `null`로 보존합니다. [사용·결과 규격](TAGO.md)
+
+E-Gen 추가 행동의 문서 확인일은 **2026-10-14**입니다. [egen.ts](../src/connectors/egen.ts)는 고정 HTTPS 목록 조회와 `egen-api`의 `serviceKey`를 사용합니다. `fast-xml-parser` 5.11.2로 문법을 검사하고 문자열을 보존하며 DTD·외부/사용자 엔티티 선언을 거절합니다. 병원 식별자·전화·제공된 요일별 시간과 원문 값을 반환하고, 미제공 시간·자료 갱신 시각·현재 진료 가능 여부를 확정하지 않습니다. [사용·결과 규격](EGEN.md)
 
 ## 새 공식 API 커넥터 추가
 

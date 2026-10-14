@@ -62,6 +62,25 @@ test('TAGO mobile UI connects an account and finds a city and stop before reques
   }finally{await browser?.close();await r.close();}
 });
 
+test('E-Gen mobile UI connects a key, previews without dispatch and displays contacts and unverified hours',async()=>{
+  const mock=providerMock();const r=await createRuntime({dataDir:tempDir('egen-ui'),port:0,vault:new TestVault(),fetcher:mock.fetcher,bootstrapCode:'egen-ui-bootstrap',headless:true,evidenceMode:'mock'});let browser:Browser|undefined;
+  try{
+    browser=await chromium.launch({channel:testChannel,headless:true});const page=await browser.newPage({viewport:{width:390,height:844}});const errors:string[]=[];page.on('pageerror',error=>errors.push(error.message));
+    await page.goto(`${r.baseUrl}/#setup=egen-ui-bootstrap`);await page.getByRole('button',{name:'로컬 엔진 연결'}).click();
+    await page.getByRole('button',{name:'연결 계정',exact:false}).first().click();await page.getByRole('button',{name:'＋ 계정 연결'}).click();
+    await page.getByLabel('계정 종류').selectOption('egen-api');await page.getByLabel('내가 알아볼 계정 이름').fill('병원 정보 계정');await page.getByLabel('serviceKey',{exact:true}).fill('ui-egen-private-key-12345');await page.getByRole('checkbox',{name:'E-Gen 병·의원 찾기',exact:true}).check();
+    await page.getByRole('button',{name:'계정 저장',exact:true}).click();await page.getByRole('heading',{name:'병원 정보 계정'}).waitFor();assert.equal(mock.requests.length,0);
+    await page.getByRole('button',{name:'확장 계획',exact:false}).click();await page.getByRole('article',{name:'E-Gen 병·의원 정보 확장 계획'}).getByRole('button',{name:'조회 기능 열기'}).click();
+    await page.getByRole('button',{name:'예시 입력 불러오기'}).click();await page.waitForFunction(()=>document.querySelector<HTMLTextAreaElement>('textarea.code-input')?.value.includes('강남구'));
+    await page.getByLabel('실행할 내용 · JSON').fill(JSON.stringify({region:'서울특별시',district:'강남구',name:'시험',day:8}));
+    await page.getByRole('button',{name:'요청 구조 미리보기'}).click();await page.getByRole('heading',{name:'요청 구조 · 외부 호출 없음'}).waitFor();assert.equal(mock.requests.length,0);assert((await page.locator('.draft-inspector pre').innerText()).includes('"QT": 8'));
+    await page.getByRole('button',{name:'실행 요청',exact:false}).click();await page.getByRole('heading',{name:'실행 결과',exact:true}).waitFor();
+    const result=await page.getByRole('dialog').innerText();assert(result.includes('시험 & 의원'));assert(result.includes('02-0000-0000'));assert(result.includes('08:30'));assert(result.includes('공휴일'));assert(result.includes('not_verified'));assert(result.includes('전화로 확인'));assert(!result.includes('ui-egen-private-key'));assert.equal(mock.requests.length,1);
+    assert(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth));assert.deepEqual(errors,[]);assert.equal(r.engine.metrics().verifiedServices,0);
+    const screenshots=resolve('.test-data/screenshots');mkdirSync(screenshots,{recursive:true});await page.screenshot({path:resolve(screenshots,'egen-mobile.png'),fullPage:true});await page.setViewportSize({width:1440,height:1000});await page.screenshot({path:resolve(screenshots,'egen-desktop.png'),fullPage:true});
+  }finally{await browser?.close();await r.close();}
+});
+
 test('owned browser handles login, approval, result receipts, profile persistence and changed pages',async()=>{
   const r=await createRuntime({dataDir:tempDir('browser'),port:0,vault:new TestVault(),headless:true,channel:testChannel,evidenceMode:'mock'});
   try{
@@ -86,7 +105,7 @@ test('React dashboard supports onboarding, expanded catalog, basic connections, 
     await page.goto(`${r.baseUrl}/#setup=ui-bootstrap`);await page.getByRole('button',{name:'로컬 엔진 연결'}).click();await page.getByRole('button',{name:'둘러보기',exact:false}).click();await page.getByRole('heading',{name:'일상에 필요한 연결을 한곳에.'}).waitFor();
     assert.equal(new URL(page.url()).hash,'');
     const screenshotDir=resolve('.test-data/screenshots');mkdirSync(screenshotDir,{recursive:true});await page.screenshot({path:resolve(screenshotDir,'dashboard.png'),fullPage:true});
-    assert.equal(await page.locator('.stat').filter({hasText:'구현된 API 행동'}).locator('strong').textContent(),'25↗');
+    assert.equal(await page.locator('.stat').filter({hasText:'구현된 API 행동'}).locator('strong').textContent(),'26↗');
     await page.getByRole('button',{name:'서비스 카탈로그',exact:false}).click();assert.equal(await page.locator('.service-card').count(),71);
     await page.getByRole('button',{name:'확장 계획',exact:false}).click();
     assert.equal(await page.locator('.expansion-card').count(),26);

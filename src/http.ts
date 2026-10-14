@@ -14,6 +14,7 @@ import { officialActions, officialExecutor } from './connectors/official.js';
 import { kmaAction, kmaExecutor } from './connectors/kma.js';
 import { airkoreaAction, airkoreaExecutor } from './connectors/airkorea.js';
 import { tagoActions, tagoExecutor } from './connectors/tago.js';
+import { egenAction, egenExecutor } from './connectors/egen.js';
 import { BrowserRunner, browserActions } from './connectors/browser.js';
 import { RemoteRegistry } from './connectors/remote.js';
 import { registerReviewedExtensions } from './connectors/extensions.js';
@@ -44,6 +45,7 @@ async function createUnlockedRuntime(options:RuntimeOptions){
     engine.register([kmaAction],kmaExecutor(options.fetcher));
     engine.register([airkoreaAction],airkoreaExecutor(options.fetcher));
     engine.register(tagoActions,tagoExecutor(options.fetcher));
+    engine.register([egenAction],egenExecutor(options.fetcher));
     const defaults=browserDefaults();
     browser=new BrowserRunner(options.dataDir,options.channel??defaults.channel,options.headless??defaults.headless);engine.register(browserActions,browser.execute);
     connections=new LifestyleConnections(store);engine.register(connections.actions,connections.execute);
