@@ -3,6 +3,7 @@ import { zodToJsonSchema } from 'zod-to-json-schema';
 import { appApiBacklog } from '../../research/app-api-backlog.js';
 import { ActionError, type Action, type Executor } from '../../types.js';
 import { kmaAction, kmaExample, kmaRequestTemplate } from '../kma.js';
+import { airkoreaAction, airkoreaExample, airkoreaRequestTemplate } from '../airkorea.js';
 
 const nonempty = (description: string, max = 100) => z.string().trim().min(1).max(max).describe(description);
 const page = z.number().int().min(1).max(1000).default(1);
@@ -46,11 +47,11 @@ const definitions: Definition[] = [
   },
   {
     serviceId: 'airkorea', title: '에어코리아 대기질 예보 조회',
-    description: '날짜와 PM10·PM25·O3 항목으로 예보를 조회하는 초안입니다. 측정소의 현재 관측값 조회와 별개의 행동입니다.',
-    schema: z.object({ date, pollutant: z.enum(['PM10', 'PM25', 'O3']).default('PM10'), page, limit }).strict(),
+    description: airkoreaAction.description,
+    schema: airkoreaAction.schema,
     example: { date: '2026-10-10', pollutant: 'PM25' },
-    resultCheck: '정상 resultCode와 통보 날짜·informCode, 발표 시각·예보 지역·출처·변경금지 조건을 검증합니다.',
-    request: input => dataRequest('B552584/ArpltnInforInqireSvc/getMinuDustFrcstDspth', { returnType: 'json', searchDate: input.date, InformCode: input.pollutant, pageNo: input.page, numOfRows: input.limit }),
+    resultCheck: airkoreaAction.resultCheck,
+    request: airkoreaRequestTemplate,
   },
   {
     serviceId: 'tago', title: 'TAGO 버스 도착예정 조회',
@@ -86,6 +87,7 @@ const definitions: Definition[] = [
 
 export const planningActions: Action[] = definitions.map(definition => {
   if (definition.serviceId === 'kma') return kmaAction;
+  if (definition.serviceId === 'airkorea') return airkoreaAction;
   const candidate = appApiBacklog.find(c => c.serviceId === definition.serviceId)!;
   const domains = definition.request ? ['apis.data.go.kr'] : definition.serviceId === 'neis' ? ['open.neis.go.kr'] : ['www.kobis.or.kr'];
   return {
@@ -110,6 +112,7 @@ export interface DraftPreview {
 }
 export function draftExample(actionId: string): Record<string, unknown> | undefined {
   if (actionId === kmaAction.id) return kmaExample();
+  if (actionId === airkoreaAction.id) return airkoreaExample();
   const index = planningActions.findIndex(a => a.id === actionId);
   return index < 0 ? undefined : structuredClone(definitions[index]!.example);
 }

@@ -43,6 +43,14 @@ export function providerMock(){
     else if(url.hostname==='kapi.kakao.com')body={result_code:0};
     else if(url.hostname==='dapi.kakao.com')body={documents:[{place_name:'서울 도서관',x:'126.97',y:'37.56'}],meta:{total_count:1}};
     else if(url.hostname==='api.odcloud.kr')body={data:[{서비스ID:'GOV-123',서비스명:'청년 지원'}],totalCount:1};
+    else if(url.pathname.endsWith('/getMinuDustFrcstDspth')){
+      const announcement=url.searchParams.get('searchDate')!;
+      const target=new Date(`${announcement}T00:00:00Z`);target.setUTCDate(target.getUTCDate()+1);
+      body={response:{header:{resultCode:'00',resultMsg:'NORMAL SERVICE'},body:{totalCount:1,items:[{
+        dataTime:`${announcement} 11시 발표`,informCode:url.searchParams.get('InformCode'),informData:target.toISOString().slice(0,10),
+        informOverall:'내일의 시험 예보 원문',informCause:'시험 데이터',informGrade:'서울 : 좋음, 경기남부 : 보통',actionKnack:null,
+      }]}}};
+    }
     else if(url.pathname.endsWith('/getUltraSrtNcst'))body={
       response:{header:{resultCode:'00',resultMsg:'OK'},body:{
         pageNo:Number(url.searchParams.get('pageNo')),numOfRows:Number(url.searchParams.get('numOfRows')),totalCount:1,

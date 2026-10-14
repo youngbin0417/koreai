@@ -63,7 +63,7 @@ test('React dashboard supports onboarding, expanded catalog, basic connections, 
     await page.goto(`${r.baseUrl}/#setup=ui-bootstrap`);await page.getByRole('button',{name:'로컬 엔진 연결'}).click();await page.getByRole('button',{name:'둘러보기',exact:false}).click();await page.getByRole('heading',{name:'일상에 필요한 연결을 한곳에.'}).waitFor();
     assert.equal(new URL(page.url()).hash,'');
     const screenshotDir=resolve('.test-data/screenshots');mkdirSync(screenshotDir,{recursive:true});await page.screenshot({path:resolve(screenshotDir,'dashboard.png'),fullPage:true});
-    assert.equal(await page.locator('.stat').filter({hasText:'구현된 API 행동'}).locator('strong').textContent(),'21↗');
+    assert.equal(await page.locator('.stat').filter({hasText:'구현된 API 행동'}).locator('strong').textContent(),'22↗');
     await page.getByRole('button',{name:'서비스 카탈로그',exact:false}).click();assert.equal(await page.locator('.service-card').count(),71);
     await page.getByRole('button',{name:'확장 계획',exact:false}).click();
     assert.equal(await page.locator('.expansion-card').count(),26);
@@ -111,6 +111,17 @@ test('React dashboard supports onboarding, expanded catalog, basic connections, 
     await page.getByRole('button',{name:'예시 입력 불러오기'}).click();await page.waitForFunction(()=>document.querySelector<HTMLTextAreaElement>('textarea.code-input')?.value.includes('"nx": 60'));
     await page.getByRole('button',{name:'실행 요청',exact:false}).click();await page.getByRole('heading',{name:'실행 결과',exact:true}).waitFor();
     assert.equal(mock.requests.length,2);assert((await page.getByRole('dialog').innerText()).includes('21.5'));assert(!(await page.getByRole('dialog').innerText()).includes('ui-kma-key-12345'));
+    await page.getByRole('button',{name:'닫기',exact:true}).click();
+    await page.getByRole('button',{name:'연결 계정',exact:false}).first().click();await page.getByRole('button',{name:'＋ 계정 연결'}).click();
+    await page.getByLabel('계정 종류').selectOption('airkorea-api');await page.getByLabel('내가 알아볼 계정 이름').fill('대기질 시험 계정');await page.getByLabel('serviceKey',{exact:true}).fill('ui-air-key-12345');
+    await page.getByLabel('에어코리아 대기질 예보 조회',{exact:false}).check();await page.getByRole('button',{name:'계정 저장',exact:true}).click();await page.getByRole('heading',{name:'대기질 시험 계정'}).waitFor();
+    await page.getByRole('button',{name:'확장 계획',exact:false}).click();await page.getByRole('article',{name:'에어코리아 확장 계획'}).getByRole('button',{name:'조회 기능 열기'}).click();
+    await page.getByRole('button',{name:'예시 입력 불러오기'}).click();await page.waitForFunction(()=>document.querySelector<HTMLTextAreaElement>('textarea.code-input')?.value.includes('"pollutant": "PM25"'));
+    await page.getByRole('button',{name:'요청 구조 미리보기'}).click();await page.getByRole('heading',{name:'요청 구조 · 외부 호출 없음'}).waitFor();assert.equal(mock.requests.length,2);
+    const airInput=JSON.parse(await page.getByLabel('실행할 내용 · JSON').inputValue());assert.equal(airInput.page,undefined);assert.equal(airInput.limit,undefined);
+    await page.getByRole('button',{name:'실행 요청',exact:false}).click();await page.getByRole('heading',{name:'실행 결과',exact:true}).waitFor();
+    const airText=await page.getByRole('dialog').innerText();assert(airText.includes('내일의 시험 예보 원문'));assert(airText.includes('서울 : 좋음'));assert(airText.includes('변경금지'));assert(!airText.includes('ui-air-key-12345'));assert.equal(mock.requests.length,3);
+    await page.screenshot({path:resolve(screenshotDir,'airkorea-desktop.png'),fullPage:true});await page.setViewportSize({width:390,height:844});await page.screenshot({path:resolve(screenshotDir,'airkorea-mobile.png'),fullPage:true});assert(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth));await page.setViewportSize({width:1440,height:1000});
     assert.equal(r.engine.metrics().verifiedServices,0);
     await page.getByRole('button',{name:'닫기',exact:true}).click();await page.getByRole('button',{name:'기본 서비스 연결',exact:false}).click();await page.screenshot({path:resolve(screenshotDir,'connections.png'),fullPage:true});
     await page.setViewportSize({width:390,height:844});await page.screenshot({path:resolve(screenshotDir,'connections-mobile.png'),fullPage:true});assert(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth));

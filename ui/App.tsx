@@ -22,6 +22,7 @@ const credentials:Record<string,{name:string;fields:string[];help:string}>={
   'kakao-user':{name:'카카오 사용자',fields:['accessToken'],help:'talk_message 동의가 있는 토큰 또는 OAuth 로그인을 사용하세요.'},
   'data-go-kr':{name:'공공데이터포털',fields:['serviceKey'],help:'대한민국 공공서비스(혜택) 정보 API를 활용 신청하고 일반 인증키(Decoding)를 입력하세요.'},
   'kma-api':{name:'기상청 단기예보',fields:['serviceKey'],help:'공공데이터포털에서 기상청 단기예보 조회서비스를 활용 신청한 뒤 일반 인증키(Decoding)를 입력하세요. 실제 연결 확인은 초단기실황 조회를 실행해 진행합니다.'},
+  'airkorea-api':{name:'에어코리아 대기질 예보',fields:['serviceKey'],help:'공공데이터포털에서 한국환경공단 에어코리아 대기오염정보를 활용 신청한 뒤 일반 인증키(Decoding)를 입력하세요. 발표 날짜로 예보 통보를 조회하며 현재 관측값 조회와 구분합니다.'},
 };
 class ApiError extends Error {constructor(message:string,readonly status:number){super(message);}}
 async function api<T>(path:string,method='GET',body?:unknown):Promise<T>{

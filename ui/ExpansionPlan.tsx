@@ -55,7 +55,7 @@ export function DraftInspector({ actionId, input, changeInput, implemented = fal
     } finally { if (!requestController.signal.aborted) setBusy(false); }
   }
   return <section className="draft-inspector" aria-label={implemented ? '조회 요청 검토' : '연결 초안 검토'}>
-    <p>{implemented ? '예시와 미리보기는 외부에 전송하지 않습니다. 계정을 연결한 뒤 실행 요청으로 조회하세요. 기상청 예시는 한국 표준시의 최근 발표 정시와 서울 격자를 사용합니다.' : '초안 단계입니다. 예시 입력과 요청 구조를 검토할 수 있습니다. 외부 호출·계정 검증은 후속 단계입니다.'}</p>
+    <p>{implemented ? `예시와 미리보기는 외부에 전송하지 않습니다. 계정을 연결한 뒤 실행 요청으로 조회하세요. ${actionId === 'kma.observation' ? '기상청 예시는 한국 표준시의 최근 발표 정시와 서울 격자를 사용합니다.' : actionId === 'airkorea.forecast' ? '에어코리아 예시는 한국 표준시 오늘의 발표 날짜를 사용합니다. 예보 대상 날짜는 결과에서 별도로 확인하세요.' : ''}` : '초안 단계입니다. 예시 입력과 요청 구조를 검토할 수 있습니다. 외부 호출·계정 검증은 후속 단계입니다.'}</p>
     <div className="button-row"><button disabled={busy} onClick={() => void inspect(true)}>예시 입력 불러오기</button><button disabled={busy} onClick={() => void inspect(false)}>요청 구조 미리보기</button></div>
     {error?.input === input && <p role="alert" className="warning">{error.message}</p>}
     {preview?.input === input && <><h3>요청 구조 · 외부 호출 없음</h3><p>{preview.data.request ? '공식 문서 기준 요청 템플릿입니다. 실제 키 응답 검증은 아직 수행하지 않았습니다.' : '입력 규격 제안입니다. 공급자 요청 필드 매핑은 상세 문서 검토 후 구현합니다.'}</p><pre>{JSON.stringify(preview.data, null, 2)}</pre></>}
