@@ -112,7 +112,7 @@
 - `GET /api/drafts/:id/example`: 등록된 조회 행동·후속 초안의 예시 입력. 실행기로 전환한 기상청·에어코리아·TAGO·E-Gen·나이스·KOBIS도 제공합니다.
 - `POST /api/drafts/:id/preview`: 본문에 입력 JSON을 보내 요청 템플릿 확인. 외부 요청·작업 생성·비밀 키 조회 없이 동작합니다.
 - `POST /api/accounts`: 계정 생성 또는 `id`로 권한·비밀 키 갱신. 키를 생략하면 기존 값을 유지.
-- `DELETE /api/accounts/:id`: 계정 해제와 관련 진행 작업 취소 요청.
+- `DELETE /api/accounts/:id`: 계정 해제와 관련 진행 작업 취소 요청. 관리형 MCP OAuth 계정이면 해당 MCP 연결도 해제합니다. 이 계정의 수동 생성/키 수정은 `POST /api/accounts`에서 409 `MANAGED_ACCOUNT`로 거절합니다.
 - `POST /api/accounts/:id/refresh`: 네이버·카카오 OAuth 토큰 갱신.
 - `POST /api/oauth/start`: 앱 키·선택 권한으로 OAuth 로그인 URL 발급.
 - `POST /api/clients`, `DELETE /api/clients/:id`: 클라이언트 토큰 발급·해제.
@@ -124,6 +124,23 @@
 - `POST /api/browser/open`, `/api/browser/close`: 전용 시험 브라우저 열기·닫기.
 - `POST /api/browser/demo-login`: 전용 프로필에서 운영자 소유 시험 사이트에 로그인. headless 시험용이며 관리자 승인 화면에서만 호출합니다.
 - `POST /api/remotes`, `DELETE /api/remotes/:id`: 사용자 MCP 서버 등록·해제.
+
+### 상위 MCP OAuth (관리자 전용)
+
+| 경로 | 본문·결과 |
+|---|---|
+| `POST /api/remotes/oauth/start` | `{name, url, tools: ["정확한_도구명"], oauth?: {clientId?, clientSecret?, issuerUrl?, scope?}}`. `{remoteId, url, redirectUri, expiresAt}`와 HttpOnly 로그인 증명 쿠키 반환 |
+| `POST /api/remotes/:id/oauth/start` | `{}`. 기존 연결 재로그인. 이전 계정 권한을 해제하고 새 로그인 URL 반환 |
+| `GET /mcp/oauth/callback` | 공급자의 `state`, `code` 또는 `error`, 선택 `iss`. 일회용 state·브라우저 증명·유효한 시작 세션 검증 후 완료 HTML 반환 |
+| `POST /api/remotes/:id/oauth/refresh` | `{}`. 토큰 갱신 후 `{ok:true}`. 작업은 자동 실행하지 않음 |
+| `POST /api/remotes/:id/oauth/cancel` | `{}`. 대기 로그인 무효화와 증명 쿠키 삭제 |
+| `DELETE /api/remotes/:id` | 행동 중단·계정과 로컬 토큰 제거. 공급자 동의 철회 요청은 수행하지 않음 |
+
+OAuth 시작은 관리자 세션 쿠키와 같은 Origin을 요구하며 에이전트 Bearer 토큰은 403입니다. 공개 HTTPS 주소를 설정했다면 그 Origin에서 시작해야 합니다. Client Secret에는 Client ID와 예상 `issuerUrl`이 함께 필요합니다. 콜백은 런타임이 정한 고정 주소만 사용합니다.
+
+`/api/state.mcpOAuthRedirectUri`는 고정 콜백입니다. `remotes`에는 `authType`, `authStatus`, `accountId`, `oauthIssuer`, `oauthScope`, `oauthExpiresAt`, `oauthError`, `oauthPending`을 제공하며 Secret·토큰·로그인 URL은 포함하지 않습니다. `oauthPending`은 유효한 대기 로그인 여부이며 로그인 URL은 시작 응답에서만 받습니다. 연결 해제·재시작 후에도 기존 작업 이력은 조회할 수 있고, 행동이 제거된 이력의 관리자 `approvalDigest`는 `null`입니다.
+
+OAuth 도구는 `credentialType: mcp-oauth-<remoteId>`의 계정과 행동 권한이 모두 필요합니다. 도구 ID는 `mcp.<remoteId>.<toolName>`입니다. 모든 가져온 도구는 쓰기 승인 절차를 거칩니다. 전송 전 인증 실패는 `awaiting_auth`, 전송 후 인증 오류는 `needs_review`이며 자동 재전송하지 않습니다. [사용법·인증 방식·네트워크 제약](MCP_OAUTH.md).
 
 ## MCP 도구
 

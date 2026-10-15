@@ -19,6 +19,7 @@ import { neisActions, neisExecutor } from './connectors/neis.js';
 import { kobisAction, kobisExecutor } from './connectors/kobis.js';
 import { BrowserRunner, browserActions } from './connectors/browser.js';
 import { RemoteRegistry } from './connectors/remote.js';
+import { mcpOAuthCallbackPath, mcpOAuthCookie } from './core/mcp-oauth.js';
 import { registerReviewedExtensions } from './connectors/extensions.js';
 import { LifestyleConnections } from './connectors/lifestyle/index.js';
 import { gangnamunniHospitalAction, gangnamunniReadPlanExecutor } from './connectors/lifestyle/gangnamunni-read.js';
@@ -99,6 +100,20 @@ async function createUnlockedRuntime(options:RuntimeOptions){
     try{await oauth.callback(state,typeof req.query.code==='string'?req.query.code:undefined);res.send(page('계정 연결 완료','<h1>계정이 연결됐습니다.</h1><p>이 창을 닫고 관리 화면으로 돌아가세요.</p><a href="/">관리 화면</a>'));}
     catch{res.status(400).send(page('계정 연결 실패','<h1>계정을 연결하지 못했습니다.</h1><p>앱의 콜백 주소와 권한을 확인하고 관리 화면에서 다시 시작하세요.</p><a href="/">관리 화면</a>'));}
   });
+  const cookies=(req:Request)=>Object.fromEntries((req.headers.cookie??'').split(';').map(value=>value.trim()).filter(value=>value.includes('=')).map(value=>[value.slice(0,value.indexOf('=')),value.slice(value.indexOf('=')+1)]));
+  const mcpCookieOptions=()=>({httpOnly:true,sameSite:'lax' as const,secure:!!publicUrl,path:mcpOAuthCallbackPath});
+  app.get(mcpOAuthCallbackPath,async(req,res)=>{
+    const flow=typeof req.query.state==='string'?store.get<{remoteId:string}>('remote-oauth-flow',hash(req.query.state)):undefined;
+    try{
+      const v=z.object({state:z.string().max(200),code:z.string().max(4096).optional(),error:z.string().max(200).optional(),iss:z.string().max(1000).optional()}).passthrough().parse(req.query);
+      const result=await remote.oauth.callback(v.state,v.error?undefined:v.code,cookies(req),v.iss);
+      res.clearCookie(mcpOAuthCookie(result.remoteId),mcpCookieOptions());
+      res.send(page('MCP 로그인 완료','<h1>MCP 서버에 연결됐습니다.</h1><p>선택한 도구와 새 계정을 확인하고 에이전트에 필요한 권한을 부여하세요. 작업은 자동으로 실행되지 않습니다.</p><a href="/#mcp">관리 화면으로 돌아가기</a>'));
+    }catch(error){
+      if(flow&&error instanceof ActionError&&!['OAUTH_SESSION','OAUTH_STATE'].includes(error.code))res.clearCookie(mcpOAuthCookie(flow.remoteId),mcpCookieOptions());
+      res.status(400).send(page('MCP 로그인 실패','<h1>MCP 로그인을 완료하지 못했습니다.</h1><p>로그인을 시작한 브라우저와 관리 세션을 사용하고, 만료되거나 취소된 요청은 관리 화면에서 다시 시작하세요.</p><a href="/#mcp">관리 화면으로 돌아가기</a>'));
+    }
+  });
   // Owned browser fixture: no production accounts, isolated cookie, no scripts or arbitrary URLs.
   const demoSession=(req:Request)=>req.headers.cookie?.split(';').some(v=>v.trim()==='koreai_demo=logged-in');
   app.get('/demo',(req,res)=>{
@@ -152,14 +167,14 @@ async function createUnlockedRuntime(options:RuntimeOptions){
   app.get('/api/services',(_req,res)=>res.json(services.map(s=>({...s,research:s.candidateActions.map((title,i)=>({id:`research.${s.id}.${i+1}`,title,implemented:false,verification:'unresearched',method:null,sourceUrl:null,checkedAt:null,requiredSecrets:[],scopes:[],resultCheck:'미조사',maintainer:'미배정'})),actions:engine.discover(principal(res),'',s.id)}))));
   app.get('/api/jobs',(_req,res)=>res.json(engine.jobs(principal(res))));
   app.post('/api/jobs',(req,res)=>res.status(202).json(engine.create(principal(res),req.body)));
-  app.get('/api/jobs/:id',(req,res)=>{const job=engine.get(principal(res),String(req.params.id));res.json({...job,...(principal(res).role==='admin'?{approvalDigest:engine.digest(job)}:{})});});
+  app.get('/api/jobs/:id',(req,res)=>{const job=engine.get(principal(res),String(req.params.id));res.json({...job,...(principal(res).role==='admin'?{approvalDigest:engine.actions.has(job.actionId)?engine.digest(job):null}:{})});});
   app.post('/api/jobs/:id/cancel',async(req,res)=>res.json(await engine.cancel(principal(res),String(req.params.id))));
   app.post('/api/jobs/:id/resume',(req,res)=>res.json(engine.resume(principal(res),String(req.params.id))));
   app.patch('/api/jobs/:id',onlyAdmin,(req,res)=>{const v=z.object({input:z.record(z.unknown()),revision:z.number().int()}).strict().parse(req.body);res.json(engine.edit(principal(res),String(req.params.id),v.input,v.revision));});
   app.post('/api/jobs/:id/approve',onlyAdmin,(req,res)=>{const v=z.object({revision:z.number().int(),digest:z.string().length(64)}).strict().parse(req.body);res.json(engine.approve(principal(res),String(req.params.id),v.revision,v.digest));});
   app.post('/api/jobs/:id/resolve',onlyAdmin,(req,res)=>{const v=z.object({outcome:z.enum(['succeeded','failed']),note:z.string().trim().min(1).max(500)}).strict().parse(req.body);res.json(engine.resolve(principal(res),String(req.params.id),v.outcome,v.note));});
-  app.post('/api/accounts',onlyAdmin,async(req,res)=>res.status(201).json(await engine.saveAccount(req.body)));
-  app.delete('/api/accounts/:id',onlyAdmin,async(req,res)=>{await engine.removeAccount(String(req.params.id));res.json({ok:true});});
+  app.post('/api/accounts',onlyAdmin,async(req,res)=>{if(typeof req.body?.credentialType==='string'&&req.body.credentialType.startsWith('mcp-oauth-')||typeof req.body?.id==='string'&&engine.accounts().some(account=>account.id===req.body.id&&account.credentialType.startsWith('mcp-oauth-')))throw new ActionError('MANAGED_ACCOUNT','MCP OAuth 계정은 MCP 서버 연결에서 관리하세요.');res.status(201).json(await engine.saveAccount(req.body));});
+  app.delete('/api/accounts/:id',onlyAdmin,async(req,res)=>{const managed=remote.list().find(server=>server.accountId===String(req.params.id));if(managed){await remote.remove(managed.id);res.clearCookie(mcpOAuthCookie(managed.id),mcpCookieOptions());}else await engine.removeAccount(String(req.params.id));res.json({ok:true});});
   app.post('/api/accounts/:id/refresh',onlyAdmin,async(req,res)=>res.json(await oauth.refresh(String(req.params.id))));
   app.post('/api/oauth/start',onlyAdmin,async(req,res)=>res.json(await oauth.start(req.body)));
   app.get('/api/clients',onlyAdmin,(_req,res)=>res.json(engine.clients()));
@@ -171,8 +186,19 @@ async function createUnlockedRuntime(options:RuntimeOptions){
   app.post('/api/browser/demo-login',onlyAdmin,async(_req,res)=>res.json(await browser.loginDemo()));
   app.post('/api/browser/close',onlyAdmin,async(_req,res)=>{await browser.close();res.json({ok:true});});
   app.post('/api/remotes',onlyAdmin,async(req,res)=>res.status(201).json(await remote.add(req.body)));
-  app.delete('/api/remotes/:id',onlyAdmin,async(req,res)=>{await remote.remove(String(req.params.id));res.json({ok:true});});
-  app.get('/api/state',onlyAdmin,(_req,res)=>res.json({services,backlog:appApiBacklog,ai:chats.settings(),connections:connections.list(),actions:engine.discover(admin),accounts:engine.accounts(),clients:engine.clients(),jobs:engine.jobs().map(j=>({...j,approvalDigest:engine.actions.has(j.actionId)?engine.digest(j):null})),metrics:engine.metrics(),evidence:store.list<Evidence>('evidence').slice(0,200),browser:browser.status(),runtime:{platform:process.platform,vault:options.vault?'custom':process.platform==='win32'?'windows-dpapi':'file-aes-256-gcm'},remotes:remote.list(),oauthRedirectUri:`${publicUrl??baseUrl}/oauth/callback`,defaultTimezone:'Asia/Seoul',mcpConfig:{command:process.execPath,args:[resolve('dist/mcp.js')],env:{KOREAI_URL:baseUrl}}}));
+  const beginMcpOAuth=async(req:Request,res:Response,id?:string)=>{
+    if(publicUrl&&req.headers.origin!==publicUrl)throw new ActionError('OAUTH_ORIGIN','공개 HTTPS 관리 화면 주소에서 MCP 로그인을 시작하세요.');
+    const binding=token(),owner=hash(cookies(req).koreai_session??'');
+    if(id)z.object({}).strict().parse(req.body);
+    const result=id?await remote.oauth.start(id,owner,binding):await remote.addOAuth(req.body,owner,binding);
+    res.cookie(mcpOAuthCookie(result.remoteId),binding,{...mcpCookieOptions(),maxAge:600_000});res.json(result);
+  };
+  app.post('/api/remotes/oauth/start',onlyAdmin,async(req,res)=>beginMcpOAuth(req,res));
+  app.post('/api/remotes/:id/oauth/start',onlyAdmin,async(req,res)=>beginMcpOAuth(req,res,String(req.params.id)));
+  app.post('/api/remotes/:id/oauth/refresh',onlyAdmin,async(req,res)=>{z.object({}).strict().parse(req.body);await remote.oauth.refresh(String(req.params.id));res.json({ok:true});});
+  app.post('/api/remotes/:id/oauth/cancel',onlyAdmin,async(req,res)=>{z.object({}).strict().parse(req.body);await remote.oauth.cancel(String(req.params.id));res.clearCookie(mcpOAuthCookie(String(req.params.id)),mcpCookieOptions());res.json({ok:true});});
+  app.delete('/api/remotes/:id',onlyAdmin,async(req,res)=>{await remote.remove(String(req.params.id));res.clearCookie(mcpOAuthCookie(String(req.params.id)),mcpCookieOptions());res.json({ok:true});});
+  app.get('/api/state',onlyAdmin,(_req,res)=>res.json({services,backlog:appApiBacklog,ai:chats.settings(),connections:connections.list(),actions:engine.discover(admin),accounts:engine.accounts(),clients:engine.clients(),jobs:engine.jobs().map(j=>({...j,approvalDigest:engine.actions.has(j.actionId)?engine.digest(j):null})),metrics:engine.metrics(),evidence:store.list<Evidence>('evidence').slice(0,200),browser:browser.status(),runtime:{platform:process.platform,vault:options.vault?'custom':process.platform==='win32'?'windows-dpapi':'file-aes-256-gcm'},remotes:remote.list(),oauthRedirectUri:`${publicUrl??baseUrl}/oauth/callback`,mcpOAuthRedirectUri:`${publicUrl??baseUrl}${mcpOAuthCallbackPath}`,defaultTimezone:'Asia/Seoul',mcpConfig:{command:process.execPath,args:[resolve('dist/mcp.js')],env:{KOREAI_URL:baseUrl}}}));
   app.use('/api',(_req,res)=>res.status(404).json({error:{code:'NOT_FOUND',message:'API를 찾을 수 없습니다.'}}));
   const uiDir=options.uiDir??resolve('web-dist');
   if(existsSync(join(uiDir,'index.html'))){app.use(express.static(uiDir));app.get('/{*path}',(_req,res)=>res.sendFile(join(uiDir,'index.html')));}
@@ -185,8 +211,8 @@ async function createUnlockedRuntime(options:RuntimeOptions){
   try{await new Promise<void>((resolveStart,reject)=>{server=app.listen(options.port??4318,'127.0.0.1',()=>resolveStart());server.on('error',reject);});}
   catch(error){await browser.close();store.close();throw error;}
   const address=server!.address();if(!address||typeof address==='string')throw new Error('주소를 확인할 수 없습니다.');
-  baseUrl=`http://127.0.0.1:${address.port}`;browser.baseUrl=baseUrl;oauth.baseUrl=publicUrl??baseUrl;
+  baseUrl=`http://127.0.0.1:${address.port}`;browser.baseUrl=baseUrl;oauth.baseUrl=publicUrl??baseUrl;remote.oauth.baseUrl=publicUrl??baseUrl;
   return {app,server:server!,engine,store,browser,remote,oauth,chats,baseUrl,publicUrl,bootstrapCode,
-    close:async()=>{await chats.close();await engine.close();await browser.close();server!.closeAllConnections();await new Promise<void>((resolveClose,reject)=>server!.close(e=>e?reject(e):resolveClose()));store.close();},
+    close:async()=>{await chats.close();await engine.close();await remote.close();await browser.close();server!.closeAllConnections();await new Promise<void>((resolveClose,reject)=>server!.close(e=>e?reject(e):resolveClose()));store.close();},
   };
 }

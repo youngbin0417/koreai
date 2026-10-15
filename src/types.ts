@@ -52,4 +52,8 @@ export interface RemoteServer {
   id: string; name: string; url: string; sealed: string;
   tools: { name: string; description: string; inputSchema: Record<string, unknown> }[];
   enabled: boolean; createdAt: string;
+  authType?: 'bearer' | 'oauth';
+  authStatus?: 'connected' | 'awaiting_auth';
+  accountId?: string; requestedTools?: string[];
+  oauthIssuer?: string; oauthExpiresAt?: number; oauthScope?: string; oauthError?: string; oauthPending?: boolean;
 }
