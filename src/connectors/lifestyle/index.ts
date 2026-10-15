@@ -48,7 +48,8 @@ export class LifestyleConnections {
   describe(serviceId: string): BasicConnection {
     const definition = this.definition(serviceId);
     const profile = this.store.get<ConnectionProfile>('connection-profile', serviceId) ?? null;
-    return { ...definition, profile, state: profile ? 'prepared' : 'unprepared', accountVerified: false, automaticActions: 0, stages };
+    return { ...definition, profile, state: profile ? 'prepared' : 'unprepared', accountVerified: false, automaticActions: 0,
+      stages: stages.map(stage => stage.id === 'read' && definition.firstRead ? { ...stage, title: '첫 조회 기능 정의·접근 조건 확인', state: 'defined' } : stage) };
   }
   list(): BasicConnection[] { return connectionDefinitions.map(d => this.describe(d.serviceId)); }
   prepare(serviceId: string, input: unknown): BasicConnection {
@@ -62,6 +63,7 @@ export class LifestyleConnections {
   }
   remove(serviceId: string) { this.definition(serviceId); this.store.delete('connection-profile', serviceId); }
   execute: Executor = async (action, context) => {
+    if (!this.actions.some(registered => registered.id === action.id && registered.serviceId === action.serviceId)) throw new ActionError('NOT_IMPLEMENTED', '기본 연결 실행기에 등록되지 않은 행동입니다.');
     const connection = this.describe(action.serviceId);
     if (action.id.endsWith('.status')) return { data: connection, evidence: '로컬 기본 연결 정보 조회; 외부 서비스 검증 아님' };
     if (!connection.profile) throw new ActionError('CONNECTION_NOT_PREPARED', '관리 화면의 기본 서비스 연결에서 진입 경로를 선택하고 연결 준비를 저장하세요.', 'awaiting_user');

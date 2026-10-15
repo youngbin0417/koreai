@@ -66,7 +66,7 @@ const groups: [string, Row[]][] = [
     ['ddocdoc','똑닥','https://ddocdoc.com',['병원 찾기','접수','예약']],
     ['naver-booking','네이버 예약','https://booking.naver.com',['예약 상품 찾기','예약','예약내역 조회']],
     ['catchtable','캐치테이블','https://www.catchtable.co.kr',['식당 검색','예약','예약내역 조회']],
-    ['gangnamunni','강남언니','https://www.gangnamunni.com',['병원·시술 찾기','상담','예약']],
+    ['gangnamunni','강남언니','https://unni.app',['병원 후보 찾기','시술 찾기','상담','예약']],
   ]],
   ['일정·문화·주거', [
     ['naver-calendar','네이버 캘린더','https://calendar.naver.com',['일정 추가','일정 조회','일정 수정']],
@@ -81,7 +81,7 @@ const notes: Record<string,string> = {
   'dcinside':'자동 수집 제한이 명시되어 있습니다. 자동화 연결은 제휴·허용 범위 확인이 필요합니다.',
   'coupang':'공식 Open API는 판매자 업무용입니다. 소비자의 구매내역·주문 권한은 별도 확인 대상입니다.',
   'kurly':'기본 연결을 제공합니다. 컬리의 KLS OpenAPI는 물류용이며 소비자 쇼핑 기능은 별도 확인 대상입니다.',
-  'gangnamunni':'기본 연결을 제공합니다. 병원·시술 조회와 상담·예약의 접근 조건 및 실행 범위는 다음 단계에서 정의합니다.',
+  'gangnamunni':'공개 병원 후보 찾기의 입력·결과를 정의했습니다. 소비자 API·자동 접근 조건 확인 전이며 현재는 공식 병원 목록의 사용자 직접 확인 경로를 제공합니다.',
   'daangn':'기본 연결을 제공합니다. 당근비즈니스와 개인 중고거래·채팅 연동은 별도로 확인합니다.',
   'toss':'앱인토스 로그인·결제와 소비자의 금융 업무 연동은 별개입니다.',
   'pass':'인증·전자서명 API가 있습니다. 이용기관 계약과 사용자 본인 인증이 필요합니다.',

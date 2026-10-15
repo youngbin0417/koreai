@@ -31,7 +31,20 @@ function ConnectionCard({ connection, busy, prepare, remove }: Omit<Props, 'conn
       {connection.profile && <button className="danger-text" disabled={busy} onClick={() => remove(connection.serviceId)}>준비 해제</button>}
     </div>
     <p className="small connection-boundary">{connection.boundary}</p>
-    <ol className="connection-stages">{connection.stages.map(stage => <li key={stage.id}><span>{stage.title}</span><small>{stage.state === 'available' ? '현재 제공' : '단계별 정의 예정'}</small></li>)}</ol>
+    {connection.firstRead && <section aria-label={`${connection.name} 첫 조회 기능`}>
+      <h3>첫 조회 기능 · {connection.firstRead.title}</h3>
+      <p className="badge">정의 완료 · 자동 조회 미지원</p>
+      <p>{connection.firstRead.description}</p>
+      <p className="small">{connection.firstRead.accountRequirement}</p>
+      <a href={connection.firstRead.manualUrl} target="_blank" rel="noreferrer">병원 목록 직접 확인 ↗</a>
+      <details><summary>입력·결과 초안과 연결 조건</summary>
+        <p className="small">아래 규격은 KoreAI 제안입니다. 공급자 API 명세와 실제 검색 결과가 아닙니다.</p>
+        <pre>{JSON.stringify({ actionId: connection.firstRead.actionId, example: connection.firstRead.example, inputSchema: connection.firstRead.inputSchema, outputSchema: connection.firstRead.outputSchema }, null, 2)}</pre>
+        <p className="small">결과 확인: {connection.firstRead.resultCheck}</p>
+        <ul>{connection.firstRead.nextChecks.map(check => <li key={check}>{check}</li>)}</ul>
+      </details>
+    </section>}
+    <ol className="connection-stages">{connection.stages.map(stage => <li key={stage.id}><span>{stage.title}</span><small>{stage.state === 'available' ? '현재 제공' : stage.state === 'defined' ? '정의 완료 · 연결 방식 확인 대기' : '단계별 정의 예정'}</small></li>)}</ol>
     <details><summary>공식 근거 · 확인 날짜</summary>{connection.sources.map(source => <p className="small" key={source.url}><a href={source.url} target="_blank" rel="noreferrer">{source.title} ↗</a> · {source.checkedAt}</p>)}</details>
   </article>;
 }

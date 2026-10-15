@@ -21,6 +21,7 @@ import { BrowserRunner, browserActions } from './connectors/browser.js';
 import { RemoteRegistry } from './connectors/remote.js';
 import { registerReviewedExtensions } from './connectors/extensions.js';
 import { LifestyleConnections } from './connectors/lifestyle/index.js';
+import { gangnamunniHospitalAction, gangnamunniReadPlanExecutor } from './connectors/lifestyle/gangnamunni-read.js';
 import { draftActions, draftExecutor, draftExample, previewDraftRequest } from './connectors/drafts/index.js';
 import { appApiBacklog } from './research/app-api-backlog.js';
 import { services } from './catalog.js';
@@ -53,6 +54,7 @@ async function createUnlockedRuntime(options:RuntimeOptions){
     const defaults=browserDefaults();
     browser=new BrowserRunner(options.dataDir,options.channel??defaults.channel,options.headless??defaults.headless);engine.register(browserActions,browser.execute);
     connections=new LifestyleConnections(store);engine.register(connections.actions,connections.execute);
+    engine.register([gangnamunniHospitalAction],gangnamunniReadPlanExecutor);
     engine.register(draftActions,draftExecutor);
     registerReviewedExtensions(engine);
   }catch(error){store.close();throw error;}

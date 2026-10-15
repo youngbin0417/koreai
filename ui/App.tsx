@@ -13,7 +13,7 @@ interface State{connections:BasicConnection[]}
 interface State{backlog:ApiCandidate[]}
 interface State{ai:{model:string;configured:boolean}}
 interface State{services:Service[];actions:PublicAction[];accounts:Omit<Account,'sealed'>[];clients:Omit<ClientRecord,'tokenHash'>[];jobs:PublicJob[];metrics:{jobs:number;pending:number;verifiedServices:number;supportedActions:number;byAction:{actionId:string;requests:number;succeeded:number;failed:number;needsReview:number;interventions:number}[]};evidence:Evidence[];runtime:{platform:string;vault:string};browser:{open:boolean;channel:string;headless:boolean;busy:boolean};remotes:Omit<RemoteServer,'sealed'>[];oauthRedirectUri:string;defaultTimezone:string}
-const labels:Record<string,string>={pending_approval:'승인 대기',queued:'접수됨',running:'실행 중',awaiting_auth:'인증 필요',awaiting_user:'사용자 작업 대기',needs_review:'결과 확인 필요',succeeded:'완료',failed:'실패',cancelled:'취소됨',unresearched:'미조사',documented:'문서 확인',account_verified:'계정 검증',supported:'배포 지원',suspended:'중단',api:'공식 API',browser:'브라우저',mcp:'사용자 MCP',handoff:'사용자 직접 진행'};
+const labels:Record<string,string>={pending_approval:'승인 대기',queued:'접수됨',running:'실행 중',awaiting_auth:'인증 필요',awaiting_user:'사용자 작업 대기',needs_review:'결과 확인 필요',succeeded:'완료',failed:'실패',cancelled:'취소됨',unresearched:'미조사',documented:'문서 확인',account_verified:'계정 검증',supported:'배포 지원',suspended:'중단',api:'공식 API',browser:'브라우저',mcp:'사용자 MCP',handoff:'사용자 직접 진행',partnership:'제휴·허용 범위 확인'};
 const credentials:Record<string,{name:string;fields:string[];help:string}>={
   'naver-app':{name:'네이버 검색 앱',fields:['clientId','clientSecret'],help:'NAVER Developers에서 검색 API를 선택하고 발급받은 앱 키를 입력하세요.'},
   'naver-user':{name:'네이버 사용자',fields:['accessToken'],help:'카페·캘린더 권한이 있는 토큰을 입력하거나 아래 OAuth 로그인으로 연결하세요.'},
