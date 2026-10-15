@@ -1,6 +1,6 @@
 # 검증 기록
 
-최근 검증일: **2026-10-15**. Windows·Node.js 24.19.0·Edge(headless), WSL2 Ubuntu 24.04·Node.js 22.17.0에서 검증했습니다. 최근 Windows 전체 테스트는 **137개 중 135개 통과·Linux 전용 2개 제외·실패 0개**, Linux 마켓컬리·당근·강남언니 정의·기본 연결 테스트는 **14개 모두 통과**입니다. 날짜별 실행 범위는 아래에 구분합니다.
+최근 검증일: **2026-10-15**. Windows·Node.js 24.19.0·Edge(headless), WSL2 Ubuntu 24.04·Node.js 22.17.0에서 검증했습니다. 최근 Windows 전체 테스트는 **142개 중 140개 통과·Linux 전용 2개 제외·실패 0개**, Linux 쿠팡·마켓컬리·당근·강남언니 정의·기본 연결 테스트는 **18개 모두 통과**입니다. 날짜별 실행 범위는 아래에 구분합니다.
 
 ## 2026-10-11 확장 초안 검증
 
@@ -166,6 +166,18 @@ E-Gen 응답은 모의 데이터입니다. 실제 키·지역별 기관 정보·
 
 공식 API는 **14개 커넥터·29개 행동**, 기본 연결은 **5개·10개 handoff 행동**, 생활 앱 조회 초안은 **강남언니·당근·마켓컬리 3개**입니다. 제안 규격과 안내 링크를 소비자 검색·물류 인증 성공으로 집계하지 않습니다. [마켓컬리 정의](KURLY.md), [완료한 APP-03·후속 APP-06](../TODO.md).
 
+## 2026-10-15 쿠팡 첫 조회 기능 정의 검증
+
+[공식 소비자 서비스](https://www.coupang.com/), [판매자 Open API](https://developers.coupang.com/ko/getting-started/coupang-open-api)·[키/IP 등록](https://developers.coupang.com/ko/getting-started/issue-open-api-keynew)·[HMAC 문서](https://developers.coupang.com/ko/getting-started/creating-hmac-signature)를 확인했습니다. [공식 파트너스 가이드 2025-10-28판](https://partners.coupangcdn.com/partners-guide/partners-guide-20251028182159.pdf)은 내려받아 본문과 링크를 확인했습니다. 17쪽 상품/딥 링크/리포팅 API와 안내 URL, 20쪽 최종승인, 63쪽 경제적 이해관계 표시를 근거로 기록했습니다. 파트너스 세부 안내는 조사용 비로그인 Edge에서 Access Denied여서 실제 요청·응답을 검증하지 못했습니다.
+
+- `coupang.products.search`의 제안 입력/결과·계정 조건을 `firstRead`로 제공하고 `partnership`·`implemented: false`를 유지합니다. 기존 `consumer`·`seller` 경로를 유지하고 `seller-auth`·`partners-guide` 안내 경로를 추가했습니다. 실제 소비자/판매자/파트너스 API 호출·키 발급·HMAC 실행은 미수행입니다.
+- `npm run check`, `npm run build` 통과. Windows 전체 **142개 중 140개 통과·Linux 전용 2개 제외·실패 0개**.
+- 신규 핵심 4개 검증: 검색어/상한과 판매자/파트너스 키·개인 주문/배송지 거절, 큰 상품/옵션 ID 문자열·링크 일치·중복 쿼리/추적/제휴 URL 거절·가격 조건·배송 미확인, 관리자/에이전트·실행기·기본 링크 실행기의 조회 차단·증거 미생성·지원 전환 거절, HTTP 범위·소비자/판매자/파트너스 경로 분리·외부 호출 없음.
+- WSL2 Ubuntu 24.04·Node 22.17.0에서 쿠팡 4개·마켓컬리 4개·당근 4개·강남언니 4개·기본 연결 2개, 총 **18개 모두 통과**했습니다. 원본 테스트를 임시 JavaScript로 변환해 빌드된 `dist/`와 Linux 임시 디렉터리·시험 Vault로 실행했습니다. Linux는 API·엔진 범위이며 화면은 Windows Edge에서 확인했습니다.
+- 실제 Edge 390px 화면에서 상품 규격·자동 조회 미지원 표시, 초안 펼치기, 파트너스 경로 저장·새로고침 유지, 판매자 키 안내·소비자 직접 확인 경로 전환을 확인했습니다. 공급자 요청·작업 생성·지원 수 증가·JavaScript 오류·가로 넘침이 없습니다. 캡처: `.test-data/screenshots/coupang-plan-mobile.png`, `coupang-plan-desktop.png`.
+
+공식 API는 **14개 커넥터·29개 행동**, 기본 연결은 **5개·10개 handoff 행동**, 생활 앱 조회 초안은 **강남언니·당근·마켓컬리·쿠팡 4개**입니다. 안내·정의·모의 테스트를 실제 계정 검증이나 지원 실적으로 집계하지 않습니다. [쿠팡 정의·연결 조건](COUPANG.md), [완료한 APP-04·후속 APP-06](../TODO.md).
+
 ## 아직 수행하지 않은 외부 검증
 
 - 네이버·밴드·카카오·공공데이터포털의 실제 사용자 계정·API 키 호출.
@@ -179,6 +191,7 @@ E-Gen 응답은 모의 데이터입니다. 실제 키·지역별 기관 정보·
 - 강남언니 소비자 검색 API·제휴/자동 접근 허용 범위·인증·실제 병원 조회 검증. 기능 정의와 사용자 직접 확인 경로만 제공합니다.
 - 당근 소비자 물품 검색 API·자동 접근 조건·동네 인증/검색 범위와 실제 목록 검증. 광고 MCP도 KoreAI의 OAuth·실제 계정·도구 호환성 검증은 미수행입니다.
 - 마켓컬리 소비자 상품 검색 API·자동 접근 허용·옵션/가격 조건과 실제 계정 조회 검증. KLS 물류 API의 키 발급·인증·실제 호출도 미수행입니다.
+- 쿠팡 소비자 상품 조회의 실제 경로·계정 검증. 파트너스 최신 명세·승인/활동·제휴 링크/표시·보관/LLM 전달 조건은 확인 대기이며 판매자 키/IP/HMAC 호출도 미수행입니다.
 - 외부 한국 서비스에 대한 브라우저 자동화 허용·실행 검증.
 - 특정 상용 AI 제품 UI에서의 종단간 호환성 확인.
 - 실제 GCP VM 설치와 Tailscale·휴대폰 접속, 새 대화 화면의 실제 DeepSeek API 호출.

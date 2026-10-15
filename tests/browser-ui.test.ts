@@ -166,6 +166,23 @@ test('Kurly mobile UI exposes the product proposal and preserves a consumer rout
   }finally{await browser?.close();await r.close();}
 });
 
+test('Coupang mobile UI presents the consumer product proposal and preserves distinct seller and Partners guidance routes',async()=>{
+  const mock=providerMock();const r=await createRuntime({dataDir:tempDir('coupang-plan-ui'),port:0,vault:new TestVault(),fetcher:mock.fetcher,bootstrapCode:'coupang-plan-ui-bootstrap',headless:true,evidenceMode:'mock'});let browser:Browser|undefined;
+  try{
+    browser=await chromium.launch({channel:testChannel,headless:true});const page=await browser.newPage({viewport:{width:390,height:844}});const errors:string[]=[];page.on('pageerror',error=>errors.push(error.message));
+    await page.goto(`${r.baseUrl}/#setup=coupang-plan-ui-bootstrap`);await page.getByRole('button',{name:'로컬 엔진 연결'}).click();await page.getByRole('button',{name:'기본 서비스 연결',exact:false}).click();
+    const card=page.getByRole('article',{name:'쿠팡 기본 연결'}),plan=card.getByRole('region',{name:'쿠팡 첫 조회 기능'});
+    await plan.getByText('정의 완료 · 자동 조회 미지원',{exact:true}).waitFor();assert.equal(await plan.getByRole('link',{name:'공식 상품 직접 확인',exact:false}).getAttribute('href'),'https://www.coupang.com/');assert.equal(await plan.getByRole('button').count(),0);
+    await plan.locator('summary').click();const contract=await plan.locator('pre').innerText();for(const field of ['coupang.products.search','"query": "생수"','itemId','vendorItemId','conditionsText','not_verified'])assert(contract.includes(field));assert(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth));
+    await card.getByLabel('진입 경로').selectOption('partners-guide');await card.getByRole('button',{name:'연결 준비 저장'}).click();await card.getByText('준비됨 · 계정 미검증',{exact:true}).waitFor();assert.equal(await card.getByRole('link',{name:'연동 문서 열기',exact:false}).getAttribute('href'),'https://partners.coupang.com/#help/open-api');await card.getByText('최종승인·활동/표시 조건과 세부 규격 확인이 필요하며 KoreAI에서 실제 API를 호출하지 않습니다.',{exact:false}).waitFor();
+    await page.reload();await page.getByRole('button',{name:'기본 서비스 연결',exact:false}).click();assert.equal(await card.getByLabel('진입 경로').inputValue(),'partners-guide');
+    await card.getByLabel('진입 경로').selectOption('seller-auth');assert.equal(await card.getByRole('link',{name:'연동 문서 열기',exact:false}).getAttribute('href'),'https://developers.coupang.com/ko/getting-started/issue-open-api-keynew');await card.getByText('소비자 전체 검색·개인 구매내역 권한이 아니며 KoreAI에서 인증·서명·호출을 수행하지 않습니다.',{exact:false}).waitFor();
+    await card.getByLabel('진입 경로').selectOption('consumer');assert.equal(await card.getByRole('link',{name:'서비스 열기',exact:false}).getAttribute('href'),'https://www.coupang.com/');
+    assert.equal(mock.requests.length,0);assert.equal(r.engine.jobs().length,0);assert.equal(r.engine.metrics().verifiedServices,0);assert.equal(r.engine.metrics().supportedActions,0);assert.deepEqual(errors,[]);assert(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth));
+    const screenshots=resolve('.test-data/screenshots');mkdirSync(screenshots,{recursive:true});await card.scrollIntoViewIfNeeded();await page.screenshot({path:resolve(screenshots,'coupang-plan-mobile.png'),fullPage:true});await page.setViewportSize({width:1440,height:1000});await page.screenshot({path:resolve(screenshots,'coupang-plan-desktop.png'),fullPage:true});
+  }finally{await browser?.close();await r.close();}
+});
+
 test('owned browser handles login, approval, result receipts, profile persistence and changed pages',async()=>{
   const r=await createRuntime({dataDir:tempDir('browser'),port:0,vault:new TestVault(),headless:true,channel:testChannel,evidenceMode:'mock'});
   try{

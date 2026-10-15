@@ -24,6 +24,7 @@ import { LifestyleConnections } from './connectors/lifestyle/index.js';
 import { gangnamunniHospitalAction, gangnamunniReadPlanExecutor } from './connectors/lifestyle/gangnamunni-read.js';
 import { daangnItemAction, daangnReadPlanExecutor } from './connectors/lifestyle/daangn-read.js';
 import { kurlyProductAction, kurlyReadPlanExecutor } from './connectors/lifestyle/kurly-read.js';
+import { coupangProductAction, coupangReadPlanExecutor } from './connectors/lifestyle/coupang-read.js';
 import { draftActions, draftExecutor, draftExample, previewDraftRequest } from './connectors/drafts/index.js';
 import { appApiBacklog } from './research/app-api-backlog.js';
 import { services } from './catalog.js';
@@ -59,6 +60,7 @@ async function createUnlockedRuntime(options:RuntimeOptions){
     engine.register([gangnamunniHospitalAction],gangnamunniReadPlanExecutor);
     engine.register([daangnItemAction],daangnReadPlanExecutor);
     engine.register([kurlyProductAction],kurlyReadPlanExecutor);
+    engine.register([coupangProductAction],coupangReadPlanExecutor);
     engine.register(draftActions,draftExecutor);
     registerReviewedExtensions(engine);
   }catch(error){store.close();throw error;}

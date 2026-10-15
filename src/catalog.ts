@@ -79,7 +79,7 @@ const groups: [string, Row[]][] = [
 export const services: Service[] = groups.flatMap(([category,rows])=>rows.map(([id,name,homeUrl,candidateActions])=>({id,name,category,homeUrl,candidateActions,note:'조사 대상입니다. 아래 후보 행동은 구현·권한 확인 전이며 지원 기능 수에 포함되지 않습니다.'})));
 const notes: Record<string,string> = {
   'dcinside':'자동 수집 제한이 명시되어 있습니다. 자동화 연결은 제휴·허용 범위 확인이 필요합니다.',
-  'coupang':'공식 Open API는 판매자 업무용입니다. 소비자의 구매내역·주문 권한은 별도 확인 대상입니다.',
+  'coupang':'공개 상품 후보 조회의 입력·옵션/가격 조건·배송 안내를 정의했습니다. 판매자 Open API와 파트너스 상품 API를 구분하며 소비자 자동 조회는 확인 대기입니다.',
   'kurly':'공개 상품 후보 찾기의 입력·가격/옵션·배송 안내 결과를 정의했습니다. 소비자 자동 조회는 확인 대기이며 KLS 화주 물류 API와 구분합니다.',
   'gangnamunni':'공개 병원 후보 찾기의 입력·결과를 정의했습니다. 소비자 API·자동 접근 조건 확인 전이며 현재는 공식 병원 목록의 사용자 직접 확인 경로를 제공합니다.',
   'daangn':'동네 중고 물품 후보 찾기의 입력·결과를 정의했습니다. 소비자 자동 조회는 확인 대기이며 공식 광고 MCP/OpenAPI와 개인 거래·채팅 권한을 구분합니다.',
