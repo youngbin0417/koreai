@@ -97,8 +97,8 @@
 
 - `GET /api/state`: 카탈로그·계정·작업·검증 지표·MCP 연결 설정, `runtime.platform`·`runtime.vault`, 브라우저 `headless` 상태.
 - `GET /api/backlog`: 추가 API 후보 26개의 우선순위·공식 근거·검증 상태·다음 작업. `/api/state.backlog`에도 포함합니다.
-- `GET /api/drafts/:id/example`: 등록된 조회 초안의 예시 입력.
-- `POST /api/drafts/:id/preview`: 본문에 초안 입력 JSON을 보내 요청 템플릿 확인. 외부 요청·작업 생성·비밀 키 조회 없이 동작합니다.
+- `GET /api/drafts/:id/example`: 등록된 조회 행동·후속 초안의 예시 입력. 실행기로 전환한 기상청·에어코리아·TAGO·E-Gen·나이스·KOBIS도 제공합니다.
+- `POST /api/drafts/:id/preview`: 본문에 입력 JSON을 보내 요청 템플릿 확인. 외부 요청·작업 생성·비밀 키 조회 없이 동작합니다.
 - `POST /api/accounts`: 계정 생성 또는 `id`로 권한·비밀 키 갱신. 키를 생략하면 기존 값을 유지.
 - `DELETE /api/accounts/:id`: 계정 해제와 관련 진행 작업 취소 요청.
 - `POST /api/accounts/:id/refresh`: 네이버·카카오 OAuth 토큰 갱신.

@@ -12,12 +12,13 @@ import { Store } from '../src/core/store.js';
 import { ActionError } from '../src/types.js';
 import { createRuntime } from '../src/http.js';
 import { TestVault } from './helpers.js';
+import { kobisAction } from '../src/connectors/kobis.js';
 
 test('expansion candidates and draft actions reference unique catalog services and reviewed evidence', () => {
   assert.equal(appApiBacklog.length, 26);
   assert.equal(new Set(appApiBacklog.map(c => c.serviceId)).size, appApiBacklog.length);
   assert.equal(services.length, 71);
-  assert.equal(draftActions.length, 1);
+  assert.equal(draftActions.length, 0);
   assert.equal(planningActions.length, 9);
   for (const candidate of appApiBacklog) {
     assert(services.some(s => s.id === candidate.serviceId));
@@ -55,13 +56,9 @@ test('draft previews map documented query fields, exclude secrets, and distingui
     assert.equal(preview.request?.query.serviceKey, undefined);
     assert.equal(preview.request?.query.ServiceKey, undefined);
     assert.equal(preview.request?.query.KEY, undefined);
-    if (action.id === 'kobis.boxoffice.daily') {
-      assert.equal(preview.request, null);
-      assert.equal(preview.mappingStatus, 'pending-parameter-review');
-    } else {
-      assert.equal(preview.mappingStatus, 'documented-template');
-      assert(action.domains.includes(new URL(preview.request!.endpoint).hostname));
-    }
+    assert.equal(preview.request?.query.key, undefined);
+    assert.equal(preview.mappingStatus, 'documented-template');
+    assert(action.domains.includes(new URL(preview.request!.endpoint).hostname));
     assert.throws(() => previewDraftRequest(action.id, { ...draftExample(action.id), serviceKey: 'must-not-echo' }));
     assert.throws(() => previewDraftRequest(action.id, { ...draftExample(action.id), url: 'https://evil.example' }));
   }
@@ -78,9 +75,11 @@ test('configured accounts and agent grants cannot activate drafts or create exec
   const store = new Store(':memory:');
   const engine = new Engine(store, new TestVault(), 'live');
   let executorCalls = 0;
-  engine.register(draftActions, async (a, ctx) => { executorCalls++; return draftExecutor(a, ctx); });
+  // Keep testing the engine's draft barrier even after every bundled draft is implemented.
+  const fixtures = [...draftActions, { ...kobisAction, id: 'test.draft.read', implemented: false }];
+  engine.register(fixtures, async (a, ctx) => { executorCalls++; return draftExecutor(a, ctx); });
   try {
-    for (const action of draftActions) {
+    for (const action of fixtures) {
       const account = await engine.saveAccount({ label: action.title, credentialType: action.credentialType, allowedActions: [action.id], secrets: Object.fromEntries(action.requiredSecrets.map(field => [field, 'draft-test-secret'])) });
       const client = engine.createClient({ name: 'draft reader', allowedActions: [action.id], allowedAccountIds: [account.id] });
       const principal = engine.authenticate(client.token)!;
@@ -88,7 +87,7 @@ test('configured accounts and agent grants cannot activate drafts or create exec
       assert.equal(described.enabled, false);
       assert.deepEqual(described.accountIds, [account.id]);
       for (const caller of [admin, principal]) {
-        assert.throws(() => engine.create(caller, { actionId: action.id, accountId: account.id, input: draftExample(action.id), idempotencyKey: randomUUID() }), (e: unknown) => e instanceof ActionError && e.code === 'NOT_IMPLEMENTED');
+        assert.throws(() => engine.create(caller, { actionId: action.id, accountId: account.id, input: draftExample(action.id) ?? { date: '2026-10-14' }, idempotencyKey: randomUUID() }), (e: unknown) => e instanceof ActionError && e.code === 'NOT_IMPLEMENTED');
       }
       assert.throws(() => engine.release(action.id));
     }
@@ -101,7 +100,7 @@ test('configured accounts and agent grants cannot activate drafts or create exec
   } finally { await engine.close(); store.close(); }
 });
 
-test('HTTP exposes planning to admins, discovers disabled drafts for scoped agents, and never contacts providers', async () => {
+test('HTTP restricts planning to admins and prevents unconfigured scoped actions from contacting providers', async () => {
   let providerCalls = 0;
   const fetcher = (async () => { providerCalls++; throw new Error('Draft must not call a provider'); }) as typeof fetch;
   const r = await createRuntime({ dataDir: mkdtempSync(join(tmpdir(), 'koreai-api-expansion-')), port: 0, vault: new TestVault(), fetcher, bootstrapCode: 'draft-bootstrap', evidenceMode: 'mock' });
@@ -113,7 +112,7 @@ test('HTTP exposes planning to admins, discovers disabled drafts for scoped agen
     const call = (path: string, method = 'GET', body?: unknown, token?: string) => fetch(`${r.baseUrl}/api${path}`, { method, headers: { Origin: r.baseUrl, ...(token ? { Authorization: `Bearer ${token}` } : { Cookie: cookie }), ...(body === undefined ? {} : { 'Content-Type': 'application/json' }) }, ...(body === undefined ? {} : { body: JSON.stringify(body) }) });
     const backlog = await (await call('/backlog')).json(); assert.equal(backlog.length, 26);
     const state = await (await call('/state')).json();
-    assert.equal(state.actions.filter((a: { method: string; implemented: boolean }) => a.method === 'api' && a.implemented).length, 28);
+    assert.equal(state.actions.filter((a: { method: string; implemented: boolean }) => a.method === 'api' && a.implemented).length, 29);
     assert.equal(state.backlog.length, 26);
     const example = await (await call('/drafts/kma.observation/example')).json();
     const preview = await call('/drafts/kma.observation/preview', 'POST', example);
@@ -128,7 +127,7 @@ test('HTTP exposes planning to admins, discovers disabled drafts for scoped agen
     assert.equal((await call('/drafts/kma.observation/example', 'GET', undefined, client.token)).status, 403);
     assert.equal((await call('/drafts/kma.observation/preview', 'POST', example, client.token)).status, 403);
     const blocked = await call('/jobs', 'POST', { actionId: 'kobis.boxoffice.daily', input: draftExample('kobis.boxoffice.daily'), idempotencyKey: randomUUID() }, client.token);
-    assert.equal(blocked.status, 409); assert.equal((await blocked.json()).error.code, 'NOT_IMPLEMENTED');
+    assert.equal(blocked.status, 409); assert.equal((await blocked.json()).error.code, 'ACCOUNT_REQUIRED');
     assert.equal(providerCalls, 0); assert.equal(r.engine.jobs().length, 0); assert.equal(r.store.list('evidence').length, 0);
   } finally { await r.close(); }
 });

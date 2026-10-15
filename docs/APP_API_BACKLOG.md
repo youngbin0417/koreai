@@ -2,11 +2,11 @@
 
 확인일: **2026-10-11**. 기존 52개에 신규 조사 대상 19개를 추가해 카탈로그는 **71개 서비스**입니다. 아래 **26개 후보**는 기존 대상의 후속 API와 신규 서비스를 함께 다룹니다. 우선순위는 생활 과업 기여도·공식 접근 가능성·유지보수 부담을 기준으로 한 개발 제안입니다.
 
-구현 상태 갱신: **2026-10-15**, 나이스 학교기본정보·급식식단정보의 공식 메타데이터와 공개 샘플을 확인했습니다. 에어코리아·TAGO·E-Gen 검토일은 2026-10-14, 기상청 추가 검토일은 2026-10-12입니다.
+구현 상태 갱신: **2026-10-15**, 나이스 학교·급식 규격과 KOBIS 일별 박스오피스 상세 규격·HTTPS 인증 오류를 확인했습니다. 에어코리아·TAGO·E-Gen 검토일은 2026-10-14, 기상청 추가 검토일은 2026-10-12입니다.
 
 원본 데이터는 [`src/research/app-api-backlog.ts`](../src/research/app-api-backlog.ts), 행동 초안은 [`src/connectors/drafts/index.ts`](../src/connectors/drafts/index.ts)에 있습니다. 관리 화면의 **확장 계획**에서 같은 자료를 검색할 수 있습니다.
 
-**기상청·에어코리아·TAGO·E-Gen·나이스의 조회 행동 8개를 구현했고, KOBIS 1개는 비활성 초안**입니다. 구현된 공식 API는 총 13개 커넥터·28개 행동입니다. 초안은 `implemented: false`로 유지하며 실제 서비스 지원·구현된 API 행동 수에 포함하지 않습니다. 신규 실행기도 실제 키 검증 전에는 실사용 지원으로 집계하지 않습니다. 후보 데이터의 `implementedActionIds`와 `draftActionIds`로 구현/초안 상태를 구분합니다. 미조사 후보의 홈페이지 등록은 API 존재·이용 허용을 확인했다는 뜻이 아닙니다.
+**기상청·에어코리아·TAGO·E-Gen·나이스·KOBIS의 조회 행동 9개를 구현했고, 초기 비활성 조회 초안은 모두 실행기로 전환했습니다.** 구현된 공식 API는 총 14개 커넥터·29개 행동입니다. 신규 실행기도 실제 키 검증 전에는 실사용 지원으로 집계하지 않습니다. 후보 데이터의 `implementedActionIds`와 `draftActionIds`로 구현/초안 상태를 구분합니다. 후속 초안은 `implemented: false`로 유지하며 지원·구현 수에 포함하지 않습니다. 미조사 후보의 홈페이지 등록은 API 존재·이용 허용을 확인했다는 뜻이 아닙니다.
 
 ## 1순위: 조회 초안을 실행기로 발전
 
@@ -17,14 +17,14 @@
 | TAGO | 지원 도시·정류소 검색·도착정보. [도착정보](https://www.data.go.kr/data/15098530/openapi.do), [정류소정보](https://www.data.go.kr/data/15098534/openapi.do) | `tago.cities`, `tago.bus.stops`, `tago.bus.arrivals`: 실행기·계정 화면·초/분·자료 시각·모의 검증 | 두 API의 실제 권한·지역별 제공 범위·빈 응답·갱신 조건 확인 |
 | E-Gen | 전국 병·의원 검색. [병·의원 찾기 API](https://www.data.go.kr/data/15000736/openapi.do) | `egen.hospitals.search`: XML 실행기·계정 화면·연락처·요일별 시간·출처·모의 검증 | 실제 키·정보 갱신 조건, 진료과목/기관분류 필터·상세 조회 |
 | 나이스 | 공개 학교 검색·급식. [학교기본정보](https://open.neis.go.kr/portal/data/service/selectServicePage.do?infId=OPEN17020190531110010104913&infSeq=2), [급식식단](https://open.neis.go.kr/portal/data/service/selectServicePage.do?infId=OPEN17320190722180924242823&infSeq=2) | `neis.schools.search`, `neis.meals`: 실행기·계정 화면·학교코드/주소·알레르기 원문·빈 자료 구분 | 실제 키·동명 학교 구분·지역/식사별 자료·학사일정 정의 |
-| KOBIS | 일별 박스오피스. [공식 제공 서비스](https://www.kobis.or.kr/kobisopenapi/homepg/apiservice/searchServiceInfo.do) | `kobis.boxoffice.daily`: 날짜·결과 수의 KoreAI 입력 제안 | 상세 요청 규격·HTTPS·키 발급 조건·집계 날짜 검증 |
+| KOBIS | 일별 박스오피스. [공식 상세 규격](https://www.kobis.or.kr/kobisopenapi/homepg/apiservice/searchServiceDesc.do?apiSvcId=searchDailyBoxOffice) | `kobis.boxoffice.daily`: 실행기·계정 화면·날짜 대조·순위/관객수·매출 문자열 보존 | 실제 키·정상/빈 응답·한도 조건 검증, 영화 상세·주간 조회 정의 |
 
-기상청·에어코리아·TAGO·E-Gen·나이스는 공식 페이지·메타데이터에서 확인한 요청 주소와 변수로 템플릿을 구성했습니다. 실제 사용자 키 응답을 확인한 상태는 아닙니다. KOBIS는 세부 필드 검토를 남겨 요청 템플릿을 `null`로 표시합니다. 관행적으로 알려진 경로나 비공식 예제의 키를 실행 코드에 넣지 않습니다.
+위 6개 서비스는 공식 페이지·메타데이터에서 확인한 요청 주소와 변수로 템플릿을 구성했습니다. KOBIS HTTPS 경로는 무효 시험 키로 오류 구조까지 확인했습니다. 실제 사용자 키의 정상 응답을 확인한 상태는 아닙니다. 관행적으로 알려진 경로나 비공식 예제의 키를 실행 코드에 넣지 않습니다.
 
-### 초안 확인 방법
+### 요청 구조 확인 방법
 
 1. `npm run build` 후 `npm start`로 엔진을 실행합니다.
-2. 관리 화면 **확장 계획 → 1순위 → 조회 초안 열기**를 선택합니다. 기상청·에어코리아는 **조회 기능 열기**로 표시합니다.
+2. 관리 화면 **확장 계획 → 1순위 → 조회 기능 열기**를 선택합니다.
    TAGO는 **지원 도시 목록·버스 정류소 찾기·버스 도착예정 조회** 행동 이름으로 선택합니다.
    나이스는 **학교 찾기·학교 급식 조회** 행동 이름으로 선택합니다.
 3. **예시 입력 불러오기 → 요청 구조 미리보기**로 입력 검증과 요청 매핑을 확인합니다.
@@ -40,6 +40,8 @@ TAGO는 `tago-api` 계정에서 필요한 도시·정류소·도착 행동을 �
 E-Gen은 `egen-api` 계정을 연결하고 `egen.hospitals.search`를 허용합니다. 지역·이름·진료요일로 검색하며 제공된 일정과 현재 진료 가능 여부를 구분합니다. [E-Gen 사용 안내](EGEN.md)
 
 나이스는 `neis-api` 계정의 `apiKey`를 등록하고 학교 검색 → 코드·지역 확인 → 급식 조회 순서로 사용합니다. 본인 키가 없는 경우 공개 샘플로 실행하지 않습니다. [나이스 사용 안내](NEIS.md)
+
+KOBIS는 `kobis-api` 계정의 `apiKey`를 등록해 날짜별 최대 10개 영화를 조회합니다. 조회 날짜·상영 일정·자료 갱신 시각을 구분하며 매출액은 원문 숫자 문자열로 보존합니다. [KOBIS 사용 안내](KOBIS.md)
 
 ## 2순위: 공식 경로와 동작 범위 검증
 

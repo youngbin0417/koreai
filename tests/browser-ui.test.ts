@@ -102,6 +102,23 @@ test('NEIS mobile UI registers a key and uses school search codes to request mea
   }finally{await browser?.close();await r.close();}
 });
 
+test('KOBIS mobile UI connects a key, previews a dated request and displays box office counts without key exposure',async()=>{
+  const mock=providerMock();const r=await createRuntime({dataDir:tempDir('kobis-ui'),port:0,vault:new TestVault(),fetcher:mock.fetcher,bootstrapCode:'kobis-ui-bootstrap',headless:true,evidenceMode:'mock'});let browser:Browser|undefined;
+  try{
+    browser=await chromium.launch({channel:testChannel,headless:true});const page=await browser.newPage({viewport:{width:390,height:844}});const errors:string[]=[];page.on('pageerror',error=>errors.push(error.message));
+    await page.goto(`${r.baseUrl}/#setup=kobis-ui-bootstrap`);await page.getByRole('button',{name:'로컬 엔진 연결'}).click();
+    await page.getByRole('button',{name:'연결 계정',exact:false}).first().click();await page.getByRole('button',{name:'＋ 계정 연결'}).click();
+    await page.getByLabel('계정 종류').selectOption('kobis-api');await page.getByLabel('내가 알아볼 계정 이름').fill('영화 순위 계정');await page.getByLabel('apiKey',{exact:true}).fill('ui-kobis-private-key-12345');await page.getByRole('checkbox',{name:'KOBIS 일별 박스오피스 조회',exact:true}).check();
+    await page.getByRole('button',{name:'계정 저장',exact:true}).click();await page.getByRole('heading',{name:'영화 순위 계정'}).waitFor();assert.equal(mock.requests.length,0);
+    await page.getByRole('button',{name:'확장 계획',exact:false}).click();await page.getByRole('article',{name:'KOBIS 영화정보 확장 계획'}).getByRole('button',{name:'조회 기능 열기'}).click();
+    await page.getByLabel('실행할 내용 · JSON').fill(JSON.stringify({date:'2026-10-14',limit:3}));await page.getByRole('button',{name:'요청 구조 미리보기'}).click();await page.getByRole('heading',{name:'요청 구조 · 외부 호출 없음'}).waitFor();assert.equal(mock.requests.length,0);assert((await page.locator('.draft-inspector pre').innerText()).includes('"targetDt": "20261014"'));
+    await page.getByRole('button',{name:'실행 요청',exact:false}).click();await page.getByRole('heading',{name:'실행 결과',exact:true}).waitFor();
+    const result=await page.getByRole('dialog').innerText();assert(result.includes('시험 영화'));assert(result.includes('00123456'));assert(result.includes('"audienceCount": 12345'));assert(result.includes('12345678901234567'));assert(result.includes('20261014~20261014'));assert(result.includes('"providerUpdatedAt": null'));assert(!result.includes('ui-kobis-private-key'));assert.equal(mock.requests.length,1);
+    assert(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth));assert.deepEqual(errors,[]);assert.equal(r.engine.metrics().verifiedServices,0);
+    const screenshots=resolve('.test-data/screenshots');mkdirSync(screenshots,{recursive:true});await page.screenshot({path:resolve(screenshots,'kobis-mobile.png'),fullPage:true});await page.setViewportSize({width:1440,height:1000});await page.screenshot({path:resolve(screenshots,'kobis-desktop.png'),fullPage:true});
+  }finally{await browser?.close();await r.close();}
+});
+
 test('owned browser handles login, approval, result receipts, profile persistence and changed pages',async()=>{
   const r=await createRuntime({dataDir:tempDir('browser'),port:0,vault:new TestVault(),headless:true,channel:testChannel,evidenceMode:'mock'});
   try{
@@ -126,7 +143,7 @@ test('React dashboard supports onboarding, expanded catalog, basic connections, 
     await page.goto(`${r.baseUrl}/#setup=ui-bootstrap`);await page.getByRole('button',{name:'로컬 엔진 연결'}).click();await page.getByRole('button',{name:'둘러보기',exact:false}).click();await page.getByRole('heading',{name:'일상에 필요한 연결을 한곳에.'}).waitFor();
     assert.equal(new URL(page.url()).hash,'');
     const screenshotDir=resolve('.test-data/screenshots');mkdirSync(screenshotDir,{recursive:true});await page.screenshot({path:resolve(screenshotDir,'dashboard.png'),fullPage:true});
-    assert.equal(await page.locator('.stat').filter({hasText:'구현된 API 행동'}).locator('strong').textContent(),'28↗');
+    assert.equal(await page.locator('.stat').filter({hasText:'구현된 API 행동'}).locator('strong').textContent(),'29↗');
     await page.getByRole('button',{name:'서비스 카탈로그',exact:false}).click();assert.equal(await page.locator('.service-card').count(),71);
     await page.getByRole('button',{name:'확장 계획',exact:false}).click();
     assert.equal(await page.locator('.expansion-card').count(),26);
@@ -142,9 +159,9 @@ test('React dashboard supports onboarding, expanded catalog, basic connections, 
     await page.getByRole('button',{name:'요청 구조 미리보기'}).click();await page.getByRole('alert').filter({hasText:'실제 달력 날짜'}).waitFor();
     assert.equal(await page.locator('.draft-inspector pre').count(),0);
     await page.getByRole('button',{name:'닫기',exact:true}).click();
-    await page.getByRole('article',{name:'KOBIS 영화정보 확장 계획'}).getByRole('button',{name:'조회 초안 열기'}).click();
-    await page.getByRole('button',{name:'예시 입력 불러오기'}).click();await page.waitForFunction(()=>document.querySelector<HTMLTextAreaElement>('textarea.code-input')?.value.includes('2026-10-10'));
-    await page.getByRole('button',{name:'요청 구조 미리보기'}).click();await page.getByText('입력 규격 제안입니다.',{exact:false}).waitFor();
+    await page.getByRole('article',{name:'KOBIS 영화정보 확장 계획'}).getByRole('button',{name:'조회 기능 열기'}).click();
+    await page.getByRole('button',{name:'예시 입력 불러오기'}).click();await page.waitForFunction(()=>document.querySelector<HTMLTextAreaElement>('textarea.code-input')?.value.includes('"limit": 10'));
+    await page.getByRole('button',{name:'요청 구조 미리보기'}).click();await page.getByRole('heading',{name:'요청 구조 · 외부 호출 없음'}).waitFor();assert((await page.locator('.draft-inspector pre').innerText()).includes('searchDailyBoxOfficeList.json'));
     await page.getByRole('button',{name:'닫기',exact:true}).click();
     await page.setViewportSize({width:390,height:844});await page.screenshot({path:resolve(screenshotDir,'expansion-mobile.png'),fullPage:true});assert(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth));
     await page.setViewportSize({width:1440,height:1000});

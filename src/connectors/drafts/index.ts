@@ -7,11 +7,7 @@ import { airkoreaAction, airkoreaExample, airkoreaRequestTemplate } from '../air
 import { tagoActions, tagoArrivalsAction, tagoCitiesAction, tagoStopsAction, tagoExample, tagoRequestTemplate } from '../tago.js';
 import { egenAction, egenRequestTemplate } from '../egen.js';
 import { neisActions, neisSchoolsAction, neisMealsAction, neisExample, neisRequestTemplate } from '../neis.js';
-
-const date = z.string().regex(/^\d{4}-\d{2}-\d{2}$/).refine(value => {
-  const parsed = new Date(`${value}T00:00:00Z`);
-  return Number.isFinite(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value;
-}, '실제 달력 날짜 YYYY-MM-DD를 입력하세요.');
+import { kobisAction, kobisExample, kobisRequestTemplate } from '../kobis.js';
 
 export interface DraftRequest {
   method: 'GET';
@@ -31,8 +27,7 @@ interface Definition {
   request?: (input: Record<string, any>) => DraftRequest;
 }
 
-// Request templates contain no secrets and never dispatch HTTP. One schema is a
-// KoreAI proposal pending review of the provider's detailed parameter contract.
+// Request templates contain no secrets and never dispatch HTTP.
 const definitions: Definition[] = [
   {
     serviceId: 'kma', title: '기상청 초단기실황 조회',
@@ -90,10 +85,8 @@ const definitions: Definition[] = [
   },
   {
     serviceId: 'kobis', title: 'KOBIS 일별 박스오피스 조회',
-    description: '조회 날짜와 결과 수를 지정하는 KoreAI 입력 초안입니다. 공급자 필드·HTTPS 확인 후 요청 매핑을 구현합니다. CGV·메가박스 예매 연동과 별개입니다.',
-    schema: z.object({ date, limit: z.number().int().min(1).max(10).default(10) }).strict(),
-    example: { date: '2026-10-10', limit: 10 },
-    resultCheck: '조회 날짜·영화 코드·순위·관객수 응답과 집계 시점을 검증합니다. 극장 상영 시간·좌석 정보로 표시하지 않습니다.',
+    description: kobisAction.description, schema: kobisAction.schema,
+    example: kobisExample(), resultCheck: kobisAction.resultCheck, request: kobisRequestTemplate,
   },
 ];
 
@@ -103,6 +96,7 @@ export const planningActions: Action[] = definitions.map(definition => {
   if (definition.serviceId === 'tago') return tagoActions.find(action => action.id === definition.actionId)!;
   if (definition.serviceId === 'egen') return egenAction;
   if (definition.serviceId === 'neis') return neisActions.find(action => action.id === definition.actionId)!;
+  if (definition.serviceId === 'kobis') return kobisAction;
   const candidate = appApiBacklog.find(c => c.serviceId === definition.serviceId)!;
   const domains = definition.request ? ['apis.data.go.kr'] : definition.serviceId === 'neis' ? ['open.neis.go.kr'] : ['www.kobis.or.kr'];
   return {
@@ -129,6 +123,7 @@ export function draftExample(actionId: string): Record<string, unknown> | undefi
   if (actionId === kmaAction.id) return kmaExample();
   if (actionId === airkoreaAction.id) return airkoreaExample();
   if (neisActions.some(action => action.id === actionId)) return neisExample(actionId);
+  if (actionId === kobisAction.id) return kobisExample();
   const index = planningActions.findIndex(a => a.id === actionId);
   return index < 0 ? undefined : structuredClone(definitions[index]!.example);
 }

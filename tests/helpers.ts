@@ -43,6 +43,9 @@ export function providerMock(){
     else if(url.hostname==='kapi.kakao.com')body={result_code:0};
     else if(url.hostname==='dapi.kakao.com')body={documents:[{place_name:'서울 도서관',x:'126.97',y:'37.56'}],meta:{total_count:1}};
     else if(url.hostname==='api.odcloud.kr')body={data:[{서비스ID:'GOV-123',서비스명:'청년 지원'}],totalCount:1};
+    else if(url.hostname==='www.kobis.or.kr'){
+      const day=url.searchParams.get('targetDt');body={boxOfficeResult:{boxofficeType:'일별 박스오피스',showRange:`${day}~${day}`,dailyBoxOfficeList:[{rnum:'1',rank:'1',rankInten:'-1',rankOldAndNew:'OLD',movieCd:'00123456',movieNm:'시험 영화',openDt:'2026-10-01',salesAmt:'12345678901234567',salesAcc:'23456789012345678',salesShare:'32.5',audiCnt:'12345',audiAcc:'23456'}]}};
+    }
     else if(url.hostname==='open.neis.go.kr'){
       const school={ATPT_OFCDC_SC_CODE:'B10',ATPT_OFCDC_SC_NM:'서울특별시교육청',SD_SCHUL_CODE:'0012345',SCHUL_NM:'시험고등학교',LCTN_SC_NM:'서울특별시',ORG_RDNMA:'서울특별시 시험로 1',ORG_TELNO:'02-0000-0000',LOAD_DTM:'20261014040000'};
       const schools=url.pathname.endsWith('/schoolInfo');
