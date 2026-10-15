@@ -183,6 +183,24 @@ test('Coupang mobile UI presents the consumer product proposal and preserves dis
   }finally{await browser?.close();await r.close();}
 });
 
+test('Toss mobile UI shows a disabled masked-account proposal and separates consumer, login, MyData authentication and console guidance',async()=>{
+  const mock=providerMock();const r=await createRuntime({dataDir:tempDir('toss-plan-ui'),port:0,vault:new TestVault(),fetcher:mock.fetcher,bootstrapCode:'toss-plan-ui-bootstrap',headless:true,evidenceMode:'mock'});let browser:Browser|undefined;
+  try{
+    browser=await chromium.launch({channel:testChannel,headless:true});const page=await browser.newPage({viewport:{width:390,height:844}});const errors:string[]=[];page.on('pageerror',error=>errors.push(error.message));
+    await page.goto(`${r.baseUrl}/#setup=toss-plan-ui-bootstrap`);await page.getByRole('button',{name:'로컬 엔진 연결'}).click();await page.getByRole('button',{name:'기본 서비스 연결',exact:false}).click();
+    const card=page.getByRole('article',{name:'토스 기본 연결'}),plan=card.getByRole('region',{name:'토스 첫 조회 기능'});
+    await plan.getByText('정의 완료 · 자동 조회 미지원',{exact:true}).waitFor();assert.equal(await plan.getByRole('link',{name:'토스 안내·앱 직접 확인',exact:false}).getAttribute('href'),'https://toss.im/');assert.equal(await plan.getByRole('button').count(),0);assert.equal(await plan.getByRole('textbox').count(),0);await plan.getByText('준비 저장은 계좌 연결·동의 수집이 아닙니다.',{exact:false}).waitFor();
+    await plan.locator('summary').click();const contract=await plan.locator('pre').innerText();for(const field of ['toss.accounts.list','"limit": 5','accountRef','accountNumberHint','not_verified'])assert(contract.includes(field));assert(!contract.includes('"balance"'));assert(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth));
+    await card.getByLabel('진입 경로').selectOption('mydata-auth');await card.getByRole('button',{name:'연결 준비 저장'}).click();await card.getByText('준비됨 · 계정 미검증',{exact:true}).waitFor();assert.equal(await card.getByRole('link',{name:'연동 문서 열기',exact:false}).getAttribute('href'),'https://auth-docs.toss.im/auth/integration_mydata.html');await card.getByText('계좌 목록·잔액 조회 API가 아니며 KoreAI에서 인증·금융 조회를 실행하지 않습니다.',{exact:false}).waitFor();
+    await page.reload();await page.getByRole('button',{name:'기본 서비스 연결',exact:false}).click();assert.equal(await card.getByLabel('진입 경로').inputValue(),'mydata-auth');
+    await card.getByLabel('진입 경로').selectOption('login-guide');assert.equal(await card.getByRole('link',{name:'연동 문서 열기',exact:false}).getAttribute('href'),'https://auth-docs.toss.im/tosslogin/common.html');await card.getByText('개인 계좌 조회 권한이 아니며 KoreAI에서 로그인 인증을 실행하지 않습니다.',{exact:false}).waitFor();
+    await card.getByLabel('진입 경로').selectOption('console-mcp-guide');assert.equal(await card.getByRole('link',{name:'연동 문서 열기',exact:false}).getAttribute('href'),'https://developers-apps-in-toss.toss.im/guide/console-mcp.md');await card.getByText('소비자 금융 조회가 아니며 KoreAI의 상위 MCP 등록·OAuth·도구 호출은 별도 검증이 필요합니다.',{exact:false}).waitFor();
+    await card.getByLabel('진입 경로').selectOption('consumer');assert.equal(await card.getByRole('link',{name:'서비스 열기',exact:false}).getAttribute('href'),'https://toss.im/');
+    assert.equal(mock.requests.length,0);assert.equal(r.engine.jobs().length,0);assert.equal(r.engine.metrics().verifiedServices,0);assert.equal(r.engine.metrics().supportedActions,0);assert.deepEqual(errors,[]);assert(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth));
+    const screenshots=resolve('.test-data/screenshots');mkdirSync(screenshots,{recursive:true});await card.scrollIntoViewIfNeeded();await page.screenshot({path:resolve(screenshots,'toss-plan-mobile.png'),fullPage:true});await page.setViewportSize({width:1440,height:1000});await page.screenshot({path:resolve(screenshots,'toss-plan-desktop.png'),fullPage:true});
+  }finally{await browser?.close();await r.close();}
+});
+
 test('owned browser handles login, approval, result receipts, profile persistence and changed pages',async()=>{
   const r=await createRuntime({dataDir:tempDir('browser'),port:0,vault:new TestVault(),headless:true,channel:testChannel,evidenceMode:'mock'});
   try{

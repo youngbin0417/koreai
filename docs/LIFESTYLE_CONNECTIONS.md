@@ -10,13 +10,13 @@
 - MCP/HTTP의 연결 상태 조회와 사용자 진입 안내: 5개 커넥터, 10개 `handoff` 행동.
 - 준비 전 요청의 `awaiting_user` 대기와 준비 저장 후 재개.
 - 사용자 인증이 필요한 작업은 공식 서비스 또는 앱에서 직접 진행.
-- 강남언니·당근·마켓컬리·쿠팡의 첫 조회 규격과 비활성 행동 4개, 기본 연결 화면의 정의·접근 조건 표시. [강남언니](GANGNAMUNNI.md), [당근](DAANGN.md), [마켓컬리](KURLY.md), [쿠팡](COUPANG.md)
+- 다섯 서비스의 첫 조회 규격과 비활성 행동 5개, 기본 연결 화면의 정의·접근 조건 표시. [강남언니](GANGNAMUNNI.md), [당근](DAANGN.md), [마켓컬리](KURLY.md), [쿠팡](COUPANG.md), [토스](TOSS.md)
 
 ‘준비됨’은 경로 선택을 저장했다는 의미입니다. 로그인 세션·API 권한을 검증했다는 의미가 아닙니다. `open`은 링크를 반환하며 외부 브라우저를 열거나 페이지를 읽지 않습니다. 링크 안내 성공은 실제 계정 검증과 지원 실적에 포함되지 않습니다.
 
 ## 서비스별 경로와 근거
 
-최초 확인일: **2026-10-10**, 강남언니·당근·마켓컬리·쿠팡 갱신일: **2026-10-15**. 문서 확인은 키 발급·제휴 계약·실계정 호출 검증과 별개입니다.
+최초 확인일: **2026-10-10**, 다섯 서비스의 첫 조회 정의 갱신일: **2026-10-15**. 문서 확인은 키 발급·제휴 계약·실계정 호출 검증과 별개입니다.
 
 | 서비스 ID | 사용자 진입 경로 | 파트너 경로·확인한 범위 |
 |---|---|---|
@@ -24,7 +24,7 @@
 | `daangn` | [당근](https://www.daangn.com/), [중고거래 직접 확인](https://www.daangn.com/kr/buy-sell/) | [공식 광고 MCP 가이드](https://businessdaangn.gitbook.io/business.daangn/ads-pro/tools/mcp)는 광고주 계정 조회·분석과 계정 인증을 안내합니다. 소비자 물품 검색·개인 채팅 권한과 구분합니다. [첫 기능 정의](DAANGN.md) |
 | `kurly` | [공식 상품 직접 확인](https://www.kurly.com/main) | [KLS 소개](https://developers.kurly.com/docs/intro/)·[인증 문서](https://developers.kurly.com/docs/auth/)는 계약 화주사의 물류·IP 등록·키/토큰을 안내합니다. 소비자 상품·구매내역 API와 구분하며 첫 조회는 비활성 제안입니다. [정의·연결 조건](KURLY.md) |
 | `coupang` | [쿠팡 상품 직접 확인](https://www.coupang.com/) | [판매자 API/키](https://developers.coupang.com/ko/getting-started/issue-open-api-keynew)와 [파트너스 상품 API 안내](https://partners.coupang.com/#help/open-api)를 구분합니다. 소비자 첫 조회는 비활성 제안이며 파트너스 승인·활동/표시 조건과 세부 명세는 확인 대기. [정의·공식 가이드](COUPANG.md) |
-| `toss` | [토스 공식 안내](https://toss.im/) → 사용자 앱 | [앱인토스](https://developers-apps-in-toss.toss.im/intro/overview.html)는 토스 안의 미니앱 개발·등록 경로입니다. 개인 금융 정보·송금 권한은 별도 확인 대상입니다. |
+| `toss` | [토스 공식 안내](https://toss.im/) → 사용자가 앱 직접 실행 | [앱인토스](https://developers-apps-in-toss.toss.im/readme.md)·[외부 토스 로그인](https://auth-docs.toss.im/tosslogin/common.html)·[통합인증](https://auth-docs.toss.im/auth/integration_mydata.html)·[운영 콘솔 MCP](https://developers-apps-in-toss.toss.im/guide/console-mcp.md)를 구분합니다. 개인 연결 계좌 조회는 비활성 제안이며 금융 API·인증/동의 조건은 확인 대기. [정의·연결 조건](TOSS.md) |
 
 API가 확인된 파트너 경로도 이번 버전에서 키 발급·인증·업무 실행을 구현한 것은 아닙니다. 경로 선택은 후속 개발에 사용할 방향을 저장합니다.
 
@@ -62,6 +62,12 @@ API가 확인된 파트너 경로도 이번 버전에서 키 발급·인증·업
 `coupang.products.search`를 **비활성 제안 행동**으로 등록했습니다. 입력은 `query`, `limit`(기본 5·최대 20), 결과는 상품/옵션 ID 문자열·가격 원문과 조건·품절/배송 안내·공식 상세 링크입니다. 링크의 옵션 ID와 결과가 일치해야 하며 가격 미확인·회원/쿠폰 조건·배송 `not_verified`를 구분합니다.
 
 기존 `consumer`·`seller`를 유지하고 `seller-auth`·`partners-guide` 안내 경로를 추가했습니다. WING 판매자 키/IP/HMAC과 파트너스 상품 API의 최종승인·활동/표시 조건은 별도입니다. 파트너스 API 세부 페이지는 조사 환경에서 접근 거절돼 실제 요청 매핑을 구현하지 않았습니다. `firstRead` 규격만 제공하며 실행은 `NOT_IMPLEMENTED`로 거절합니다. 파트너스 채택 시 제휴 링크·표시 규격을 먼저 갱신합니다. [쿠팡 정의·연결 조건](COUPANG.md)
+
+### 토스 첫 조회 기능
+
+`toss.accounts.list`를 **비활성 제안 행동**으로 등록했습니다. 입력은 `limit`(기본 5·최대 20), 결과는 로컬 참조 UUID·기관명·`****1234` 형식의 계좌 끝 네 자리입니다. 원본 금융 식별자·잔액·거래내역을 받지 않으며 전체 계좌 조회 범위는 `not_verified`입니다. 원본 매핑·마스킹 변환·동의 수집은 미구현입니다.
+
+기존 `consumer`·`apps-in-toss`를 유지하고 `login-guide`·`mydata-auth`·`console-mcp-guide` 안내 경로를 추가했습니다. 준비 저장·로그인·서명 검증을 금융 조회 권한으로 간주하지 않습니다. `firstRead` 규격만 제공하며 실행과 AI 대화 기능 선택을 거절합니다. 콘솔 MCP는 운영자용 별도 OAuth 후속 작업입니다. [토스 정의·연결 조건](TOSS.md)
 
 ## 다음 단계
 

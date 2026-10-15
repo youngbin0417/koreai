@@ -1,6 +1,6 @@
 # 검증 기록
 
-최근 검증일: **2026-10-15**. Windows·Node.js 24.19.0·Edge(headless), WSL2 Ubuntu 24.04·Node.js 22.17.0에서 검증했습니다. 최근 Windows 전체 테스트는 **142개 중 140개 통과·Linux 전용 2개 제외·실패 0개**, Linux 쿠팡·마켓컬리·당근·강남언니 정의·기본 연결 테스트는 **18개 모두 통과**입니다. 날짜별 실행 범위는 아래에 구분합니다.
+최근 검증일: **2026-10-15**. Windows·Node.js 24.19.0·Edge(headless), WSL2 Ubuntu 24.04·Node.js 22.17.0에서 검증했습니다. 최근 Windows 전체 테스트는 **147개 중 145개 통과·Linux 전용 2개 제외·실패 0개**, Linux 다섯 생활 서비스 정의·기본 연결 테스트는 **22개 모두 통과**입니다. 날짜별 실행 범위는 아래에 구분합니다.
 
 ## 2026-10-11 확장 초안 검증
 
@@ -178,6 +178,18 @@ E-Gen 응답은 모의 데이터입니다. 실제 키·지역별 기관 정보·
 
 공식 API는 **14개 커넥터·29개 행동**, 기본 연결은 **5개·10개 handoff 행동**, 생활 앱 조회 초안은 **강남언니·당근·마켓컬리·쿠팡 4개**입니다. 안내·정의·모의 테스트를 실제 계정 검증이나 지원 실적으로 집계하지 않습니다. [쿠팡 정의·연결 조건](COUPANG.md), [완료한 APP-04·후속 APP-06](../TODO.md).
 
+## 2026-10-15 토스 첫 조회 기능 정의 검증
+
+[현재 앱인토스 문서](https://developers-apps-in-toss.toss.im/readme.md)·[로그인](https://developers-apps-in-toss.toss.im/guide/authentication/intro.md)·[유저 정보](https://developers-apps-in-toss.toss.im/guide/authentication/user-info.md)·[서버 mTLS](https://developers-apps-in-toss.toss.im/documentation/integration/server-api.md), [외부 토스 로그인](https://auth-docs.toss.im/tosslogin/common.html)·[마이데이터 통합인증](https://auth-docs.toss.im/auth/integration_mydata.html)·[운영 콘솔 MCP](https://developers-apps-in-toss.toss.im/guide/console-mcp.md)를 확인했습니다. 현재 Markdown 원문은 HTTP 200으로 읽었으며 기존 앱인토스 소개 주소의 이동도 확인했습니다. 개인 연결 계좌 조회 API·이용 주체·인증/동의 조건은 확보하지 못했습니다. 로그인 정보·서명 검증·미니앱 운영 데이터를 개인 금융 조회로 해석하지 않았습니다.
+
+- `toss.accounts.list`의 제안 입력/결과·계정 조건을 `firstRead`로 제공하고 `partnership`·`implemented: false`를 유지합니다. 기관명·로컬 UUID·끝 네 자리의 규격이며 실제 UUID 매핑·마스킹 변환·동의 수집·금융 API 호출은 구현/수행하지 않았습니다.
+- `npm run check`, `npm run build` 통과. Windows 전체 **147개 중 145개 통과·Linux 전용 2개 제외·실패 0개**.
+- 신규 핵심 4개 검증: 상한과 원본 계좌/CI·키/토큰·임의 동의 입력 거절, 로컬 UUID·고정 마스킹 형식·중복 참조/잔액/거래내역/민감 필드 거절·조회 범위 미확인, 관리자/에이전트·실행기·기본 링크 실행기의 조회 차단·증거 미생성·지원 전환 거절, HTTP 권한·동의 필드 거절·AI 허용 기능 거절·진입 경로 분리·공급자/모델 호출 없음.
+- WSL2 Ubuntu 24.04·Node 22.17.0에서 다섯 서비스 정의 각 4개·기본 연결 2개, 총 **22개 모두 통과**했습니다. 원본 테스트를 임시 JavaScript로 변환해 빌드된 `dist/`와 Linux 임시 디렉터리·시험 Vault로 실행했습니다. Linux는 API·엔진 범위이며 화면은 Windows Edge에서 확인했습니다.
+- 실제 Edge 390px 화면에서 자동 조회 미지원·준비 저장/동의 구분·규격 펼치기, 통합인증 안내 경로 저장·새로고침 유지, 외부 로그인·운영 콘솔 MCP·소비자 안내 경로 전환을 확인했습니다. 계좌정보 입력란·실행 버튼이 없고 공급자 요청·작업 생성·지원 수 증가·JavaScript 오류·가로 넘침도 없습니다. 캡처: `.test-data/screenshots/toss-plan-mobile.png`, `toss-plan-desktop.png`.
+
+공식 API는 **14개 커넥터·29개 행동**, 기본 연결은 **5개·10개 handoff 행동**, 생활 앱 조회 초안은 **5개**입니다. 운영 MCP의 서버 등록·OAuth·실제 도구 호출·금융 계정 조회는 미수행입니다. [토스 정의](TOSS.md), [완료한 APP-05·후속 APP-06/MCP-01](../TODO.md).
+
 ## 아직 수행하지 않은 외부 검증
 
 - 네이버·밴드·카카오·공공데이터포털의 실제 사용자 계정·API 키 호출.
@@ -192,6 +204,7 @@ E-Gen 응답은 모의 데이터입니다. 실제 키·지역별 기관 정보·
 - 당근 소비자 물품 검색 API·자동 접근 조건·동네 인증/검색 범위와 실제 목록 검증. 광고 MCP도 KoreAI의 OAuth·실제 계정·도구 호환성 검증은 미수행입니다.
 - 마켓컬리 소비자 상품 검색 API·자동 접근 허용·옵션/가격 조건과 실제 계정 조회 검증. KLS 물류 API의 키 발급·인증·실제 호출도 미수행입니다.
 - 쿠팡 소비자 상품 조회의 실제 경로·계정 검증. 파트너스 최신 명세·승인/활동·제휴 링크/표시·보관/LLM 전달 조건은 확인 대기이며 판매자 키/IP/HMAC 호출도 미수행입니다.
+- 토스 개인 연결 계좌 조회 경로·이용 주체·인증/동의·보관/삭제/LLM 전달·실제 계정 검증. 운영 콘솔 MCP도 OAuth·워크스페이스/도구 권한·호환성 검증은 미수행입니다.
 - 외부 한국 서비스에 대한 브라우저 자동화 허용·실행 검증.
 - 특정 상용 AI 제품 UI에서의 종단간 호환성 확인.
 - 실제 GCP VM 설치와 Tailscale·휴대폰 접속, 새 대화 화면의 실제 DeepSeek API 호출.
