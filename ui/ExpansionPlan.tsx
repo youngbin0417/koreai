@@ -8,13 +8,15 @@ const accessLabels: Record<ApiCandidate['access'], string> = {
 export function ExpansionPlan({ candidates, actionTitles, openAction }: { candidates: ApiCandidate[]; actionTitles: Record<string, string>; openAction: (id: string) => void }) {
   const [priority, setPriority] = useState('all');
   const [query, setQuery] = useState('');
-  const visible = candidates.filter(c => (priority === 'all' || String(c.priority) === priority) && `${c.name} ${c.proposedActions.join(' ')}`.toLowerCase().includes(query.toLowerCase()));
+  const [requestedOnly, setRequestedOnly] = useState(false);
+  const visible = candidates.filter(c => (!requestedOnly || !!c.connectionPlan) && (priority === 'all' || String(c.priority) === priority) && `${c.name} ${c.proposedActions.join(' ')} ${c.connectionPlan?.aliases.join(' ')??''}`.toLowerCase().includes(query.toLowerCase()));
   return <>
     <div className="page-heading"><div><h1>다음에 연결할 서비스</h1><p>{candidates.length}개 후보의 근거·우선순위·다음 작업을 기록합니다.</p></div></div>
     <div className="info-strip">1순위: 조회 초안 구현 · 2순위: 공식 경로 검증 · 3순위: 앱 API·제휴 조사</div>
     <div className="toolbar">
       <input className="search" aria-label="확장 후보 검색" placeholder="앱 이름 또는 기능 검색" value={query} onChange={e => setQuery(e.target.value)} />
       <select aria-label="확장 우선순위" value={priority} onChange={e => setPriority(e.target.value)}><option value="all">모든 우선순위</option><option value="1">1순위 · 조회 초안</option><option value="2">2순위 · 공식 경로</option><option value="3">3순위 · API 조사</option></select>
+      <label className="check"><input type="checkbox" checked={requestedOnly} onChange={event=>setRequestedOnly(event.target.checked)}/>추가 요청 앱만 보기</label>
     </div>
     <div className="account-grid">{visible.map(c => <article className="panel expansion-card" key={c.serviceId} aria-label={`${c.name} 확장 계획`}>
       <div className="panel-heading"><h2>{c.name}</h2><span className="badge">{c.priority}순위</span></div>
@@ -23,6 +25,7 @@ export function ExpansionPlan({ candidates, actionTitles, openAction }: { candid
       <p className="muted small">{c.checkedAt ? `문서 확인: ${c.checkedAt} · 계정 미검증` : '미조사 · 홈페이지를 조사 시작점으로 등록'}</p>
       <h3>먼저 정의할 행동</h3><ul>{c.proposedActions.map(a => <li key={a}>{a}</li>)}</ul>
       <h3>다음 작업</h3><p>{c.nextStep}</p>
+      {c.connectionPlan&&<details className="requested-plan"><summary>첫 연결 초안</summary><p className="small">요청 등록: {c.connectionPlan.requestedAt} · 조사/설계 단계 · 자동 실행 미지원</p><dl><dt>첫 조회</dt><dd>{c.connectionPlan.firstRead}</dd><dt>연결 후보</dt><dd>{{'official-api':'공식 API 후보','public-data':'공개 데이터 후보',partnership:'제휴·허용 범위 확인'}[c.connectionPlan.method]}</dd><dt>필요 조건</dt><dd>{c.connectionPlan.requiredAccess}</dd><dt>결과 확인·경계</dt><dd>{c.connectionPlan.resultCheck}</dd></dl><p>{c.connectionPlan.nextStep}</p></details>}
       <div className="button-row">{c.implementedActionIds.map(id => <button key={id} onClick={() => openAction(id)}>{c.implementedActionIds.length > 1 ? actionTitles[id] ?? '조회 기능 열기' : '조회 기능 열기'}</button>)}{c.draftActionIds.map(id => <button key={id} onClick={() => openAction(id)}>조회 초안 열기</button>)}<a href={c.sourceUrl} target="_blank" rel="noreferrer">{c.checkedAt ? '공식 근거' : '공식 서비스'} ↗</a></div>
     </article>)}</div>
     {visible.length === 0 && <p role="status">검색 조건에 맞는 확장 후보가 없습니다.</p>}

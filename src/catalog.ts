@@ -1,5 +1,5 @@
 import type { Service } from './types.js';
-import { expansionServices } from './research/app-api-backlog.js';
+import { appApiBacklog, expansionServices } from './research/app-api-backlog.js';
 
 type Row = [string, string, string, string[]];
 const groups: [string, Row[]][] = [
@@ -90,3 +90,7 @@ const notes: Record<string,string> = {
 };
 for(const s of services) if(notes[s.id])s.note=notes[s.id]!;
 services.push(...expansionServices(new Set(services.map(s=>s.id))));
+for (const service of services) {
+  const candidate = appApiBacklog.find(item => item.serviceId === service.id && item.connectionPlan);
+  if (candidate) {service.aliases=candidate.connectionPlan!.aliases;service.sourceUrl??=candidate.sourceUrl;service.note+=` 첫 연결 초안: ${candidate.connectionPlan!.firstRead}. ${candidate.connectionPlan!.resultCheck}`;}
+}

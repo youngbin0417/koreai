@@ -1,4 +1,5 @@
 import type { Service, Verification } from '../types.js';
+import { requestedApps, type ConnectionPlan } from './requested-apps.js';
 
 export interface ApiCandidate {
   serviceId: string;
@@ -15,6 +16,7 @@ export interface ApiCandidate {
   draftActionIds: string[];
   implementedActionIds: string[];
   nextStep: string;
+  connectionPlan?: ConnectionPlan;
 }
 
 const checkedAt = '2026-10-11';
@@ -88,9 +90,19 @@ export const appApiBacklog: ApiCandidate[] = [
   })),
 ];
 
+for (const request of requestedApps) {
+  const existing = appApiBacklog.find(item => item.serviceId === request.serviceId);
+  if (existing) {
+    existing.name = request.name; existing.connectionPlan = request.plan;
+    existing.proposedActions = [...new Set([...existing.proposedActions, request.plan.firstRead])];
+  } else appApiBacklog.push(candidate({serviceId:request.serviceId,name:request.name,category:request.category,homeUrl:request.homeUrl,sourceUrl:request.sourceUrl,
+    priority:request.priority,access:request.plan.method==='official-api'?'public-key':'unknown',documentedScope:request.documentedScope,checkedAt:'2026-10-16',
+    proposedActions:[request.plan.firstRead],nextStep:request.plan.nextStep,connectionPlan:request.plan}));
+}
+
 export function expansionServices(existingIds: ReadonlySet<string>): Service[] {
   return appApiBacklog.filter(c => !existingIds.has(c.serviceId)).map(c => ({
     id: c.serviceId, name: c.name, category: c.category, homeUrl: c.homeUrl, candidateActions: c.proposedActions,
-    sourceUrl: c.sourceUrl, note: c.documentedScope ? `공식 자료 확인: ${c.documentedScope} 다음 단계: ${c.nextStep}` : `추가 조사 후보입니다. ${c.nextStep}`,
+    sourceUrl: c.sourceUrl, aliases:c.connectionPlan?.aliases, note: c.documentedScope ? `공식 자료 확인: ${c.documentedScope} 다음 단계: ${c.nextStep}` : `추가 조사 후보입니다. ${c.nextStep}`,
   }));
 }

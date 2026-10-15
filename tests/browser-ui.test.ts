@@ -226,9 +226,9 @@ test('React dashboard supports onboarding, expanded catalog, basic connections, 
     assert.equal(new URL(page.url()).hash,'');
     const screenshotDir=resolve('.test-data/screenshots');mkdirSync(screenshotDir,{recursive:true});await page.screenshot({path:resolve(screenshotDir,'dashboard.png'),fullPage:true});
     assert.equal(await page.locator('.stat').filter({hasText:'구현된 API 행동'}).locator('strong').textContent(),'29↗');
-    await page.getByRole('button',{name:'서비스 카탈로그',exact:false}).click();assert.equal(await page.locator('.service-card').count(),71);
+    await page.getByRole('button',{name:'서비스 카탈로그',exact:false}).click();assert.equal(await page.locator('.service-card').count(),99);
     await page.getByRole('button',{name:'확장 계획',exact:false}).click();
-    assert.equal(await page.locator('.expansion-card').count(),26);
+    assert.equal(await page.locator('.expansion-card').count(),58);
     await page.getByLabel('확장 우선순위').selectOption('1');assert.equal(await page.locator('.expansion-card').count(),6);
     await page.getByRole('article',{name:'기상청 날씨 확장 계획'}).getByRole('button',{name:'조회 기능 열기'}).click();
     assert(await page.getByRole('button',{name:'실행 요청',exact:false}).isDisabled());

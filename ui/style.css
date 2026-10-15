@@ -12,3 +12,4 @@
 .remote-card { min-width: 0; margin-block: 12px; }
 .remote-card p, .remote-auth-link { overflow-wrap: anywhere; }
 .remote-research { margin-top: 18px; overflow-wrap: anywhere; }
+.requested-plan{margin-top:16px;overflow-wrap:anywhere}.requested-plan dt{font-weight:600;margin-top:12px}.requested-plan dd{margin:6px 0;font-size:13px}

@@ -15,6 +15,7 @@ export interface Action {
 export interface Service {
   id: string; name: string; category: string; homeUrl: string;
   candidateActions: string[]; sourceUrl?: string; note: string;
+  aliases?: string[];
 }
 export interface Account {
   id: string; label: string; credentialType: string; allowedActions: string[];
