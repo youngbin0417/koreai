@@ -25,6 +25,7 @@ export const gangnamunniHospitalPlan: FirstReadPlan = {
   actionId: 'gangnamunni.hospitals.search', title: '공개 병원 후보 찾기', state: 'defined', access: 'provider-confirmation-required', checkedAt: '2026-10-15',
   description: '병원 이름·지역으로 후보의 이름·제공된 위치 설명·공식 상세 링크를 찾는 기능을 정의했습니다. 자동 조회는 아직 지원하지 않습니다.',
   manualUrl: 'https://unni.app/hospitals',
+  manualLabel: '병원 목록 직접 확인',
   inputSchema: zodToJsonSchema(gangnamunniHospitalInput, { $refStrategy: 'none' }) as Record<string, unknown>,
   outputSchema: zodToJsonSchema(gangnamunniHospitalOutput, { $refStrategy: 'none' }) as Record<string, unknown>,
   example: { query: '피부과', region: '강남역', limit: 5 },

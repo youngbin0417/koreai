@@ -24,6 +24,7 @@ export interface FirstReadPlan {
   access: 'provider-confirmation-required';
   checkedAt: string;
   manualUrl: string;
+  manualLabel: string;
   inputSchema: Record<string, unknown>;
   outputSchema: Record<string, unknown>;
   example: Record<string, unknown>;

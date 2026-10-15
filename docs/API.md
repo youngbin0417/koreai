@@ -93,9 +93,11 @@
 - `DELETE /api/connections/:serviceId`: 연결 준비를 해제합니다. 서비스 계정의 로그아웃이나 권한 회수를 수행하는 API는 아닙니다.
 - `GET /api/state`의 `connections`: 5개 기본 커넥터의 정의·준비 상태·후속 단계 목록입니다.
 
-강남언니의 `routeId: hospitals`는 공식 병원 목록의 사용자 직접 확인 경로입니다. `connections[].firstRead`는 선택 필드로 첫 조회의 제안 입력/결과 JSON Schema·예시·계정 조건·다음 확인 사항을 담습니다. 현재 강남언니만 정의돼 있으며 `stages[].state: defined`는 정의 완료·실행 미지원입니다. 기본 행동의 `automaticActions: 0`·`accountVerified: false`를 바꾸지 않습니다.
+강남언니의 `routeId: hospitals`는 병원 목록, 당근의 `routeId: items`는 중고거래 목록의 사용자 직접 확인 경로입니다. `connections[].firstRead`는 선택 필드로 첫 조회의 제안 입력/결과 JSON Schema·예시·계정 조건·다음 확인 사항·`manualUrl`·서비스별 `manualLabel`을 담습니다. 현재 강남언니·당근에 제공하며 `stages[].state: defined`는 정의 완료·실행 미지원입니다. 기본 행동의 `automaticActions: 0`·`accountVerified: false`를 바꾸지 않습니다.
 
 `gangnamunni.hospitals.search`는 기능 검색에서 찾을 수 있지만 `implemented: false`, `enabled: false`, `method: partnership`입니다. 실행 요청은 관리자·허용된 에이전트 모두 409 `NOT_IMPLEMENTED`로 거절하며 작업을 만들지 않습니다. 초안 규격은 `firstRead`로 제공하며 공공 API의 `/api/drafts/:id` 미리보기에는 등록하지 않았습니다. [강남언니 규격](GANGNAMUNNI.md)
+
+`daangn.items.search`에도 같은 비활성·실행 거절 규칙을 적용합니다. 명시한 동네·검색어의 제안 규격이며 동네 인증·실제 검색은 수행하지 않습니다. 당근의 `routeId: ads-mcp-guide`는 광고주용 안내 링크이며 상위 MCP 서버를 등록·인증하는 API가 아닙니다. [당근 규격·광고 MCP 범위](DAANGN.md)
 
 기본 행동은 `<서비스ID>.connection.status`, `<서비스ID>.connection.open`입니다. `gangnamunni`, `daangn`, `kurly`, `coupang`, `toss`에 제공하며 입력은 `{}`입니다. 상태 조회는 준비 전에도 실행됩니다. 진입 안내는 준비 전 `awaiting_user`로 대기하며, 사용자가 준비 저장 후 재개할 수 있습니다. 안내 결과는 `url`, `requiresUser: true`, `externalActionExecuted: false`, `accountVerified: false`를 포함합니다. 이 작업의 `succeeded`는 진입 안내 완료이며 외부 서비스 작업 완료를 뜻하지 않습니다. `handoff` 행동 증거는 실제 지원 실적에서 제외됩니다.
 

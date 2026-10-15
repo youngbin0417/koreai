@@ -36,7 +36,7 @@ function ConnectionCard({ connection, busy, prepare, remove }: Omit<Props, 'conn
       <p className="badge">정의 완료 · 자동 조회 미지원</p>
       <p>{connection.firstRead.description}</p>
       <p className="small">{connection.firstRead.accountRequirement}</p>
-      <a href={connection.firstRead.manualUrl} target="_blank" rel="noreferrer">병원 목록 직접 확인 ↗</a>
+      <a href={connection.firstRead.manualUrl} target="_blank" rel="noreferrer">{connection.firstRead.manualLabel} ↗</a>
       <details><summary>입력·결과 초안과 연결 조건</summary>
         <p className="small">아래 규격은 KoreAI 제안입니다. 공급자 API 명세와 실제 검색 결과가 아닙니다.</p>
         <pre>{JSON.stringify({ actionId: connection.firstRead.actionId, example: connection.firstRead.example, inputSchema: connection.firstRead.inputSchema, outputSchema: connection.firstRead.outputSchema }, null, 2)}</pre>
