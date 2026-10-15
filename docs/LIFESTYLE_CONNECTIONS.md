@@ -10,19 +10,19 @@
 - MCP/HTTP의 연결 상태 조회와 사용자 진입 안내: 5개 커넥터, 10개 `handoff` 행동.
 - 준비 전 요청의 `awaiting_user` 대기와 준비 저장 후 재개.
 - 사용자 인증이 필요한 작업은 공식 서비스 또는 앱에서 직접 진행.
-- 강남언니·당근의 첫 조회 규격과 비활성 행동 2개, 기본 연결 화면의 정의·접근 조건 표시. [강남언니](GANGNAMUNNI.md), [당근](DAANGN.md)
+- 강남언니·당근·마켓컬리의 첫 조회 규격과 비활성 행동 3개, 기본 연결 화면의 정의·접근 조건 표시. [강남언니](GANGNAMUNNI.md), [당근](DAANGN.md), [마켓컬리](KURLY.md)
 
 ‘준비됨’은 경로 선택을 저장했다는 의미입니다. 로그인 세션·API 권한을 검증했다는 의미가 아닙니다. `open`은 링크를 반환하며 외부 브라우저를 열거나 페이지를 읽지 않습니다. 링크 안내 성공은 실제 계정 검증과 지원 실적에 포함되지 않습니다.
 
 ## 서비스별 경로와 근거
 
-최초 확인일: **2026-10-10**, 강남언니·당근 갱신일: **2026-10-15**. 문서 확인은 키 발급·제휴 계약·실계정 호출 검증과 별개입니다.
+최초 확인일: **2026-10-10**, 강남언니·당근·마켓컬리 갱신일: **2026-10-15**. 문서 확인은 키 발급·제휴 계약·실계정 호출 검증과 별개입니다.
 
 | 서비스 ID | 사용자 진입 경로 | 파트너 경로·확인한 범위 |
 |---|---|---|
 | `gangnamunni` | [현재 공식 서비스](https://unni.app/), [병원 목록 직접 확인](https://unni.app/hospitals). 기존 공식 주소에서 이동 확인. | [병원 파트너 안내](https://docs.channel.io/unni/ko). 첫 범위는 공개 병원 후보 찾기이며 소비자 검색 API·자동 접근 조건 확인 대기. [정의·근거](GANGNAMUNNI.md) |
 | `daangn` | [당근](https://www.daangn.com/), [중고거래 직접 확인](https://www.daangn.com/kr/buy-sell/) | [공식 광고 MCP 가이드](https://businessdaangn.gitbook.io/business.daangn/ads-pro/tools/mcp)는 광고주 계정 조회·분석과 계정 인증을 안내합니다. 소비자 물품 검색·개인 채팅 권한과 구분합니다. [첫 기능 정의](DAANGN.md) |
-| `kurly` | [마켓컬리](https://www.kurly.com/) | [KLS 인증 문서](https://developers.kurly.com/docs/auth/)는 물류 서비스의 IP 등록·인증키·토큰 발급을 안내합니다. 소비자 구매내역 API로 간주하지 않습니다. |
+| `kurly` | [공식 상품 직접 확인](https://www.kurly.com/main) | [KLS 소개](https://developers.kurly.com/docs/intro/)·[인증 문서](https://developers.kurly.com/docs/auth/)는 계약 화주사의 물류·IP 등록·키/토큰을 안내합니다. 소비자 상품·구매내역 API와 구분하며 첫 조회는 비활성 제안입니다. [정의·연결 조건](KURLY.md) |
 | `coupang` | [쿠팡](https://www.coupang.com/) | [Coupang Developer Center](https://developers.coupang.com/ko)는 판매자 상품·주문·물류·반품 API를 안내합니다. 소비자 주문과 권한을 구분합니다. |
 | `toss` | [토스 공식 안내](https://toss.im/) → 사용자 앱 | [앱인토스](https://developers-apps-in-toss.toss.im/intro/overview.html)는 토스 안의 미니앱 개발·등록 경로입니다. 개인 금융 정보·송금 권한은 별도 확인 대상입니다. |
 
@@ -50,6 +50,12 @@ API가 확인된 파트너 경로도 이번 버전에서 키 발급·인증·업
 `daangn.items.search`를 **비활성 제안 행동**으로 등록했습니다. 입력은 `query`, 필수 `region`, `limit`(기본 5·최대 20), 결과는 제목·가격 원문·표시된 거래 상태·공식 상세 링크입니다. 가격 미제공·가격 제안·나눔을 구분하며 동네 이름을 계정의 인증 위치로 간주하지 않습니다. 규격은 `firstRead`로 제공하고 실행은 `NOT_IMPLEMENTED`로 거절합니다.
 
 `items` 경로는 공식 중고거래 목록의 사용자 직접 확인, `ads-mcp-guide`는 광고주용 공식 MCP 가이드 링크입니다. 둘 다 고정 URL만 반환합니다. 광고 MCP의 서버 주소·인증·한도 근거는 확인했으며 KoreAI의 상위 MCP OAuth·실제 광고 계정·도구 호환성 검증은 후속 단계입니다. 소비자 조회를 광고 MCP로 우회하지 않습니다. [당근 정의·연결 조건](DAANGN.md)
+
+### 마켓컬리 첫 조회 기능
+
+`kurly.products.search`를 **비활성 제안 행동**으로 등록했습니다. 입력은 `query`, `limit`(기본 5·최대 20), 결과는 상품명·옵션·가격 원문과 조건·품절/배송 안내·공식 상세 링크입니다. 시작가와 미확인 가격을 구분하고 옵션 미선택 총액 0원을 상품 가격으로 사용하지 않습니다. 주소별 배송은 `not_verified`를 유지합니다.
+
+`products`는 공식 홈에서 상품을 사용자가 직접 찾는 경로이고 `logistics-auth`는 KLS 물류 인증 안내입니다. 기존 `consumer`·`logistics` 경로도 유지합니다. KLS의 물류 상품/재고를 소비자 상품·구매 가능 상태로 간주하지 않습니다. 제안 규격은 `firstRead`로 제공하고 실행은 `NOT_IMPLEMENTED`로 거절합니다. [마켓컬리 정의·연결 조건](KURLY.md)
 
 ## 다음 단계
 
