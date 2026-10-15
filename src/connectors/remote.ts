@@ -7,6 +7,7 @@ import { Engine } from '../core/engine.js';
 import { hash, redact } from '../core/security.js';
 import { McpOAuth, remoteOAuthConfig } from '../core/mcp-oauth.js';
 import { oauthUrl } from '../core/mcp-oauth-network.js';
+import { tossConsolePreset } from '../research/mcp-providers.js';
 import { ActionError, type Action, type RemoteServer } from '../types.js';
 
 const inputSchema=z.object({name:z.string().trim().min(1).max(80),url:z.string().url().max(1000),bearerToken:z.string().max(10000).optional(),tools:z.array(z.string().min(1).max(100)).min(1).max(30)}).strict();
@@ -52,8 +53,10 @@ export class RemoteRegistry {
     }catch(error){this.engine.store.delete('remote',server.id);throw error;}
   }
   async addOAuth(raw:unknown,ownerHash:string,binding:string){
-    const v=inputSchema.omit({bearerToken:true}).extend({oauth:remoteOAuthConfig.default({})}).parse(raw),url=oauthUrl(v.url);
-    const server:RemoteServer={id:randomUUID(),name:v.name,url:url.href,sealed:await this.oauth.seed(v.oauth),tools:[],requestedTools:[...new Set(v.tools)],authType:'oauth',authStatus:'awaiting_auth',enabled:true,createdAt:new Date().toISOString()};
+    const v=inputSchema.omit({bearerToken:true}).extend({oauth:remoteOAuthConfig.default({}),presetId:z.literal('toss-console').optional()}).parse(raw),url=oauthUrl(v.url);
+    if(v.presetId&&(url.href!==tossConsolePreset.url||v.oauth.issuerUrl&&oauthUrl(v.oauth.issuerUrl).href!==oauthUrl(tossConsolePreset.oauth.issuerUrl).href))throw new ActionError('OAUTH_PRESET','프리셋의 서버·인증 서버 주소가 일치하지 않습니다.');
+    const config=v.presetId?{...tossConsolePreset.oauth,...v.oauth,issuerUrl:tossConsolePreset.oauth.issuerUrl}:v.oauth;
+    const server:RemoteServer={id:randomUUID(),name:v.name,url:url.href,sealed:await this.oauth.seed(config),tools:[],requestedTools:[...new Set(v.tools)],authType:'oauth',authStatus:'awaiting_auth',...(v.presetId?{presetId:v.presetId}:{}),enabled:true,createdAt:new Date().toISOString()};
     this.engine.store.put('remote',server.id,server);
     try{return await this.oauth.start(server.id,ownerHash,binding);}catch(error){await this.oauth.erase(server.id);this.engine.store.delete('remote',server.id);throw error;}
   }

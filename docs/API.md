@@ -129,7 +129,8 @@
 
 | 경로 | 본문·결과 |
 |---|---|
-| `POST /api/remotes/oauth/start` | `{name, url, tools: ["정확한_도구명"], oauth?: {clientId?, clientSecret?, issuerUrl?, scope?}}`. `{remoteId, url, redirectUri, expiresAt}`와 HttpOnly 로그인 증명 쿠키 반환 |
+| `GET /api/mcp/providers` | 검토한 공급자 프리셋·공식 문서·확인 날짜·등록 조건. `accountVerified: false`는 실제 계정 미검증 |
+| `POST /api/remotes/oauth/start` | `{name, url, tools: ["정확한_도구명"], presetId?: "toss-console", oauth?: {clientId?, clientSecret?, issuerUrl?, scope?}}`. `{remoteId, url, redirectUri, expiresAt}`와 HttpOnly 로그인 증명 쿠키 반환 |
 | `POST /api/remotes/:id/oauth/start` | `{}`. 기존 연결 재로그인. 이전 계정 권한을 해제하고 새 로그인 URL 반환 |
 | `GET /mcp/oauth/callback` | 공급자의 `state`, `code` 또는 `error`, 선택 `iss`. 일회용 state·브라우저 증명·유효한 시작 세션 검증 후 완료 HTML 반환 |
 | `POST /api/remotes/:id/oauth/refresh` | `{}`. 토큰 갱신 후 `{ok:true}`. 작업은 자동 실행하지 않음 |
@@ -137,6 +138,8 @@
 | `DELETE /api/remotes/:id` | 행동 중단·계정과 로컬 토큰 제거. 공급자 동의 철회 요청은 수행하지 않음 |
 
 OAuth 시작은 관리자 세션 쿠키와 같은 Origin을 요구하며 에이전트 Bearer 토큰은 403입니다. 공개 HTTPS 주소를 설정했다면 그 Origin에서 시작해야 합니다. Client Secret에는 Client ID와 예상 `issuerUrl`이 함께 필요합니다. 콜백은 런타임이 정한 고정 주소만 사용합니다.
+
+`presetId: "toss-console"`은 공식 URL과 issuer만 허용하며 기본 Client ID `mcp-gateway`·Scope `openid`를 적용합니다. `name`, `url`, `tools`는 계속 필수입니다. 서버/issuer 변조는 409 `OAUTH_PRESET`, 알려지지 않은 프리셋·호출자 지정 엔드포인트/허용 목록은 400입니다. `remotes[].presetId`는 재시작 후에도 유지됩니다. 토스의 교차 Origin 인증/토큰 주소 예외는 정확한 공식 프리셋에만 적용되며 변경을 감지하면 중단합니다. [설정·미검증 항목](MCP_OAUTH.md#토스-운영-콘솔-프리셋).
 
 `/api/state.mcpOAuthRedirectUri`는 고정 콜백입니다. `remotes`에는 `authType`, `authStatus`, `accountId`, `oauthIssuer`, `oauthScope`, `oauthExpiresAt`, `oauthError`, `oauthPending`을 제공하며 Secret·토큰·로그인 URL은 포함하지 않습니다. `oauthPending`은 유효한 대기 로그인 여부이며 로그인 URL은 시작 응답에서만 받습니다. 연결 해제·재시작 후에도 기존 작업 이력은 조회할 수 있고, 행동이 제거된 이력의 관리자 `approvalDigest`는 `null`입니다.
 

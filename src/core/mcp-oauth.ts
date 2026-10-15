@@ -4,6 +4,7 @@ import type { OAuthClientInformationMixed, OAuthTokens, AuthorizationServerMetad
 import { Engine } from './engine.js';
 import { constantEqual, hash, token } from './security.js';
 import { oauthFetch, oauthUrl } from './mcp-oauth-network.js';
+import { validateMcpOAuthEndpoints } from './mcp-oauth-policy.js';
 import { ActionError, type Account, type RemoteServer } from '../types.js';
 
 export const remoteOAuthConfig = z.object({
@@ -80,7 +81,7 @@ export class McpOAuth {
         if (data.issuer && !sameUrl(data.issuer, issuer)) throw new ActionError('OAUTH_ISSUER', '인증 서버가 변경됐습니다. 새 연결로 등록하세요.');
         const metadata = await discoverAuthorizationServerMetadata(issuer, { fetchFn: network });
         if (!metadata || !sameUrl(metadata.issuer, issuer) || !metadata.code_challenge_methods_supported?.includes('S256')) throw new ActionError('OAUTH_METADATA', '인증 서버의 issuer와 PKCE S256 지원을 확인하세요.');
-        for (const endpoint of [metadata.authorization_endpoint, metadata.token_endpoint, metadata.registration_endpoint].filter((v): v is string => !!v)) if (oauthUrl(endpoint).origin !== oauthUrl(issuer).origin) throw new ActionError('OAUTH_ENDPOINT', 'OAuth 엔드포인트는 인증 서버와 같은 출처여야 합니다.');
+        validateMcpOAuthEndpoints(initial, issuer, metadata);
         if (!metadata.token_endpoint || !metadata.authorization_endpoint) throw new ActionError('OAUTH_METADATA', '인증·토큰 엔드포인트가 필요합니다.');
         const redirectUri = `${this.baseUrl}${mcpOAuthCallbackPath}`;
         if (!data.config.clientId && data.redirectUri !== redirectUri) delete data.client;

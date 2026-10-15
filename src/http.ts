@@ -29,6 +29,7 @@ import { coupangProductAction, coupangReadPlanExecutor } from './connectors/life
 import { tossAccountAction, tossReadPlanExecutor } from './connectors/lifestyle/toss-read.js';
 import { draftActions, draftExecutor, draftExample, previewDraftRequest } from './connectors/drafts/index.js';
 import { appApiBacklog } from './research/app-api-backlog.js';
+import { mcpProviders } from './research/mcp-providers.js';
 import { services } from './catalog.js';
 import { ActionError, type Evidence, type Principal } from './types.js';
 import { DeepSeekCredentials } from './ai/credentials.js';
@@ -186,6 +187,7 @@ async function createUnlockedRuntime(options:RuntimeOptions){
   app.post('/api/browser/demo-login',onlyAdmin,async(_req,res)=>res.json(await browser.loginDemo()));
   app.post('/api/browser/close',onlyAdmin,async(_req,res)=>{await browser.close();res.json({ok:true});});
   app.post('/api/remotes',onlyAdmin,async(req,res)=>res.status(201).json(await remote.add(req.body)));
+  app.get('/api/mcp/providers',onlyAdmin,(_req,res)=>res.json(mcpProviders));
   const beginMcpOAuth=async(req:Request,res:Response,id?:string)=>{
     if(publicUrl&&req.headers.origin!==publicUrl)throw new ActionError('OAUTH_ORIGIN','공개 HTTPS 관리 화면 주소에서 MCP 로그인을 시작하세요.');
     const binding=token(),owner=hash(cookies(req).koreai_session??'');

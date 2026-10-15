@@ -55,5 +55,6 @@ export interface RemoteServer {
   authType?: 'bearer' | 'oauth';
   authStatus?: 'connected' | 'awaiting_auth';
   accountId?: string; requestedTools?: string[];
+  presetId?: 'toss-console';
   oauthIssuer?: string; oauthExpiresAt?: number; oauthScope?: string; oauthError?: string; oauthPending?: boolean;
 }

@@ -13,6 +13,30 @@ KoreAI 관리 화면에서 외부 **Streamable HTTP MCP 서버**에 로그인하
 
 페이지를 새로 고쳐 로그인 링크를 잃었으면 **다시 로그인**으로 새 요청을 만드세요. 이전 링크는 무효화됩니다. **로그인 취소**는 대기 중인 로그인 요청을 무효화하며, **연결 해제**는 도구를 중단하고 로컬 자격정보·관련 계정을 제거합니다. 공급자 쪽 동의·토큰을 취소하는 원격 revocation은 구현하지 않았습니다.
 
+## 토스 운영 콘솔 프리셋
+
+**연결할 MCP 서버 → 토스 운영 콘솔**을 선택하면 공식 서버 주소, Client ID `mcp-gateway`, issuer `https://mcp.toss.im`, Scope `openid`, 첫 도구 `workspace_list`가 채워집니다. 기본 도구는 내 워크스페이스 목록이며 개인 계좌·잔액 조회가 아닙니다. 다른 도구가 필요하면 공식 문서의 정확한 이름을 입력하세요. 가져온 도구는 모두 사용자 승인 후 실행됩니다. [토스 공식 문서](https://developers-apps-in-toss.toss.im/guide/console-mcp.md).
+
+2026-10-16 공개 메타데이터 조회에서 MCP 서버의 401 응답과 리소스·인증 메타데이터의 200 응답을 확인했습니다. 이 단계는 로그인·토큰 발급·도구 호출을 수행하지 않습니다.
+
+| 확인 항목 | 값 |
+|---|---|
+| MCP | `https://mcp.toss.im/adapters/apps-in-toss-console/mcp` |
+| 리소스 | `https://mcp.toss.im` — 마지막 `/`를 추가하지 않고 인증·갱신 요청에 유지 |
+| 인증 메타데이터 | [OAuth AS Metadata](https://mcp.toss.im/.well-known/oauth-authorization-server) |
+| 로그인 | `https://business-accounts.toss.im/oauth2/authorize` |
+| 토큰 | `https://business-accounts.toss.im/oauth2/token` |
+
+토스 프리셋은 위 서버·issuer·인증/토큰 주소를 함께 검사합니다. 정확한 공식 주소 조합에만 별도 인증 도메인을 허용하며, 메타데이터 주소가 바뀌면 중단합니다. 직접 입력한 다른 서버에는 같은 예외가 적용되지 않습니다. 호출자가 임의의 허용 도메인이나 토큰 엔드포인트를 추가할 수 없습니다.
+
+**실제 운영 계정 로그인·워크스페이스 권한·토큰 갱신·도구 스키마·콜백 허용 여부는 아직 검증하지 않았습니다.** 공식 Client ID가 개인 VM의 Tailscale HTTPS 콜백을 허용하는지도 확인해야 합니다. 공급자가 별도 등록을 요구하면 등록한 Client ID로 바꾸세요. 토스 프리셋은 준비 설정이며 실제 지원 실적으로 집계하지 않습니다.
+
+## 당근 광고 등록 조건
+
+당근은 공개 [리소스 메타데이터](https://ads-mcp.kr.karrotmarket.com/.well-known/oauth-protected-resource/mcp)와 [인증 메타데이터](https://accounts.daangn.com/.well-known/oauth-authorization-server/internal-oidc)에서 issuer `https://accounts.daangn.com/internal-oidc`, `ads:read`, PKCE S256, `client_id_metadata_document_supported: true`를 확인했습니다. 동적 등록 엔드포인트는 표시되지 않았습니다. 등록된 Client ID 또는 공개 Client ID Metadata Document 준비가 필요할 것으로 판단하며 실제 등록 조건은 공급자 확인 대기입니다.
+
+[공식 가이드](https://businessdaangn.gitbook.io/business.daangn/ads-pro/tools/mcp)의 지원 클라이언트 안내가 제한적이고 도구의 정확한 이름도 계정 연결 후 확인해야 합니다. 자동 프리셋은 제공하지 않고 연결 창에서 조건과 문서 링크를 보여줍니다. CIMD 자동 호스팅·인증 후 도구 탐색은 후속 작업입니다. 소비자 중고 거래 검색과 광고 운영 권한을 구분합니다.
+
 ## Linux 서버와 휴대폰
 
 사전 등록할 콜백은 관리 화면에 표시된 **MCP OAuth 콜백 주소**입니다. 네이버·카카오 계정 연결의 `/oauth/callback`과 구분합니다.
@@ -45,15 +69,15 @@ GCP 실제 배포와 공급자·실제 휴대폰 검증은 별도 작업입니�
 - 액세스/갱신 토큰·Client Secret·PKCE verifier는 기존 Vault로 암호화해 SQLite에 저장합니다. Linux는 로컬 AES-256-GCM, Windows는 DPAPI입니다. 데이터와 암호화 키는 같은 사용자 권한으로 보관합니다.
 - `state`는 일회용이고 해시로 저장합니다. 콜백은 로그인 시작 세션과 별도의 HttpOnly·SameSite=Lax 증명 쿠키를 검증합니다. 일반 관리 세션의 SameSite=Strict 정책은 유지합니다.
 - 도구 설명·결과에서 현재 자격정보를 지우고, 관리 상태 응답에 토큰·Secret·verifier·로그인 URL을 싣지 않습니다. 외부 콘텐츠는 실행 권한이나 승인 조건을 바꿀 수 없습니다.
-- Protected Resource Metadata, AS/OIDC 메타데이터, issuer, PKCE S256와 resource 바인딩을 확인합니다. 리소스 메타데이터는 MCP와 같은 Origin, 인증/토큰/등록 엔드포인트는 issuer와 같은 Origin이어야 합니다.
+- Protected Resource Metadata, AS/OIDC 메타데이터, issuer, PKCE S256와 resource 바인딩을 확인합니다. 리소스 메타데이터는 MCP와 같은 Origin, 인증/토큰/등록 엔드포인트는 기본적으로 issuer와 같은 Origin이어야 합니다. 토스 프리셋만 검토한 정확한 인증/토큰 주소를 별도로 허용합니다.
 - OAuth 네트워크 요청의 DNS 결과를 검사하고 실제 소켓에 고정합니다. 사설/링크 로컬/예약 주소, HTTP 리디렉션, 1MiB 초과 응답을 거절하고 시간 제한을 적용합니다. 로컬 시험은 **입력한 MCP 서버와 같은 루프백 Origin**만 예외로 허용합니다.
 
 ## 현재 호환 범위와 다음 검증
 
 지원: 인증 코드 + PKCE S256, Bearer 토큰, 사전 등록 Client ID, `client_secret_basic`/`client_secret_post` 또는 공개 클라이언트, DCR, 갱신 토큰, Streamable HTTP. 서버가 Protected Resource Metadata를 제공해야 합니다. SDK의 실제 버전과 세부 인증 방식에 따라 공급자별 확인이 필요합니다.
 
-미지원: 자동 Client ID Metadata Document 호스팅, `private_key_jwt`, 클라이언트 인증서 기반 OAuth, 사설망 인증 서버, issuer와 다른 Origin의 토큰/등록 엔드포인트, 쿼리·자격정보를 포함한 서버/메타데이터 URL, 기존 SSE 전용 MCP. 필요한 공급자는 호환성을 확인한 뒤 별도 구현합니다.
+미지원: 자동 Client ID Metadata Document 호스팅, `private_key_jwt`, 클라이언트 인증서 기반 OAuth, 사설망 인증 서버, 검토한 프리셋 이외의 교차 Origin 토큰/등록 엔드포인트, 쿼리·자격정보를 포함한 서버/메타데이터 URL, 기존 SSE 전용 MCP. 필요한 공급자는 호환성을 확인한 뒤 별도 구현합니다.
 
-[당근 광고 MCP](DAANGN.md#광고-mcp의-별도-후속-연동)와 [토스 운영 콘솔 MCP](TOSS.md#운영-콘솔-mcp의-별도-후속-연결)는 이 엔진의 첫 실제 검증 후보입니다. **등록 조건·실제 로그인·계정/워크스페이스 범위·정확한 도구 이름·한도는 아직 검증하지 않았습니다.** 공통 엔진의 모의 성공을 공급자 지원 수로 집계하지 않습니다. 소비자 중고 물품·개인 금융 API 지원도 별도입니다.
+[당근 광고 MCP](DAANGN.md#광고-mcp의-별도-후속-연동)와 [토스 운영 콘솔 MCP](TOSS.md#운영-콘솔-mcp의-별도-후속-연결)는 실제 계정 검증 후보입니다. 공식 문서·공개 인증 메타데이터와 토스 첫 도구 이름은 확인했고, **실제 로그인·계정/워크스페이스 범위·호출 한도·계정별 도구 호환성은 확인 대기**입니다. 공통 엔진의 모의 성공을 공급자 지원 수로 집계하지 않습니다. 소비자 중고 물품·개인 금융 API 지원도 별도입니다.
 
 구현 근거: [MCP Authorization 2025-11-25](https://modelcontextprotocol.io/specification/2025-11-25/basic/authorization)와 프로젝트에 설치된 `@modelcontextprotocol/sdk`의 `client/auth.js`·`client/streamableHttp.js`. API 본문과 반환값은 [HTTP·MCP 문서](API.md)를 참고하세요.

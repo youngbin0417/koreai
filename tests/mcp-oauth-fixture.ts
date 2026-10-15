@@ -12,11 +12,12 @@ export async function ownedOAuth() {
   let baseUrl = '', serial = 0;
   const clients = new Set(['fixed-client']), codes = new Map<string, URLSearchParams>(), refreshes = new Set<string>(), access = new Map<string, string>();
   const record = { registrations: [] as Record<string, unknown>[], tokens: [] as Record<string, string>[], calls: 0, initializations: 0 };
-  const flags = { rejectRefresh: false, omitRefresh: false, rejectInitialize: false, toolUnauthorized: false, redirectToken: false, redirectRegistration: false, oversized: false, foreignResource: false, foreignIssuer: false, foreignEndpoint: false, noPkce: false, noChallengeScope: false };
+  const flags = { rejectRefresh: false, omitRefresh: false, rejectInitialize: false, toolUnauthorized: false, redirectToken: false, redirectRegistration: false, oversized: false, foreignResource: false, foreignIssuer: false, foreignEndpoint: false, noPkce: false, noChallengeScope: false, rootResource: false };
+  const resource = () => flags.rootResource ? baseUrl : `${baseUrl}/mcp`;
   const clientSecret = 'owned-oauth-private-client-secret';
   const challenge = () => `Bearer resource_metadata="${baseUrl}/.well-known/oauth-protected-resource/mcp"${flags.noChallengeScope ? '' : ', scope="tools:use offline_access"'}`;
   const metadata = () => ({ issuer: flags.foreignIssuer ? 'https://evil.example' : baseUrl, authorization_endpoint: `${baseUrl}/authorize`, token_endpoint: flags.foreignEndpoint ? 'https://169.254.169.254/token' : `${baseUrl}/token`, registration_endpoint: `${baseUrl}/${flags.redirectRegistration ? 'registration-redirect' : 'register'}`, response_types_supported: ['code'], grant_types_supported: ['authorization_code', 'refresh_token'], token_endpoint_auth_methods_supported: ['none', 'client_secret_basic', 'client_secret_post'], code_challenge_methods_supported: flags.noPkce ? ['plain'] : ['S256'] });
-  app.get('/.well-known/oauth-protected-resource/mcp', (_req, res) => res.json({ resource: flags.foreignResource ? 'https://evil.example/mcp' : `${baseUrl}/mcp`, authorization_servers: [baseUrl], scopes_supported: ['tools:use', 'offline_access'] }));
+  app.get('/.well-known/oauth-protected-resource/mcp', (_req, res) => res.json({ resource: flags.foreignResource ? 'https://evil.example/mcp' : resource(), authorization_servers: [baseUrl], scopes_supported: ['tools:use', 'offline_access'] }));
   app.get('/.well-known/oauth-authorization-server', (_req, res) => { if (flags.oversized) res.type('json').send('x'.repeat(1024 * 1024 + 1)); else res.json(metadata()); });
   app.post('/registration-redirect', (_req, res) => res.redirect(307, 'https://evil.example/registration'));
   app.post('/register', (req, res) => {
@@ -26,7 +27,7 @@ export async function ownedOAuth() {
   const html = (value: string) => value.replace(/[&<>"']/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[character]!);
   app.get('/authorize', (req, res) => {
     const params = new URL(req.originalUrl, baseUrl).searchParams;
-    if (!clients.has(params.get('client_id') ?? '') || params.get('code_challenge_method') !== 'S256' || !params.get('code_challenge') || params.get('resource') !== `${baseUrl}/mcp`) { res.status(400).end(); return; }
+    if (!clients.has(params.get('client_id') ?? '') || params.get('code_challenge_method') !== 'S256' || !params.get('code_challenge') || params.get('resource') !== resource()) { res.status(400).end(); return; }
     if (!params.has('decision')) {
       res.type('html').send(`<html lang="ko"><meta name="viewport" content="width=device-width, initial-scale=1"><h1>소유한 시험 OAuth 서비스</h1><form action="/authorize">${[...params].map(([key, value]) => `<input type="hidden" name="${html(key)}" value="${html(value)}">`).join('')}<button name="decision" value="approve">시험 서비스 로그인 승인</button><button name="decision" value="deny">시험 서비스 로그인 거절</button></form></html>`); return;
     }
@@ -40,7 +41,7 @@ export async function ownedOAuth() {
     if (flags.redirectToken) { res.redirect(307, 'https://evil.example/token'); return; }
     const id = req.body.client_id ?? (req.headers.authorization?.startsWith('Basic ') ? Buffer.from(req.headers.authorization.slice(6), 'base64').toString().split(':')[0] : '');
     if (!clients.has(id) || id === 'fixed-client' && req.headers.authorization !== `Basic ${Buffer.from(`fixed-client:${clientSecret}`).toString('base64')}` && req.body.client_secret !== clientSecret) { res.status(401).json({ error: 'invalid_client', error_description: clientSecret }); return; }
-    if (req.body.resource !== `${baseUrl}/mcp`) { res.status(400).json({ error: 'invalid_target' }); return; }
+    if (req.body.resource !== resource()) { res.status(400).json({ error: 'invalid_target' }); return; }
     if (req.body.grant_type === 'authorization_code') {
       const proof = codes.get(req.body.code); codes.delete(req.body.code);
       if (!proof || proof.get('redirect_uri') !== req.body.redirect_uri || proof.get('client_id') !== id || proof.get('code_challenge') !== createHash('sha256').update(req.body.code_verifier ?? '').digest('base64url')) { res.status(400).json({ error: 'invalid_grant', error_description: clientSecret }); return; }

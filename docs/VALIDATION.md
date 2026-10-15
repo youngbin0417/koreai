@@ -1,6 +1,6 @@
 # 검증 기록
 
-최근 검증일: **2026-10-16**. Windows·Node.js 24.19.0·Edge(headless), WSL2 Ubuntu 24.04·Node.js 22.17.0에서 검증했습니다. 최근 Windows 전체 테스트는 **157개 중 155개 통과·Linux 전용 2개 제외·실패 0개**, Linux OAuth·기본 연결 테스트는 **11개 모두 통과**입니다. 날짜별 실행 범위는 아래에 구분합니다.
+최근 검증일: **2026-10-16**. Windows·Node.js 24.19.0·Edge(headless), WSL2 Ubuntu 24.04·Node.js 22.17.0에서 검증했습니다. 최근 Windows 전체 테스트는 **161개 중 159개 통과·Linux 전용 2개 제외·실패 0개**, Linux MCP 프리셋·OAuth·기본 연결 테스트는 **14개 모두 통과**입니다. 날짜별 실행 범위는 아래에 구분합니다.
 
 ## 2026-10-11 확장 초안 검증
 
@@ -201,6 +201,19 @@ E-Gen 응답은 모의 데이터입니다. 실제 키·지역별 기관 정보·
 - WSL2 Ubuntu 24.04·Node 22.17.0에서 OAuth 9개·기본 연결 2개, **11개 모두 통과**. 같은 테스트 원본을 임시 JavaScript로 변환해 빌드된 `dist/`와 Linux 임시 데이터·시험 Vault로 실행했습니다. Linux 검증은 HTTP·엔진 범위이며 새 화면의 브라우저 실행은 Windows Edge에서 수행했습니다.
 
 연결 해제는 로컬 비밀정보 제거이며 공급자 동의 철회 요청은 수행하지 않습니다. 실제 공급자의 DCR/Client ID 등록·도구 이름·계정/워크스페이스 범위·한도·호환성은 APP-06에서 확인합니다. 공식 API **14개·29개 행동**, 기본 연결 **5개·10개 안내 행동**, 생활 앱 비활성 조회 제안 **5개**를 유지하며 시험 MCP 성공을 실제 지원 실적에 포함하지 않습니다. [사용법·호환 제약](MCP_OAUTH.md), [완료한 MCP-01·후속 APP-06](../TODO.md).
+
+## 2026-10-16 MCP 공급자 프리셋 검증
+
+[토스 공식 콘솔 MCP 문서](https://developers-apps-in-toss.toss.im/guide/console-mcp.md)의 Client ID `mcp-gateway`와 `workspace_list`를 확인하고 프리셋에 반영했습니다. 토스와 당근의 MCP GET은 401, 공개 리소스·인증 메타데이터 GET은 각각 200이었습니다. 클라이언트 등록·계정 로그인·동의·토큰 발급·공급자 도구 호출은 수행하지 않았습니다. 조사 응답: `.test-data/mcp-provider-metadata-2026-10-16.jsonl`.
+
+- 토스는 issuer/리소스 `https://mcp.toss.im`, `openid`, 별도 `business-accounts.toss.im/oauth2/authorize`·`/oauth2/token`, PKCE S256를 확인했습니다. 정확한 서버·issuer·엔드포인트 조합만 프리셋에서 허용합니다. 일반 서버의 교차 Origin 제한과 DNS/리디렉션 검사는 유지합니다.
+- 당근은 `https://accounts.daangn.com/internal-oidc`, `ads:read`, PKCE S256·CIMD 지원을 확인했고 DCR 엔드포인트는 표시되지 않았습니다. 등록 방식·지원 클라이언트·정확한 도구 이름을 확인할 때까지 자동 프리셋은 대기 상태입니다. [사용법·공개 근거](MCP_OAUTH.md).
+- `npm run check`, `npm run build` 통과. Windows 전체 **161개 중 159개 통과·Linux 전용 2개 제외·실패 0개**.
+- 신규 핵심 시험 3개: 프리셋의 서버/issuer/엔드포인트 변경·사설/유사 도메인·쿼리·임의 예외 거절, 관리자 공급자 조회·프리셋 기본 설정·지원 실적 분리, 루트 resource의 마지막 `/` 비추가·소유 시험 서버 로그인/갱신/승인 실행을 확인했습니다. 프리셋 준비 API는 시작 단계를 모의 처리했으며 실제 토스 인증 검증이 아닙니다.
+- 신규 Edge 390px 화면 시험: 공식 값 입력·주소 변경 제한·실제 계정 확인 대기·당근 등록 조건 표시, 오류 표시, 직접 입력 전환 시 자격정보 초기화, JavaScript 오류·가로 넘침 없음. 로그인 준비 요청을 시험 응답으로 중단해 실제 공급자에는 요청하지 않았습니다. 캡처: `.test-data/screenshots/mcp-preset-mobile.png`, `mcp-preset-desktop.png`. 기존 전체 OAuth 화면 시험도 통과했습니다.
+- WSL2 Ubuntu 24.04·Node 22.17.0에서 프리셋 3개·OAuth 9개·기본 연결 2개, **14개 모두 통과**. 원본을 임시 JavaScript로 변환해 `dist/`·Linux 임시 데이터·시험 Vault로 실행했습니다. 실제 Linux 브라우저·GCP·휴대폰 또는 공급자 계정 검증은 별도입니다.
+
+토스 첫 조회는 운영자 워크스페이스 범위이며 개인 금융정보 조회를 제공하지 않습니다. 공식 Client ID의 VM HTTPS 콜백 허용·실제 계정/도구 호환성은 APP-06에 남겼습니다. 조사·프리셋·시험 성공으로 지원 실적을 증가시키지 않습니다.
 
 ## 아직 수행하지 않은 외부 검증
 
