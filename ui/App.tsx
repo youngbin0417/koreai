@@ -25,6 +25,7 @@ const credentials:Record<string,{name:string;fields:string[];help:string}>={
   'airkorea-api':{name:'에어코리아 대기질 예보',fields:['serviceKey'],help:'공공데이터포털에서 한국환경공단 에어코리아 대기오염정보를 활용 신청한 뒤 일반 인증키(Decoding)를 입력하세요. 발표 날짜로 예보 통보를 조회하며 현재 관측값 조회와 구분합니다.'},
   'tago-api':{name:'TAGO 도시·정류소·버스 도착',fields:['serviceKey'],help:'공공데이터포털에서 TAGO 버스도착정보와 버스정류소정보를 각각 활용 신청하고 일반 인증키(Decoding)를 입력하세요. 도시 목록에서 코드를 확인하고 정류소 검색 결과의 nodeId로 도착정보를 조회합니다.'},
   'egen-api':{name:'E-Gen 병·의원 찾기',fields:['serviceKey'],help:'공공데이터포털의 국립중앙의료원 전국 병·의원 찾기 서비스를 활용 신청하고 일반 인증키(Decoding)를 입력하세요. 진료시간은 제공된 일정이며 현재 진료 가능 여부는 방문 전 기관에 확인하세요.'},
+  'neis-api':{name:'나이스 학교·급식',fields:['apiKey'],help:'나이스 교육정보 개방 포털(open.neis.go.kr)에서 발급받은 인증키를 입력하세요. 공공데이터포털 키와 다릅니다. 학교 검색 결과의 지역·주소를 확인하고 교육청·학교 코드로 급식을 조회하세요.'},
 };
 class ApiError extends Error {constructor(message:string,readonly status:number){super(message);}}
 async function api<T>(path:string,method='GET',body?:unknown):Promise<T>{

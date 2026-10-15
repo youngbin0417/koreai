@@ -6,8 +6,8 @@ import { kmaAction, kmaExample, kmaRequestTemplate } from '../kma.js';
 import { airkoreaAction, airkoreaExample, airkoreaRequestTemplate } from '../airkorea.js';
 import { tagoActions, tagoArrivalsAction, tagoCitiesAction, tagoStopsAction, tagoExample, tagoRequestTemplate } from '../tago.js';
 import { egenAction, egenRequestTemplate } from '../egen.js';
+import { neisActions, neisSchoolsAction, neisMealsAction, neisExample, neisRequestTemplate } from '../neis.js';
 
-const nonempty = (description: string, max = 100) => z.string().trim().min(1).max(max).describe(description);
 const date = z.string().regex(/^\d{4}-\d{2}-\d{2}$/).refine(value => {
   const parsed = new Date(`${value}T00:00:00Z`);
   return Number.isFinite(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value;
@@ -17,7 +17,7 @@ export interface DraftRequest {
   method: 'GET';
   endpoint: string;
   query: Record<string, string | number>;
-  authentication: { secretField: 'serviceKey'; queryParameter: string };
+  authentication: { secretField: 'serviceKey' | 'apiKey'; queryParameter: string };
   responseFormat: 'json' | 'xml';
 }
 interface Definition {
@@ -31,8 +31,8 @@ interface Definition {
   request?: (input: Record<string, any>) => DraftRequest;
 }
 
-// Request templates contain no secrets and never dispatch HTTP. Two schemas are
-// KoreAI proposals pending review of the provider's detailed parameter contract.
+// Request templates contain no secrets and never dispatch HTTP. One schema is a
+// KoreAI proposal pending review of the provider's detailed parameter contract.
 const definitions: Definition[] = [
   {
     serviceId: 'kma', title: '기상청 초단기실황 조회',
@@ -77,11 +77,16 @@ const definitions: Definition[] = [
     request: egenRequestTemplate,
   },
   {
-    serviceId: 'neis', title: '나이스 학교 급식 조회',
-    description: '교육청·학교·날짜를 지정하는 KoreAI 입력 초안입니다. 공개 식단을 대상으로 하며 공급자 요청 필드 매핑은 상세 문서 검토 후 구현합니다.',
-    schema: z.object({ educationOfficeCode: nonempty('교육청 코드', 20).regex(/^[A-Za-z0-9]+$/), schoolCode: nonempty('학교 코드', 20).regex(/^\d+$/), date, meal: z.enum(['breakfast', 'lunch', 'dinner']).default('lunch') }).strict(),
-    example: { educationOfficeCode: 'B10', schoolCode: '7010000', date: '2026-10-10', meal: 'lunch' },
-    resultCheck: '학교·날짜·급식 구분 일치와 빈 식단/인증 오류를 구분하고 원본 알레르기 표시를 보존합니다.',
+    actionId: neisMealsAction.id, serviceId: 'neis', title: neisMealsAction.title,
+    description: neisMealsAction.description, schema: neisMealsAction.schema,
+    example: neisExample(neisMealsAction.id)!, resultCheck: neisMealsAction.resultCheck,
+    request: input => neisRequestTemplate(neisMealsAction.id, input),
+  },
+  {
+    actionId: neisSchoolsAction.id, serviceId: 'neis', title: neisSchoolsAction.title,
+    description: neisSchoolsAction.description, schema: neisSchoolsAction.schema,
+    example: neisExample(neisSchoolsAction.id)!, resultCheck: neisSchoolsAction.resultCheck,
+    request: input => neisRequestTemplate(neisSchoolsAction.id, input),
   },
   {
     serviceId: 'kobis', title: 'KOBIS 일별 박스오피스 조회',
@@ -97,6 +102,7 @@ export const planningActions: Action[] = definitions.map(definition => {
   if (definition.serviceId === 'airkorea') return airkoreaAction;
   if (definition.serviceId === 'tago') return tagoActions.find(action => action.id === definition.actionId)!;
   if (definition.serviceId === 'egen') return egenAction;
+  if (definition.serviceId === 'neis') return neisActions.find(action => action.id === definition.actionId)!;
   const candidate = appApiBacklog.find(c => c.serviceId === definition.serviceId)!;
   const domains = definition.request ? ['apis.data.go.kr'] : definition.serviceId === 'neis' ? ['open.neis.go.kr'] : ['www.kobis.or.kr'];
   return {
@@ -122,6 +128,7 @@ export interface DraftPreview {
 export function draftExample(actionId: string): Record<string, unknown> | undefined {
   if (actionId === kmaAction.id) return kmaExample();
   if (actionId === airkoreaAction.id) return airkoreaExample();
+  if (neisActions.some(action => action.id === actionId)) return neisExample(actionId);
   const index = planningActions.findIndex(a => a.id === actionId);
   return index < 0 ? undefined : structuredClone(definitions[index]!.example);
 }

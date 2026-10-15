@@ -17,8 +17,8 @@ test('expansion candidates and draft actions reference unique catalog services a
   assert.equal(appApiBacklog.length, 26);
   assert.equal(new Set(appApiBacklog.map(c => c.serviceId)).size, appApiBacklog.length);
   assert.equal(services.length, 71);
-  assert.equal(draftActions.length, 2);
-  assert.equal(planningActions.length, 8);
+  assert.equal(draftActions.length, 1);
+  assert.equal(planningActions.length, 9);
   for (const candidate of appApiBacklog) {
     assert(services.some(s => s.id === candidate.serviceId));
     assert(candidate.sourceUrl.startsWith('https://'));
@@ -54,7 +54,8 @@ test('draft previews map documented query fields, exclude secrets, and distingui
     assert.equal(preview.networkDispatched, false);
     assert.equal(preview.request?.query.serviceKey, undefined);
     assert.equal(preview.request?.query.ServiceKey, undefined);
-    if (['neis.meals', 'kobis.boxoffice.daily'].includes(action.id)) {
+    assert.equal(preview.request?.query.KEY, undefined);
+    if (action.id === 'kobis.boxoffice.daily') {
       assert.equal(preview.request, null);
       assert.equal(preview.mappingStatus, 'pending-parameter-review');
     } else {
@@ -112,7 +113,7 @@ test('HTTP exposes planning to admins, discovers disabled drafts for scoped agen
     const call = (path: string, method = 'GET', body?: unknown, token?: string) => fetch(`${r.baseUrl}/api${path}`, { method, headers: { Origin: r.baseUrl, ...(token ? { Authorization: `Bearer ${token}` } : { Cookie: cookie }), ...(body === undefined ? {} : { 'Content-Type': 'application/json' }) }, ...(body === undefined ? {} : { body: JSON.stringify(body) }) });
     const backlog = await (await call('/backlog')).json(); assert.equal(backlog.length, 26);
     const state = await (await call('/state')).json();
-    assert.equal(state.actions.filter((a: { method: string; implemented: boolean }) => a.method === 'api' && a.implemented).length, 26);
+    assert.equal(state.actions.filter((a: { method: string; implemented: boolean }) => a.method === 'api' && a.implemented).length, 28);
     assert.equal(state.backlog.length, 26);
     const example = await (await call('/drafts/kma.observation/example')).json();
     const preview = await call('/drafts/kma.observation/preview', 'POST', example);
@@ -120,13 +121,13 @@ test('HTTP exposes planning to admins, discovers disabled drafts for scoped agen
     assert.equal((await call('/drafts/kma.observation/preview', 'POST', { ...example, serviceKey: 'never-accepted-in-input' })).status, 400);
     assert.equal((await call('/drafts/band.publish/example')).status, 404);
     assert.equal((await call('/drafts/band.publish/preview', 'POST', {})).status, 404);
-    const client = r.engine.createClient({ name: 'limited draft client', allowedActions: ['neis.meals'], allowedAccountIds: [] });
+    const client = r.engine.createClient({ name: 'limited draft client', allowedActions: ['kobis.boxoffice.daily'], allowedAccountIds: [] });
     const actions = await (await call('/actions', 'GET', undefined, client.token)).json();
-    assert.deepEqual(actions.map((a: { id: string }) => a.id), ['neis.meals']); assert.equal(actions[0].enabled, false);
+    assert.deepEqual(actions.map((a: { id: string }) => a.id), ['kobis.boxoffice.daily']); assert.equal(actions[0].enabled, false);
     assert.equal((await call('/backlog', 'GET', undefined, client.token)).status, 403);
     assert.equal((await call('/drafts/kma.observation/example', 'GET', undefined, client.token)).status, 403);
     assert.equal((await call('/drafts/kma.observation/preview', 'POST', example, client.token)).status, 403);
-    const blocked = await call('/jobs', 'POST', { actionId: 'neis.meals', input: draftExample('neis.meals'), idempotencyKey: randomUUID() }, client.token);
+    const blocked = await call('/jobs', 'POST', { actionId: 'kobis.boxoffice.daily', input: draftExample('kobis.boxoffice.daily'), idempotencyKey: randomUUID() }, client.token);
     assert.equal(blocked.status, 409); assert.equal((await blocked.json()).error.code, 'NOT_IMPLEMENTED');
     assert.equal(providerCalls, 0); assert.equal(r.engine.jobs().length, 0); assert.equal(r.store.list('evidence').length, 0);
   } finally { await r.close(); }

@@ -43,6 +43,12 @@ export function providerMock(){
     else if(url.hostname==='kapi.kakao.com')body={result_code:0};
     else if(url.hostname==='dapi.kakao.com')body={documents:[{place_name:'서울 도서관',x:'126.97',y:'37.56'}],meta:{total_count:1}};
     else if(url.hostname==='api.odcloud.kr')body={data:[{서비스ID:'GOV-123',서비스명:'청년 지원'}],totalCount:1};
+    else if(url.hostname==='open.neis.go.kr'){
+      const school={ATPT_OFCDC_SC_CODE:'B10',ATPT_OFCDC_SC_NM:'서울특별시교육청',SD_SCHUL_CODE:'0012345',SCHUL_NM:'시험고등학교',LCTN_SC_NM:'서울특별시',ORG_RDNMA:'서울특별시 시험로 1',ORG_TELNO:'02-0000-0000',LOAD_DTM:'20261014040000'};
+      const schools=url.pathname.endsWith('/schoolInfo');
+      const row=schools?school:{...school,MLSV_YMD:url.searchParams.get('MLSV_YMD'),MMEAL_SC_CODE:url.searchParams.get('MMEAL_SC_CODE'),MMEAL_SC_NM:'중식',DDISH_NM:'쌀밥<br/>달걀국 (1.5.6.)<br/>우유 (2.)',CAL_INFO:'741.7 Kcal'};
+      body={[schools?'schoolInfo':'mealServiceDietInfo']:[{head:[{list_total_count:1},{RESULT:{CODE:'INFO-000',MESSAGE:'정상'}}]},{row:[row]}]};
+    }
     else if(url.pathname.endsWith('/getHsptlMdcncListInfoInqire'))return new Response(`<?xml version="1.0" encoding="UTF-8"?><response><header><resultCode>00</resultCode><resultMsg>OK</resultMsg></header><body><items><item><hpid>A0000001</hpid><dutyName>시험 &amp; 의원</dutyName><dutyAddr>서울특별시 강남구 시험로 1</dutyAddr><dutyTel1>02-0000-0000</dutyTel1><dutyDiv>C</dutyDiv><dutyDivNam>의원</dutyDivNam><dutyTime1s>830</dutyTime1s><dutyTime1c>1800</dutyTime1c><dutyTime8s>0900</dutyTime8s><dutyTime8c>1200</dutyTime8c><wgs84Lat>37.5</wgs84Lat><wgs84Lon>127</wgs84Lon></item></items><pageNo>${url.searchParams.get('pageNo')}</pageNo><numOfRows>${url.searchParams.get('numOfRows')}</numOfRows><totalCount>1</totalCount></body></response>`,{headers:{'Content-Type':'application/xml'}});
     else if(url.pathname.endsWith('/getCtyCodeList'))body={response:{header:{resultCode:'00',resultMsg:'OK'},body:{items:{item:[{citycode:25,cityname:'대전광역시'}]}}}};
     else if(url.pathname.endsWith('/getSttnNoList')||url.pathname.endsWith('/getSttnAcctoArvlPrearngeInfoList')){
