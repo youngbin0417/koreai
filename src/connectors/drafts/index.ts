@@ -8,12 +8,13 @@ import { tagoActions, tagoArrivalsAction, tagoCitiesAction, tagoStopsAction, tag
 import { egenAction, egenRequestTemplate } from '../egen.js';
 import { neisActions, neisSchoolsAction, neisMealsAction, neisExample, neisRequestTemplate } from '../neis.js';
 import { kobisAction, kobisExample, kobisRequestTemplate } from '../kobis.js';
+import { seoulBikeAction, seoulBikeExample, seoulBikeRequestTemplate } from '../seoul-bike.js';
 
 export interface DraftRequest {
   method: 'GET';
   endpoint: string;
   query: Record<string, string | number>;
-  authentication: { secretField: 'serviceKey' | 'apiKey'; queryParameter: string };
+  authentication: { secretField: 'serviceKey' | 'apiKey'; queryParameter: string } | { secretField: 'apiKey'; pathParameter: string };
   responseFormat: 'json' | 'xml';
 }
 interface Definition {
@@ -88,6 +89,10 @@ const definitions: Definition[] = [
     description: kobisAction.description, schema: kobisAction.schema,
     example: kobisExample(), resultCheck: kobisAction.resultCheck, request: kobisRequestTemplate,
   },
+  {
+    serviceId: 'seoul-bike', title: seoulBikeAction.title, description: seoulBikeAction.description, schema: seoulBikeAction.schema,
+    example: seoulBikeExample(), resultCheck: seoulBikeAction.resultCheck, request: seoulBikeRequestTemplate,
+  },
 ];
 
 export const planningActions: Action[] = definitions.map(definition => {
@@ -97,6 +102,7 @@ export const planningActions: Action[] = definitions.map(definition => {
   if (definition.serviceId === 'egen') return egenAction;
   if (definition.serviceId === 'neis') return neisActions.find(action => action.id === definition.actionId)!;
   if (definition.serviceId === 'kobis') return kobisAction;
+  if (definition.serviceId === 'seoul-bike') return seoulBikeAction;
   const candidate = appApiBacklog.find(c => c.serviceId === definition.serviceId)!;
   const domains = definition.request ? ['apis.data.go.kr'] : definition.serviceId === 'neis' ? ['open.neis.go.kr'] : ['www.kobis.or.kr'];
   return {

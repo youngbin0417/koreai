@@ -36,7 +36,7 @@ export function serverOptions(args: string[], env: NodeJS.ProcessEnv = process.e
   const masterKeyFile = values['master-key-file'] ?? env.KOREAI_MASTER_KEY_FILE;
   return { port, dataDir: resolve(values['data-dir']!), channel: channel as BrowserChannel,
     headless: values.headed ? false : values.headless ?? defaults.headless,
-    dev: values.dev, help: values.help, publicUrl: publicOrigin(values['public-url'] ?? env.KOREAI_PUBLIC_URL), ...(masterKeyFile ? { masterKeyFile: resolve(masterKeyFile) } : {}) };
+    dev: values.dev, help: values.help, allowSeoulBikeHttp: env.KOREAI_ALLOW_SEOUL_BIKE_HTTP === '1', publicUrl: publicOrigin(values['public-url'] ?? env.KOREAI_PUBLIC_URL), ...(masterKeyFile ? { masterKeyFile: resolve(masterKeyFile) } : {}) };
 }
 
 export const serverHelp = `KoreAI 로컬 연결 엔진
@@ -51,4 +51,5 @@ export const serverHelp = `KoreAI 로컬 연결 엔진
                             (또는 KOREAI_MASTER_KEY_FILE)
   --dev                     Vite 개발 UI 허용
 Linux 기본: Chromium. DISPLAY/WAYLAND_DISPLAY가 없으면 headless.
+따릉이 HTTP 키 전송은 기본 차단. 운영자 허용: KOREAI_ALLOW_SEOUL_BIKE_HTTP=1
 관리 화면은 127.0.0.1에 바인딩합니다. 원격 접속은 HTTPS 프록시 또는 SSH 포워딩을 사용하세요.`;

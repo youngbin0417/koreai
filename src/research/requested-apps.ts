@@ -38,7 +38,7 @@ const groups: [string, Row[]][] = [
     ['mammoth-order','매머드오더','https://www.mmthcoffee.com/sub/order.html','매장·메뉴·픽업 이용 안내 찾기','앱 내 선불카드·스탬프·쿠폰·결제 권한은 별도. 모바일 앱 내부 API를 추정하지 않음.',['매머드커피','매머드 오더','mammoth']],
   ]],
   ['지도·교통', [
-    ['seoul-bike','서울 따릉이','https://www.bikeseoul.com','대여소별 잔여 자전거 확인','관측 시각·대여소 ID·잔여 수를 반환. 실제 대여 가능 보장·잠금 해제·결제는 별도.',['따릉이','seoul bike']],
+    ['seoul-bike','서울 따릉이','https://www.bikeseoul.com','대여소별 잔여 자전거 확인','요청 구간의 대여소 ID·잔여 수·조회 시각을 반환. 관측 시각은 미제공. HTTP 전송 운영자 설정 필요. 대여 보장·잠금 해제·결제는 별도.',['따릉이','seoul bike']],
     ['tmoney','티머니','https://www.tmoney.co.kr','교통카드·이용내역 확인 경로 안내','공개 이용 안내와 개인 카드 잔액·이용내역·충전 권한을 분리.',['티머니GO','tmoney']],
     ['tlocker','또타라커','https://www.seoulmetro.co.kr','역별 보관함 위치·이용 안내 찾기','보관함 위치와 실시간 빈칸·개인 예약을 구분. 문 열기·결제·예약은 별도 승인.',['또타락커','T-Locker','t locker']],
   ]],
@@ -76,6 +76,6 @@ const evidence: Record<string, {url:string;scope?:string;method?:ConnectionPlan[
 export const requestedApps: RequestedApp[] = groups.flatMap(([category,rows]) => rows.map(([serviceId,name,homeUrl,firstRead,boundary,aliases=[]]) => {
   const source = evidence[serviceId], method = source?.method ?? 'partnership';
   return {serviceId,name,category,homeUrl,sourceUrl:source?.url??homeUrl,priority:method==='partnership'?3:2,documentedScope:source?.scope??null,
-    plan:{requestedAt:'2026-10-16',aliases,method,firstRead,requiredAccess:method==='official-api'?'사용자 소유 개발자 키·권한·이용 조건 확인':method==='public-data'?'공개 데이터의 이용 조건·파일 형식·갱신일 확인':'소비자용 공식 API/제휴·자동 접근 허용 확인. 확보 전 사용자 직접 진행',
-      resultCheck:boundary,nextStep:method==='partnership'?'공식 제공 경로·권한·한도·보관/LLM 전달 조건 확인 후 첫 조회 규격 확정. 예약·결제·전송은 이후 별도 승인 단계.':'최신 요청/파일 규격·자료 기준일·한도·출처/캐시 조건을 검증한 뒤 조회 실행기 구현. 실제 키/계정 검증은 별도.'}};
+    plan:{requestedAt:'2026-10-16',aliases,method,firstRead,requiredAccess:serviceId==='seoul-bike'?'서울 열린데이터광장 일반 인증키·행동 권한·운영자의 HTTP 키 전송 허용 설정':method==='official-api'?'사용자 소유 개발자 키·권한·이용 조건 확인':method==='public-data'?'공개 데이터의 이용 조건·파일 형식·갱신일 확인':'소비자용 공식 API/제휴·자동 접근 허용 확인. 확보 전 사용자 직접 진행',
+      resultCheck:boundary,nextStep:serviceId==='seoul-bike'?'구간 조회 실행기 구현 완료. 본인 키·빈 구간·한도 검증과 공식 HTTPS 제공 여부 재확인.':method==='partnership'?'공식 제공 경로·권한·한도·보관/LLM 전달 조건 확인 후 첫 조회 규격 확정. 예약·결제·전송은 이후 별도 승인 단계.':'최신 요청/파일 규격·자료 기준일·한도·출처/캐시 조건을 검증한 뒤 조회 실행기 구현. 실제 키/계정 검증은 별도.'}};
 }));

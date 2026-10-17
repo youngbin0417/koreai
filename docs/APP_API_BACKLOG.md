@@ -2,11 +2,11 @@
 
 정리일: **2026-10-16**. 초기 26개 후보에 요청 앱·대안 36개를 중복 병합해 확장 후보는 **58개**, 전체 카탈로그는 **99개 서비스**입니다. 아래 표는 초기 26개 후보이며, 추가 요청의 전체 목록과 첫 연결 초안은 [요청 앱 목록](REQUESTED_APPS.md)에 있습니다. 우선순위는 생활 과업 기여도·공식 접근 가능성·유지보수 부담을 기준으로 한 개발 제안입니다.
 
-구현 상태 갱신: **2026-10-15**, 나이스 학교·급식 규격과 KOBIS 일별 박스오피스 상세 규격·HTTPS 인증 오류를 확인했습니다. 에어코리아·TAGO·E-Gen 검토일은 2026-10-14, 기상청 추가 검토일은 2026-10-12입니다.
+구현 상태 갱신: **2026-10-17**, 따릉이 구간별 조회·계정 화면·HTTP 전송 운영자 설정을 추가했습니다. 공개 샘플은 확인했으며 본인 키 검증은 별도입니다. 나이스·KOBIS 검토일은 2026-10-15, 에어코리아·TAGO·E-Gen은 2026-10-14, 기상청은 2026-10-12입니다.
 
 원본 데이터는 [`src/research/app-api-backlog.ts`](../src/research/app-api-backlog.ts), 행동 초안은 [`src/connectors/drafts/index.ts`](../src/connectors/drafts/index.ts)에 있습니다. 관리 화면의 **확장 계획**에서 같은 자료를 검색할 수 있습니다.
 
-**기상청·에어코리아·TAGO·E-Gen·나이스·KOBIS의 조회 행동 9개를 구현했고, 초기 비활성 조회 초안은 모두 실행기로 전환했습니다.** 구현된 공식 API는 총 14개 커넥터·29개 행동입니다. 신규 실행기도 실제 키 검증 전에는 실사용 지원으로 집계하지 않습니다. 후보 데이터의 `implementedActionIds`와 `draftActionIds`로 구현/초안 상태를 구분합니다. 후속 초안은 `implemented: false`로 유지하며 지원·구현 수에 포함하지 않습니다. 미조사 후보의 홈페이지 등록은 API 존재·이용 허용을 확인했다는 뜻이 아닙니다.
+**기상청·에어코리아·TAGO·E-Gen·나이스·KOBIS·따릉이의 조회 행동 10개를 구현했습니다.** 구현된 공식 API는 총 15개 커넥터·30개 행동이며 따릉이는 HTTP 전송을 운영자가 허용해야 실행됩니다. 신규 실행기도 실제 키 검증 전에는 실사용 지원으로 집계하지 않습니다. 후보 데이터의 `implementedActionIds`와 `draftActionIds`로 구현/초안 상태를 구분합니다. 후속 초안은 `implemented: false`로 유지하며 지원·구현 수에 포함하지 않습니다. 미조사 후보의 홈페이지 등록은 API 존재·이용 허용을 확인했다는 뜻이 아닙니다.
 
 ## 1순위: 조회 초안을 실행기로 발전
 
@@ -18,8 +18,9 @@
 | E-Gen | 전국 병·의원 검색. [병·의원 찾기 API](https://www.data.go.kr/data/15000736/openapi.do) | `egen.hospitals.search`: XML 실행기·계정 화면·연락처·요일별 시간·출처·모의 검증 | 실제 키·정보 갱신 조건, 진료과목/기관분류 필터·상세 조회 |
 | 나이스 | 공개 학교 검색·급식. [학교기본정보](https://open.neis.go.kr/portal/data/service/selectServicePage.do?infId=OPEN17020190531110010104913&infSeq=2), [급식식단](https://open.neis.go.kr/portal/data/service/selectServicePage.do?infId=OPEN17320190722180924242823&infSeq=2) | `neis.schools.search`, `neis.meals`: 실행기·계정 화면·학교코드/주소·알레르기 원문·빈 자료 구분 | 실제 키·동명 학교 구분·지역/식사별 자료·학사일정 정의 |
 | KOBIS | 일별 박스오피스. [공식 상세 규격](https://www.kobis.or.kr/kobisopenapi/homepg/apiservice/searchServiceDesc.do?apiSvcId=searchDailyBoxOffice) | `kobis.boxoffice.daily`: 실행기·계정 화면·날짜 대조·순위/관객수·매출 문자열 보존 | 실제 키·정상/빈 응답·한도 조건 검증, 영화 상세·주간 조회 정의 |
+| 서울 따릉이 | 대여소 실시간 정보·최대 1,000건. [공식 데이터셋](https://data.seoul.go.kr/dataList/OA-15493/A/1/datasetView.do) | `seoul-bike.stations`: 구간 조회·로컬 이름/ID 필터·관측 시각 미제공·HTTP 기본 차단 | 본인 키·구간/빈 결과·한도 확인, 공식 HTTPS 재확인. [사용법](SEOUL_BIKE.md) |
 
-위 6개 서비스는 공식 페이지·메타데이터에서 확인한 요청 주소와 변수로 템플릿을 구성했습니다. KOBIS HTTPS 경로는 무효 시험 키로 오류 구조까지 확인했습니다. 실제 사용자 키의 정상 응답을 확인한 상태는 아닙니다. 관행적으로 알려진 경로나 비공식 예제의 키를 실행 코드에 넣지 않습니다.
+위 7개 서비스는 공식 페이지·메타데이터에서 확인한 요청 주소와 변수로 템플릿을 구성했습니다. KOBIS HTTPS 경로는 무효 시험 키로 오류 구조까지, 따릉이는 공식 공개 샘플의 HTTP 응답을 확인했습니다. 실제 사용자 키의 정상 응답을 확인한 상태는 아닙니다. 관행적으로 알려진 경로나 비공식 예제의 키를 실행 코드에 넣지 않습니다.
 
 ### 요청 구조 확인 방법
 
@@ -50,7 +51,7 @@ KOBIS는 `kobis-api` 계정의 `apiKey`를 등록해 날짜별 최대 10개 영�
 | 건강보험심사평가원 | 병원·공개 기관 정보 찾기 | [병원정보서비스](https://www.data.go.kr/data/15001698/openapi.do) — 문서 확인 | 활용명세·지역코드·XML 필드·운영 심사. 개인 진료내역과 구분 |
 | KOPIS | 지역 공연·공연 상세 | [Open API 안내](https://kopis.or.kr/por/cs/openapi/openApiInfo.do?menuId=MNU_00077) — 문서 확인 | 요청 규격·키 관리·출처 표시·HTTPS. 티켓 예매는 별도 |
 | 도서관 정보나루 | 도서관 찾기·소장/대출 가능 정보 | [API 활용방법](https://www.data4library.kr/apiUtilization) — 문서 확인 | API와 공식 MCP 범위 비교, HTTPS·도서관별 갱신 시점. 개인 대출내역은 별도 |
-| 서울 따릉이 | 대여소 잔여 자전거 | [실시간 대여정보](https://data.seoul.go.kr/dataList/OA-15493/A/1/datasetView.do) — 문서 확인 | 키·HTTPS·최대 조회 구간·자료 시점. 결제·대여 확정은 별도 |
+| 서울 따릉이 | 대여소 잔여 자전거 | [실시간 대여정보](https://data.seoul.go.kr/dataList/OA-15493/A/1/datasetView.do) — 실행기 구현·본인 키 미검증 | HTTP는 운영자 설정 전 차단. HTTPS 재확인·실제 키 검증. 결제·대여 확정은 별도 |
 | KOSIS | 지역 생활 통계 | [Open API 가이드](https://kosis.kr/serviceInfo/openAPIGuide.do) — 문서 확인 | 사용할 통계표 ID·시점·단위·키 |
 | TourAPI | 관광지·축제 찾기 | [관광콘텐츠랩](https://api.visitkorea.or.kr/) — 상세 범위 미조사 | 최신 서비스 버전·키·관광 정보 필드 |
 | 식품안전나라 | 회수·판매중지 식품 | [공공데이터 안내](https://www.foodsafetykorea.go.kr/apiMain.do) — 상세 범위 미조사 | 정확한 서비스 ID·필드·키·HTTPS |
@@ -79,7 +80,7 @@ KOBIS는 `kobis-api` 계정의 `apiKey`를 등록해 날짜별 최대 10개 영�
 
 ## 행동을 활성화할 때
 
-- 초안의 공급자 실행기를 구현하고 고정 도메인·HTTPS·응답 제한·오류·비밀정보 제거를 확인합니다.
+- 초안의 공급자 실행기를 구현하고 고정 도메인·HTTPS·응답 제한·오류·비밀정보 제거를 확인합니다. 따릉이의 확인된 공식 경로는 HTTP이므로 별도의 운영자 환경 변수로만 허용하며, 기본 차단·암호화되지 않는 키 전송 조건을 화면과 문서에 표시합니다. 다른 커넥터의 HTTPS 요구를 완화하지 않습니다.
 - 공공데이터 키도 서비스별 계정 종류로 구분합니다. 같은 키로 모든 데이터셋이 자동 허용된다고 간주하지 않습니다.
 - 출력에는 출처·조회 시각·자료 기준 시각·단위·빈 결과를 포함합니다. 외부 내용은 데이터로 취급합니다.
 - 모의 응답 검증 후 사용자 소유 실제 키로 읽기를 확인합니다. 구현 완료와 실제 계정 검증을 별도 기록합니다.

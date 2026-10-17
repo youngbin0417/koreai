@@ -10,6 +10,38 @@ import { TestVault,tempDir,providerMock } from './helpers.js';
 import { browserDefaults, type BrowserChannel } from '../src/core/platform.js';
 const testChannel=(process.env.KOREAI_TEST_BROWSER_CHANNEL??browserDefaults().channel) as BrowserChannel;
 
+test('bike mobile UI connects an account, previews without sending a key and respects the operator transport switch', async () => {
+  const browser = await chromium.launch({ channel: testChannel, headless: true });
+  try {
+    for (const allowed of [false, true]) {
+      let calls = 0;
+      const r = await createRuntime({ dataDir: tempDir('bike-ui'), port: 0, vault: new TestVault(), bootstrapCode: 'bike-ui-bootstrap', allowSeoulBikeHttp: allowed, evidenceMode: 'mock',
+        fetcher: async () => { calls++; return Response.json({ rentBikeStatus: { list_total_count: 1, RESULT: { CODE: 'INFO-000' }, row: [{ stationId: 'ST-5', stationName: '103. 망원역 2번출구 앞', rackTotCnt: '14', parkingBikeTotCnt: '17', shared: '121', stationLatitude: '37.55495071', stationLongitude: '126.91083527' }] } }); } });
+      const context = await browser.newContext({ viewport: { width: 390, height: 844 } }), page = await context.newPage(), errors: string[] = [];
+      page.on('pageerror', error => errors.push(error.message));
+      try {
+        await page.goto(`${r.baseUrl}/#setup=bike-ui-bootstrap`); await page.getByRole('button', { name: '엔진 연결' }).click();
+        await page.getByRole('button', { name: '연결 계정', exact: false }).first().click(); await page.getByRole('button', { name: '＋ 계정 연결' }).click();
+        await page.getByLabel('계정 종류').selectOption('seoul-bike-api'); await page.getByLabel('내가 알아볼 계정 이름').fill('따릉이 시험 키'); await page.getByLabel('apiKey', { exact: true }).fill('ui-bike-private-key');
+        await page.getByLabel('서울 따릉이 대여소 잔여 자전거 조회', { exact: false }).check(); await page.getByRole('button', { name: '계정 저장', exact: true }).click(); await page.getByRole('heading', { name: '따릉이 시험 키' }).waitFor();
+        await page.getByRole('button', { name: '확장 계획', exact: false }).click(); await page.getByLabel('추가 요청 앱만 보기').check();
+        const card = page.getByRole('article', { name: '서울 따릉이 확장 계획' }); await card.getByText('첫 연결 초안', { exact: true }).click();
+        assert((await card.innerText()).includes('조회 실행기 구현')); await card.getByRole('button', { name: '조회 기능 열기' }).click();
+        await page.getByRole('button', { name: '예시 입력 불러오기' }).click(); await page.waitForFunction(() => document.querySelector<HTMLTextAreaElement>('textarea.code-input')?.value.includes('"end": 100'));
+        await page.getByRole('button', { name: '요청 구조 미리보기' }).click(); await page.getByRole('heading', { name: '요청 구조 · 외부 호출 없음' }).waitFor();
+        const preview = await page.locator('.draft-inspector pre').innerText(); assert(preview.includes('bikeList/1/100/')); assert(preview.includes('"encrypted": false')); assert(!preview.includes('ui-bike-private-key')); assert.equal(calls, 0);
+        const execute = page.getByRole('button', { name: '실행 요청', exact: false });
+        if (allowed) {
+          assert(await execute.isEnabled()); await execute.click(); await page.getByRole('heading', { name: '실행 결과', exact: true }).waitFor();
+          const text = await page.getByRole('dialog').innerText(); assert(text.includes('망원역')); assert(text.includes('"availableBikes": 17')); assert(text.includes('"providerUpdatedAt": null')); assert(!text.includes('ui-bike-private-key')); assert.equal(calls, 1);
+          const dir = resolve('.test-data/screenshots'); mkdirSync(dir, { recursive: true }); await page.screenshot({ path: resolve(dir, 'seoul-bike-mobile.png'), fullPage: true });
+        } else { assert(await execute.isDisabled()); assert((await page.getByRole('dialog').innerText()).includes('HTTP 전송 차단 중')); }
+        assert(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)); assert.deepEqual(errors, []); assert.equal(r.engine.metrics().verifiedServices, 0);
+      } finally { await context.close(); await r.close(); }
+    }
+  } finally { await browser.close(); }
+});
+
 test('mobile chat registers Flash, keeps history, approves a write and continues without duplication',async()=>{
   const mock=providerMock();let jobId='';
   const aiFetcher:typeof fetch=async(_url,init)=>{
@@ -225,7 +257,7 @@ test('React dashboard supports onboarding, expanded catalog, basic connections, 
     await page.goto(`${r.baseUrl}/#setup=ui-bootstrap`);await page.getByRole('button',{name:'로컬 엔진 연결'}).click();await page.getByRole('button',{name:'둘러보기',exact:false}).click();await page.getByRole('heading',{name:'일상에 필요한 연결을 한곳에.'}).waitFor();
     assert.equal(new URL(page.url()).hash,'');
     const screenshotDir=resolve('.test-data/screenshots');mkdirSync(screenshotDir,{recursive:true});await page.screenshot({path:resolve(screenshotDir,'dashboard.png'),fullPage:true});
-    assert.equal(await page.locator('.stat').filter({hasText:'구현된 API 행동'}).locator('strong').textContent(),'29↗');
+    assert.equal(await page.locator('.stat').filter({hasText:'구현된 API 행동'}).locator('strong').textContent(),'30↗');
     await page.getByRole('button',{name:'서비스 카탈로그',exact:false}).click();assert.equal(await page.locator('.service-card').count(),99);
     await page.getByRole('button',{name:'확장 계획',exact:false}).click();
     assert.equal(await page.locator('.expansion-card').count(),58);

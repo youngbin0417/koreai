@@ -17,6 +17,7 @@ import { tagoActions, tagoExecutor } from './connectors/tago.js';
 import { egenAction, egenExecutor } from './connectors/egen.js';
 import { neisActions, neisExecutor } from './connectors/neis.js';
 import { kobisAction, kobisExecutor } from './connectors/kobis.js';
+import { seoulBikeAction, seoulBikeExecutor } from './connectors/seoul-bike.js';
 import { BrowserRunner, browserActions } from './connectors/browser.js';
 import { RemoteRegistry } from './connectors/remote.js';
 import { mcpOAuthCallbackPath, mcpOAuthCookie } from './core/mcp-oauth.js';
@@ -35,7 +36,7 @@ import { ActionError, type Evidence, type Principal } from './types.js';
 import { DeepSeekCredentials } from './ai/credentials.js';
 import { Conversations } from './ai/conversations.js';
 
-export interface RuntimeOptions {dataDir:string;port?:number;vault?:Vault;masterKeyFile?:string;fetcher?:typeof fetch;aiFetcher?:typeof fetch;publicUrl?:string;bootstrapCode?:string;headless?:boolean;channel?:BrowserChannel;dev?:boolean;uiDir?:string;evidenceMode?:'live'|'mock'}
+export interface RuntimeOptions {dataDir:string;port?:number;vault?:Vault;masterKeyFile?:string;fetcher?:typeof fetch;aiFetcher?:typeof fetch;publicUrl?:string;bootstrapCode?:string;headless?:boolean;channel?:BrowserChannel;dev?:boolean;uiDir?:string;evidenceMode?:'live'|'mock';allowSeoulBikeHttp?:boolean}
 const escapeHtml=(v:string)=>v.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]!));
 const page=(title:string,body:string)=>`<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title}</title><style>body{font:16px system-ui;max-width:760px;margin:48px auto;padding:24px;background:#f5f7f3;color:#183126}label{display:block;margin:16px 0}input,textarea,button{font:inherit;padding:12px;border:1px solid #bbc9bc;border-radius:8px}input,textarea{display:block;width:90%;margin-top:8px}button{background:#245840;color:white;cursor:pointer}article{padding:16px;background:white;border-radius:12px;margin:12px 0;white-space:pre-wrap}a{color:#245840}</style></head><body>${body}</body></html>`;
 
@@ -57,6 +58,7 @@ async function createUnlockedRuntime(options:RuntimeOptions){
     engine.register([egenAction],egenExecutor(options.fetcher));
     engine.register(neisActions,neisExecutor(options.fetcher));
     engine.register([kobisAction],kobisExecutor(options.fetcher));
+    engine.register([seoulBikeAction],seoulBikeExecutor(options.fetcher,options.allowSeoulBikeHttp===true));
     const defaults=browserDefaults();
     browser=new BrowserRunner(options.dataDir,options.channel??defaults.channel,options.headless??defaults.headless);engine.register(browserActions,browser.execute);
     connections=new LifestyleConnections(store);engine.register(connections.actions,connections.execute);
@@ -200,7 +202,7 @@ async function createUnlockedRuntime(options:RuntimeOptions){
   app.post('/api/remotes/:id/oauth/refresh',onlyAdmin,async(req,res)=>{z.object({}).strict().parse(req.body);await remote.oauth.refresh(String(req.params.id));res.json({ok:true});});
   app.post('/api/remotes/:id/oauth/cancel',onlyAdmin,async(req,res)=>{z.object({}).strict().parse(req.body);await remote.oauth.cancel(String(req.params.id));res.clearCookie(mcpOAuthCookie(String(req.params.id)),mcpCookieOptions());res.json({ok:true});});
   app.delete('/api/remotes/:id',onlyAdmin,async(req,res)=>{await remote.remove(String(req.params.id));res.clearCookie(mcpOAuthCookie(String(req.params.id)),mcpCookieOptions());res.json({ok:true});});
-  app.get('/api/state',onlyAdmin,(_req,res)=>res.json({services,backlog:appApiBacklog,ai:chats.settings(),connections:connections.list(),actions:engine.discover(admin),accounts:engine.accounts(),clients:engine.clients(),jobs:engine.jobs().map(j=>({...j,approvalDigest:engine.actions.has(j.actionId)?engine.digest(j):null})),metrics:engine.metrics(),evidence:store.list<Evidence>('evidence').slice(0,200),browser:browser.status(),runtime:{platform:process.platform,vault:options.vault?'custom':process.platform==='win32'?'windows-dpapi':'file-aes-256-gcm'},remotes:remote.list(),oauthRedirectUri:`${publicUrl??baseUrl}/oauth/callback`,mcpOAuthRedirectUri:`${publicUrl??baseUrl}${mcpOAuthCallbackPath}`,defaultTimezone:'Asia/Seoul',mcpConfig:{command:process.execPath,args:[resolve('dist/mcp.js')],env:{KOREAI_URL:baseUrl}}}));
+  app.get('/api/state',onlyAdmin,(_req,res)=>res.json({services,backlog:appApiBacklog,ai:chats.settings(),connections:connections.list(),actions:engine.discover(admin),accounts:engine.accounts(),clients:engine.clients(),jobs:engine.jobs().map(j=>({...j,approvalDigest:engine.actions.has(j.actionId)?engine.digest(j):null})),metrics:engine.metrics(),evidence:store.list<Evidence>('evidence').slice(0,200),browser:browser.status(),runtime:{platform:process.platform,seoulBikeHttpAllowed:options.allowSeoulBikeHttp===true,vault:options.vault?'custom':process.platform==='win32'?'windows-dpapi':'file-aes-256-gcm'},remotes:remote.list(),oauthRedirectUri:`${publicUrl??baseUrl}/oauth/callback`,mcpOAuthRedirectUri:`${publicUrl??baseUrl}${mcpOAuthCallbackPath}`,defaultTimezone:'Asia/Seoul',mcpConfig:{command:process.execPath,args:[resolve('dist/mcp.js')],env:{KOREAI_URL:baseUrl}}}));
   app.use('/api',(_req,res)=>res.status(404).json({error:{code:'NOT_FOUND',message:'API를 찾을 수 없습니다.'}}));
   const uiDir=options.uiDir??resolve('web-dist');
   if(existsSync(join(uiDir,'index.html'))){app.use(express.static(uiDir));app.get('/{*path}',(_req,res)=>res.sendFile(join(uiDir,'index.html')));}
