@@ -10,6 +10,33 @@ import { TestVault,tempDir,providerMock } from './helpers.js';
 import { browserDefaults, type BrowserChannel } from '../src/core/platform.js';
 const testChannel=(process.env.KOREAI_TEST_BROWSER_CHANNEL??browserDefaults().channel) as BrowserChannel;
 
+test('KOPIS mobile UI registers its own key, previews two XML operations and shows attributed performance information', async () => {
+  let calls=0;
+  const r=await createRuntime({dataDir:tempDir('kopis-ui'),port:0,vault:new TestVault(),bootstrapCode:'kopis-ui-bootstrap',evidenceMode:'mock',fetcher:async()=>{
+    calls++;return new Response('<dbs><db><mt20id>PF132236</mt20id><prfnm>휴대폰 시험 공연</prfnm><prfpdfrom>2026.10.01</prfpdfrom><prfpdto>2026.12.31</prfpdto><fcltynm>시험 극장</fcltynm><pcseguidance>전석 30,000원</pcseguidance><dtguidance>화~금 19:30</dtguidance></db></dbs>');
+  }});
+  const browser=await chromium.launch({channel:testChannel,headless:true});
+  try {
+    const page=await browser.newPage({viewport:{width:390,height:844}}),errors:string[]=[];page.on('pageerror',error=>errors.push(error.message));
+    await page.goto(`${r.baseUrl}/#setup=kopis-ui-bootstrap`);await page.getByRole('button',{name:'엔진 연결'}).click();
+    await page.getByRole('button',{name:'연결 계정',exact:false}).first().click();await page.getByRole('button',{name:'＋ 계정 연결'}).click();
+    await page.getByLabel('계정 종류').selectOption('kopis-api');await page.getByLabel('내가 알아볼 계정 이름').fill('KOPIS 시험 계정');await page.getByLabel('apiKey',{exact:true}).fill('ui-kopis-private-key');
+    const titles=['KOPIS 공연 검색','KOPIS 공연 상세 조회'];for(const title of titles)await page.getByLabel(title,{exact:false}).check();
+    await page.getByRole('button',{name:'계정 저장',exact:true}).click();await page.getByRole('heading',{name:'KOPIS 시험 계정'}).waitFor();
+    for(const [index,title] of titles.entries()) {
+      await page.getByRole('button',{name:'확장 계획',exact:false}).click();await page.getByRole('article',{name:'KOPIS 공연정보 확장 계획'}).getByRole('button',{name:title,exact:true}).click();
+      await page.getByRole('button',{name:'예시 입력 불러오기'}).click();await page.waitForFunction(()=>{const value=document.querySelector<HTMLTextAreaElement>('textarea.code-input')?.value??'';return value.includes('startDate')||value.includes('PF132236');});
+      await page.getByRole('button',{name:'요청 구조 미리보기'}).click();await page.getByRole('heading',{name:'요청 구조 · 외부 호출 없음'}).waitFor();
+      const preview=await page.locator('.draft-inspector pre').innerText();assert(preview.includes('https://kopis.or.kr/openApi/restful/pblprfr'));assert(preview.includes('service'));assert(!preview.includes('ui-kopis-private-key'));assert.equal(calls,index);
+      await page.getByRole('button',{name:'실행 요청',exact:false}).click();await page.getByRole('heading',{name:'실행 결과',exact:true}).waitFor();
+      const text=await page.getByRole('dialog').innerText();for(const value of ['휴대폰 시험 공연','출처: (재)예술경영지원센터','"currentSeatsAvailable": null'])assert(text.includes(value),value);if(index===1)assert(text.includes('전석 30,000원'));assert(!text.includes('ui-kopis-private-key'));assert(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth));
+      if(index===1){const dir=resolve('.test-data/screenshots');mkdirSync(dir,{recursive:true});await page.screenshot({path:resolve(dir,'kopis-mobile.png'),fullPage:true});}
+      await page.getByRole('button',{name:'닫기',exact:true}).click();
+    }
+    assert.equal(calls,2);assert.deepEqual(errors,[]);assert.equal(r.engine.metrics().verifiedServices,0);
+  }finally{await browser.close();await r.close();}
+});
+
 test('HIRA mobile UI connects a service key, previews v2 XML and preserves the encrypted ID and unknown current treatment status', async () => {
   let calls = 0;
   const r = await createRuntime({ dataDir: tempDir('hira-ui'), port: 0, vault: new TestVault(), bootstrapCode: 'hira-ui-bootstrap', evidenceMode: 'mock', fetcher: async () => {
@@ -392,7 +419,7 @@ test('React dashboard supports onboarding, expanded catalog, basic connections, 
     await page.goto(`${r.baseUrl}/#setup=ui-bootstrap`);await page.getByRole('button',{name:'로컬 엔진 연결'}).click();await page.getByRole('button',{name:'둘러보기',exact:false}).click();await page.getByRole('heading',{name:'일상에 필요한 연결을 한곳에.'}).waitFor();
     assert.equal(new URL(page.url()).hash,'');
     const screenshotDir=resolve('.test-data/screenshots');mkdirSync(screenshotDir,{recursive:true});await page.screenshot({path:resolve(screenshotDir,'dashboard.png'),fullPage:true});
-    assert.equal(await page.locator('.stat').filter({hasText:'구현된 API 행동'}).locator('strong').textContent(),'38↗');
+    assert.equal(await page.locator('.stat').filter({hasText:'구현된 API 행동'}).locator('strong').textContent(),'40↗');
     await page.getByRole('button',{name:'서비스 카탈로그',exact:false}).click();assert.equal(await page.locator('.service-card').count(),99);
     await page.getByRole('button',{name:'확장 계획',exact:false}).click();
     assert.equal(await page.locator('.expansion-card').count(),59);
