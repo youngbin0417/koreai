@@ -10,6 +10,7 @@ import { neisActions, neisSchoolsAction, neisMealsAction, neisExample, neisReque
 import { kobisAction, kobisExample, kobisRequestTemplate } from '../kobis.js';
 import { seoulBikeAction, seoulBikeExample, seoulBikeRequestTemplate } from '../seoul-bike.js';
 import { naverBooksActions, naverBooksExample, naverBooksRequestTemplate } from '../naver-books.js';
+import { naruActions, naruExample, naruRequestTemplate } from '../library-naru.js';
 import { chzzkActions, chzzkExample, chzzkRequestTemplate } from '../chzzk.js';
 import { animalHospitalsAction, animalHospitalsExample, animalHospitalsRequestTemplate } from '../animal-hospitals.js';
 
@@ -33,6 +34,8 @@ interface Definition {
 
 // Request templates contain no secrets and never dispatch HTTP.
 const definitions: Definition[] = [
+  ...naruActions.map(action => ({ actionId: action.id, serviceId: action.serviceId, title: action.title, description: action.description,
+    schema: action.schema, example: naruExample(action.id), resultCheck: action.resultCheck, request: (input: Record<string, any>) => naruRequestTemplate(action.id, input) })),
   ...naverBooksActions.map(action => ({ actionId: action.id, serviceId: action.serviceId, title: action.title, description: action.description,
     schema: action.schema, example: naverBooksExample(action.id), resultCheck: action.resultCheck, request: (input: Record<string, any>) => naverBooksRequestTemplate(action.id, input) })),
   { serviceId: 'animal-hospitals', title: animalHospitalsAction.title, description: animalHospitalsAction.description, schema: animalHospitalsAction.schema,
@@ -105,6 +108,7 @@ const definitions: Definition[] = [
 ];
 
 export const planningActions: Action[] = definitions.map(definition => {
+  if (definition.serviceId === 'library-naru') return naruActions.find(action => action.id === definition.actionId)!;
   if (definition.serviceId === 'animal-hospitals') return animalHospitalsAction;
   if (definition.serviceId === 'naver-search') return naverBooksActions.find(action => action.id === definition.actionId)!;
   if (definition.serviceId === 'chzzk') return chzzkActions.find(action => action.id === definition.actionId)!;

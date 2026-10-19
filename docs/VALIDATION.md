@@ -1,6 +1,6 @@
 # 검증 기록
 
-최근 검증일: **2026-10-19**. Windows·Node.js 24.19.0·Edge(headless), WSL2 Ubuntu 24.04·Node.js 22.17.0에서 검증했습니다. 최근 Windows 전체 테스트는 **206개 중 204개 통과·Linux 전용 2개 제외·실패 0개**, Linux 네이버 도서·요청 앱·확장 API·기본 연결 테스트는 **17개 모두 통과**입니다. 날짜별 실행 범위는 아래에 구분합니다.
+최근 검증일: **2026-10-19**. Windows·Node.js 24.19.0·Edge(headless), WSL2 Ubuntu 24.04·Node.js 22.17.0에서 검증했습니다. 최근 Windows 전체 테스트는 **216개 중 214개 통과·Linux 전용 2개 제외·실패 0개**, Linux 정보나루·네이버 도서·요청 앱·확장 API·기본 연결 테스트는 **26개 모두 통과**입니다. 날짜별 실행 범위는 아래에 구분합니다.
 
 ## 2026-10-11 확장 초안 검증
 
@@ -299,7 +299,23 @@ E-Gen 응답은 모의 데이터입니다. 실제 키·지역별 기관 정보·
 
 [공식 네이버 문서](https://developers.naver.com/docs/serviceapi/search/book/book.md)를 확인했고 [정보나루 API](https://www.data4library.kr/apiUtilization)·[MCP 안내](https://www.data4library.kr/mcpUtilization)로 후속 도서관·소장 행동과 자료 시점 확인 항목을 기록했습니다. 정보나루 실행기·키 발급·MCP 접속 검증은 미수행입니다. [사용 안내·후속 단계](NAVER_BOOKS.md), [할 일](../TODO.md).
 
+## 2026-10-19 정보나루 도서관·소장 조회 검증
+
+타입 검사(`npm run check`)·서버/화면 빌드(`npm run build`) 통과. Windows 전체 테스트는 **216개 중 214개 통과·Linux 전용 2개 제외·실패 0개**입니다. 보고서: `.test-data/naru-full-tests.txt`.
+
+- 공식 [API PDF](https://www.data4library.kr/downloadApiManual) **v20260620**의 3~5쪽·34~35쪽·38~39쪽에서 `libSrch`·`libSrchByBook`·`bookExist` 요청·XML 결과 예시를 확인했습니다. 62~63쪽의 17개 지역 코드와 예시 세부지역 코드를 반영했습니다. [MCP PDF](https://www.data4library.kr/downloadMcpManual) **v20260825**에서 주소·`X-Auth-Key`·승인 키·IP 등록·공유 사용량을 확인했습니다. 원본 PDF·추출 이미지/텍스트는 `.test-data`의 조사 산출물로만 보관합니다.
+- `library-naru.libraries.search`·`library-naru.collections.search`·`library-naru.book.status`와 전용 계정·비밀 없는 XML 요청 미리보기를 추가했습니다. API 커넥터 **17개·행동 37개**, 확장 조회 행동 **18개(API 17·공공파일 1)**입니다. 서비스 99개·후보 59개는 유지합니다.
+- 모의 XML로 페이지·결과 수·중복 ID·도서관/ISBN 에코·ISBN-13 체크 숫자를 검증했습니다. 코드 앞자리 0·연락처·일정 원문·누락 좌표/개수·0 권수·빈 결과를 보존했습니다. 현재 개관·대출 가능 여부와 실제 자료 기준일은 추정하지 않습니다. 소장 없음과 대출 가능의 모순도 거절합니다.
+- HTTP 200의 `authErr`·401/403 인증 대기 → 같은 작업 재개, 미리보기의 외부 호출 미수행, 계정/행동 범위, 멱등 요청, 한도·시간 초과·취소·알 수 없는 공급자 오류·리다이렉트 금지·비밀 없는 오류를 확인했습니다. XML DTD/엔티티·잘못된 UTF-8·2MB 초과 응답도 차단합니다. 공급자 추가 필드·키 에코는 결과로 전달하지 않습니다.
+- 실제 Edge **390×844**에서 전용 키 계정 등록 → 세 행동 허용 → XML 미리보기 → 도서관·소장 도서관·개별 상태 결과를 확인했습니다. 가로 넘침·JavaScript 오류·화면의 키 노출이 없었습니다. `loanAvailableReported: true`여도 `currentLoanAvailable: null`을 유지했습니다. 실제 휴대폰 기기 시험이 아니며 공급자는 모의 응답입니다. 캡처: `.test-data/screenshots/library-naru-mobile.png`.
+- WSL2 Ubuntu 24.04·Node 22.17.0에서 같은 원본 테스트를 임시 JS로 변환해 빌드된 서버로 정보나루·네이버 도서·요청 앱·확장 API·기본 연결 **26개 모두 통과**했습니다. 시험용 암호화 저장소·모의 공급자와 Linux `/tmp` 데이터 폴더를 사용했습니다. Linux 브라우저 UI 시험은 포함하지 않습니다. 보고서: `.test-data/naru-linux-tests.txt`.
+- **실제 HTTPS 오류 경로:** 세 행동을 빌드된 실행기로 고의로 무효인 시험 키만 사용해 호출했습니다. 모두 HTTP 200·XML `authErr`를 `AUTH_REQUIRED`·`awaiting_auth`로 처리했습니다. HTTP 재시도·유효한 키의 성공 호출·계정 지원 실적은 없습니다. 보고서: `.test-data/naru-https-probe.json`.
+
+API 매뉴얼 35쪽·[개선 공지](https://data4library.kr/noticeV?cn=129)는 대출 상태를 전날 기준으로, [MCP 웹 안내](https://www.data4library.kr/mcpUtilization)는 소장 자료의 갱신을 월 단위로 설명합니다. 조회 시각으로 자료 기준일을 생성하지 않고 두 안내를 구분했습니다. 실제 본인 키의 정상/빈 응답·IP/한도·지역별 자료·현재 상태 대조는 미수행입니다. 공식 상위 MCP 연결의 비밀 헤더 주입도 후속입니다. [사용 안내](LIBRARY_NARU.md), [할 일](../TODO.md).
+
 ## 아직 수행하지 않은 외부 검증
+
+- 정보나루 본인 승인 키·등록 서버 IP로 도서관/소장/대출 제공값의 정상·빈 응답·지역 범위·자료 기준일·API/MCP 공유 한도 확인. HTTPS 인증 오류·모의 조회·Windows UI·Linux 실행을 실제 정상 계정 검증과 구분합니다.
 
 - 네이버 도서 검색·ISBN 상세 검색의 유효한 본인 앱 키로 정상/빈 응답·권한/한도 확인. 실행기·모의 HTTP·모바일 크기 UI·Linux 검증을 완료했으며 지원 실적은 추가하지 않았습니다. 정보나루의 HTTPS·본인 키·도서관/소장 자료 시점과 실제 MCP 연결은 다음 단계입니다.
 

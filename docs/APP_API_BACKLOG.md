@@ -6,9 +6,11 @@
 
 원본 데이터는 [`src/research/app-api-backlog.ts`](../src/research/app-api-backlog.ts), 행동 초안은 [`src/connectors/drafts/index.ts`](../src/connectors/drafts/index.ts)에 있습니다. 관리 화면의 **확장 계획**에서 같은 자료를 검색할 수 있습니다.
 
-**기상청·에어코리아·TAGO·E-Gen·나이스·KOBIS·따릉이·치지직과 네이버 도서의 확장 조회 행동 14개를 구현했습니다.** 구현된 공식 API는 총 16개 커넥터·34개 행동이며 따릉이는 HTTP 전송을 운영자가 허용해야 실행됩니다. 신규 실행기도 실제 키 검증 전에는 실사용 지원으로 집계하지 않습니다. 후보 데이터의 `implementedActionIds`와 `draftActionIds`로 구현/초안 상태를 구분합니다. 후속 초안은 `implemented: false`로 유지하며 지원·구현 수에 포함하지 않습니다. 알라딘은 종료 공지만 표시하고 신규 연결·행동을 추가하지 않았습니다. 미조사 후보의 홈페이지 등록은 API 존재·이용 허용을 확인했다는 뜻이 아닙니다.
+**기상청·에어코리아·TAGO·E-Gen·나이스·KOBIS·따릉이·치지직·네이버 도서·정보나루의 확장 조회 행동 17개를 구현했습니다.** 구현된 공식 API는 총 17개 커넥터·37개 행동이며 따릉이는 HTTP 전송을 운영자가 허용해야 실행됩니다. 신규 실행기도 실제 키 검증 전에는 실사용 지원으로 집계하지 않습니다. 후보 데이터의 `implementedActionIds`와 `draftActionIds`로 구현/초안 상태를 구분합니다. 후속 초안은 `implemented: false`로 유지하며 지원·구현 수에 포함하지 않습니다. 알라딘은 종료 공지만 표시하고 신규 연결·행동을 추가하지 않았습니다. 미조사 후보의 홈페이지 등록은 API 존재·이용 허용을 확인했다는 뜻이 아닙니다.
 
 네이버 도서는 `naver.search.book`·`naver.book.isbn`을 추가했습니다. 기존 검색 앱 키를 쓰되 새 행동은 직접 허용해야 합니다. [공식 도서 규격](https://developers.naver.com/docs/serviceapi/search/book/book.md)의 JSON 검색·XML ISBN 상세 검색을 사용하며 가격·재고·출간일·검색 생성 시각을 구분합니다. [사용 안내](NAVER_BOOKS.md)에 정보나루의 도서관 → ISBN 소장 → 개별 소장 조회 순서와 별도 인증·자료 시점 확인 항목도 기록했습니다.
+
+정보나루는 공식 매뉴얼 v20260620의 `library-naru.libraries.search`·`library-naru.collections.search`·`library-naru.book.status`를 구현했습니다. 세 HTTPS XML 경로의 무효 키 오류를 실제 실행기에서 인증 대기로 확인했습니다. 소장 제공값·전날 기준 대출 상태·현재 상태를 구분하며 본인 키의 정상 응답·등록 서버 IP·사용량 검증은 남아 있습니다. 공식 MCP 매뉴얼의 주소·`X-Auth-Key`·공유 사용량과 후속 항목도 [사용 안내](LIBRARY_NARU.md)에 기록했습니다.
 
 **공공파일은 별도로 1개 커넥터·1개 행동**입니다. `animal-hospitals.search`는 키 없이 지역별 동물병원 CSV를 조회합니다. API 구현 수에는 더하지 않으며 강남구의 실제 파일 확인과 다른 지역·운영 한도 검증을 구분합니다. [사용·결과 안내](ANIMAL_HOSPITALS.md)
 
@@ -56,7 +58,7 @@ KOBIS는 `kobis-api` 계정의 `apiKey`를 등록해 날짜별 최대 10개 영�
 |---|---|---|---|
 | 건강보험심사평가원 | 병원·공개 기관 정보 찾기 | [병원정보서비스](https://www.data.go.kr/data/15001698/openapi.do) — 문서 확인 | 활용명세·지역코드·XML 필드·운영 심사. 개인 진료내역과 구분 |
 | KOPIS | 지역 공연·공연 상세 | [Open API 안내](https://kopis.or.kr/por/cs/openapi/openApiInfo.do?menuId=MNU_00077) — 문서 확인 | 요청 규격·키 관리·출처 표시·HTTPS. 티켓 예매는 별도 |
-| 도서관 정보나루 | 도서관 찾기·소장/대출 가능 정보 | [API 활용방법](https://www.data4library.kr/apiUtilization) — 문서 확인 | API와 공식 MCP 범위 비교, HTTPS·도서관별 갱신 시점. 개인 대출내역은 별도 |
+| 도서관 정보나루 | 도서관 찾기·ISBN 소장 도서관·개별 소장/대출 제공값 | [API 활용방법](https://www.data4library.kr/apiUtilization) — 세 실행기·전용 계정·미리보기 구현 | 본인 키·등록 IP·정상/빈 응답·자료 시점 확인. 이름/지역 코드 탐색·MCP 비밀 헤더 주입은 후속. [사용법](LIBRARY_NARU.md) |
 | 서울 따릉이 | 대여소 잔여 자전거 | [실시간 대여정보](https://data.seoul.go.kr/dataList/OA-15493/A/1/datasetView.do) — 실행기 구현·본인 키 미검증 | HTTP는 운영자 설정 전 차단. HTTPS 재확인·실제 키 검증. 결제·대여 확정은 별도 |
 | KOSIS | 지역 생활 통계 | [Open API 가이드](https://kosis.kr/serviceInfo/openAPIGuide.do) — 문서 확인 | 사용할 통계표 ID·시점·단위·키 |
 | TourAPI | 관광지·축제 찾기 | [관광콘텐츠랩](https://api.visitkorea.or.kr/) — 상세 범위 미조사 | 최신 서비스 버전·키·관광 정보 필드 |
