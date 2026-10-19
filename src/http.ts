@@ -18,6 +18,7 @@ import { egenAction, egenExecutor } from './connectors/egen.js';
 import { neisActions, neisExecutor } from './connectors/neis.js';
 import { kobisAction, kobisExecutor } from './connectors/kobis.js';
 import { seoulBikeAction, seoulBikeExecutor } from './connectors/seoul-bike.js';
+import { naverBooksActions, naverBooksExecutor } from './connectors/naver-books.js';
 import { chzzkActions, chzzkExecutor } from './connectors/chzzk.js';
 import { animalHospitalsAction, animalHospitalsExecutor } from './connectors/animal-hospitals.js';
 import { BrowserRunner, browserActions } from './connectors/browser.js';
@@ -62,6 +63,7 @@ async function createUnlockedRuntime(options:RuntimeOptions){
     engine.register([kobisAction],kobisExecutor(options.fetcher));
     engine.register([seoulBikeAction],seoulBikeExecutor(options.fetcher,options.allowSeoulBikeHttp===true));
     engine.register(chzzkActions,chzzkExecutor(options.fetcher));
+    engine.register(naverBooksActions,naverBooksExecutor(options.fetcher));
     engine.register([animalHospitalsAction],animalHospitalsExecutor(options.fetcher));
     const defaults=browserDefaults();
     browser=new BrowserRunner(options.dataDir,options.channel??defaults.channel,options.headless??defaults.headless);engine.register(browserActions,browser.execute);

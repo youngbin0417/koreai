@@ -1,6 +1,6 @@
 # 검증 기록
 
-최근 검증일: **2026-10-19**. Windows·Node.js 24.19.0·Edge(headless), WSL2 Ubuntu 24.04·Node.js 22.17.0에서 검증했습니다. 최근 Windows 전체 테스트는 **196개 중 194개 통과·Linux 전용 2개 제외·실패 0개**, Linux 동물병원·요청 앱·확장 API·기본 연결 테스트는 **17개 모두 통과**입니다. 날짜별 실행 범위는 아래에 구분합니다.
+최근 검증일: **2026-10-19**. Windows·Node.js 24.19.0·Edge(headless), WSL2 Ubuntu 24.04·Node.js 22.17.0에서 검증했습니다. 최근 Windows 전체 테스트는 **206개 중 204개 통과·Linux 전용 2개 제외·실패 0개**, Linux 네이버 도서·요청 앱·확장 API·기본 연결 테스트는 **17개 모두 통과**입니다. 날짜별 실행 범위는 아래에 구분합니다.
 
 ## 2026-10-11 확장 초안 검증
 
@@ -285,7 +285,23 @@ E-Gen 응답은 모의 데이터입니다. 실제 키·지역별 기관 정보·
 
 다른 지역·본청/빈 파일·실제 한도 초과·장기간 갱신/지역 코드 변경·좌표 변환은 미검증입니다. 시험 보고서는 `.test-data/animal-full-tests.txt`, `animal-linux-tests.txt`, `animal-live-http-2026-10-19.json`, `animal-snapshot-validation-2026-10-19.json`입니다. 실제 CSV·페이지 사본·화면 캡처도 시험 산출물로 커밋하지 않습니다. 애플리케이션에 필요한 공개 지역 코드 참조표만 코드에 포함합니다. 실제 GCP·휴대폰·DeepSeek 호출은 이번 검증에 포함하지 않았습니다.
 
+## 2026-10-19 네이버 도서 조회 검증
+
+타입 검사(`npm run check`)·서버/화면 빌드(`npm run build`) 통과. Windows 전체 **206개 중 204개 통과·Linux 전용 2개 제외·실패 0개**입니다. 보고서: `.test-data/books-full-tests.txt`.
+
+- 기존 `naver-search`에 `naver.search.book`·`naver.book.isbn`을 등록했습니다. 서비스 99개·공식 API 커넥터 16개를 유지하고 API 행동은 34개, 확장 후보는 59개입니다. 공공파일 1개·기본 안내·생활 조회 초안과 별도로 집계합니다.
+- 모의 JSON 검색·XML 상세 검색의 HTTPS 주소, Client ID/Secret 헤더, 한글 인코딩, 검색 정렬·페이지 한도, ISBN-10/13 체크 숫자·대응 식별자 대조를 확인했습니다.
+- ISBN 앞자리 0·X·누락 가격·0 가격·빈 결과·부분 출간일·검색 생성 시각을 구분했습니다. 잘못된 페이지/가격/날짜/ISBN/링크, XML DTD/엔티티·잘못된 구조·2MB 초과 응답은 거절합니다.
+- 기존 검색 계정에는 새 권한을 자동 부여하지 않습니다. 같은 키를 유지하며 새 행동을 허용한 뒤 실행했고 에이전트의 계정/행동 범위, 외부 호출 없는 미리보기, 멱등 요청, 403 인증 대기 → 같은 작업 재개, 취소·한도·시간 초과·비밀 없는 오류를 검증했습니다. 결과는 `external_data`이며 모의 검증의 지원 실적은 0입니다.
+- 실제 Edge **390×844** 화면에서 네이버 검색 앱 계정 등록 → 두 행동 허용 → JSON/XML 미리보기 → 실행 → 결과 표시를 확인했습니다. 가로 넘침·JavaScript 오류·화면의 키 노출이 없었습니다. 공급자 결과는 시험 자료이며 실제 휴대폰 기기 검증이 아닙니다. 캡처: `.test-data/screenshots/naver-books-mobile.png`.
+- WSL2 Ubuntu 24.04·Node 22.17.0에서 같은 테스트 원본을 임시 JS로 변환하여 빌드된 서버로 도서·요청 앱·확장 API·기본 연결 **17개 모두 통과**했습니다. Linux 파일 권한이 적용되는 `/tmp` 데이터 폴더를 사용했습니다. Linux 브라우저 UI 시험은 포함하지 않습니다. 보고서: `.test-data/books-linux-tests.txt`.
+- 공식 JSON·XML HTTPS 경로에 고의로 무효인 시험 Client 값만 전송해 둘 다 HTTP **401**을 확인했습니다. JSON 오류 코드는 `024`, XML은 상태 코드만 기록했습니다. 보고서: `.test-data/naver-books-probe.json`. 유효한 본인 키의 정상/빈 응답·계정 검증을 의미하지 않습니다.
+
+[공식 네이버 문서](https://developers.naver.com/docs/serviceapi/search/book/book.md)를 확인했고 [정보나루 API](https://www.data4library.kr/apiUtilization)·[MCP 안내](https://www.data4library.kr/mcpUtilization)로 후속 도서관·소장 행동과 자료 시점 확인 항목을 기록했습니다. 정보나루 실행기·키 발급·MCP 접속 검증은 미수행입니다. [사용 안내·후속 단계](NAVER_BOOKS.md), [할 일](../TODO.md).
+
 ## 아직 수행하지 않은 외부 검증
+
+- 네이버 도서 검색·ISBN 상세 검색의 유효한 본인 앱 키로 정상/빈 응답·권한/한도 확인. 실행기·모의 HTTP·모바일 크기 UI·Linux 검증을 완료했으며 지원 실적은 추가하지 않았습니다. 정보나루의 HTTPS·본인 키·도서관/소장 자료 시점과 실제 MCP 연결은 다음 단계입니다.
 
 - 동물병원 공공파일의 강남구 외 지역·본청/빈 파일·운영 한도·갱신/지역 코드 변경. 인허가 데이터를 현재 진료·응급 가능 여부로 해석하지 않으며 좌표 변환은 별도 검증이 필요합니다.
 

@@ -12,7 +12,7 @@ test('mobile requested-app plans support request filtering, aliases and reviewed
     browser = await chromium.launch({channel:(process.env.KOREAI_TEST_BROWSER_CHANNEL??browserDefaults().channel) as BrowserChannel,headless:true});
     const page = await browser.newPage({viewport:{width:390,height:844}}), errors: string[] = []; page.on('pageerror',error=>errors.push(error.message));
     await page.goto(`${r.baseUrl}/#setup=requested-ui-setup`); await page.getByRole('button',{name:'로컬 엔진 연결'}).click();
-    await page.getByRole('button',{name:'확장 계획',exact:false}).click(); assert.equal(await page.locator('.expansion-card').count(),58);
+    await page.getByRole('button',{name:'확장 계획',exact:false}).click(); assert.equal(await page.locator('.expansion-card').count(),59);
     await page.getByLabel('추가 요청 앱만 보기').check(); assert.equal(await page.locator('.expansion-card').count(),36);
     await page.getByLabel('확장 후보 검색').fill('yanolja'); await page.getByRole('article',{name:'NOL(야놀자) 확장 계획',exact:true}).waitFor(); assert.equal(await page.locator('.expansion-card').count(),1);
     await page.getByLabel('확장 후보 검색').fill('동물병원'); const card=page.getByRole('article',{name:'공공 동물병원 정보 확장 계획',exact:true});

@@ -28,6 +28,9 @@ function candidate(input: CandidateInput): ApiCandidate {
 
 // Proposed actions are product ideas; documentedScope describes only the reviewed source.
 export const appApiBacklog: ApiCandidate[] = [
+  candidate({ serviceId: 'naver-search', name: '네이버 도서 검색', category: '교육·도서', homeUrl: 'https://search.naver.com', priority: 2, access: 'public-key', checkedAt: '2026-10-19',
+    sourceUrl: 'https://developers.naver.com/docs/serviceapi/search/book/book.md', documentedScope: '기존 검색 앱 키로 키워드 JSON 검색과 제목/ISBN XML 상세 검색. 앱별 검색 API 사용량 공유. 서점 재고·구매내역은 포함하지 않음.',
+    proposedActions: ['도서 검색', 'ISBN 도서 조회'], implementedActionIds: ['naver.search.book', 'naver.book.isbn'], nextStep: '검색·ISBN 실행기와 미리보기 구현. 기존 계정에도 두 행동을 명시적으로 허용한 뒤 본인 키로 정상/빈 결과·권한 오류를 검증. 도서관 소장·대출 여부는 정보나루의 별도 키·제공 시점 확인 후 구현.' }),
   candidate({ serviceId: 'kma', name: '기상청 날씨', category: '날씨·환경', homeUrl: 'https://www.weather.go.kr', priority: 1, access: 'public-key', checkedAt: '2026-10-12',
     sourceUrl: 'https://www.data.go.kr/data/15084084/openapi.do', documentedScope: '초단기실황·초단기예보·단기예보 조회, JSON/XML, 공공데이터포털 키.',
     proposedActions: ['동네 날씨 조회', '시간별 예보 조회'], implementedActionIds: ['kma.observation'], nextStep: '초단기실황 실행기 구현·모의 검증 완료. 실제 키 검증과 주소→격자 변환·예보 조회는 다음 단계.' }),
@@ -52,9 +55,9 @@ export const appApiBacklog: ApiCandidate[] = [
   candidate({ serviceId: 'kopis', name: 'KOPIS 공연정보', category: '일정·문화·주거', homeUrl: 'https://kopis.or.kr', priority: 2, access: 'public-key',
     sourceUrl: 'https://kopis.or.kr/por/cs/openapi/openApiInfo.do?menuId=MNU_00077', documentedScope: '공연·시설 목록 및 상세 등 공개 API. 발급 키 관리와 출처 표기 필요.',
     proposedActions: ['지역 공연 찾기', '공연 상세 조회'], nextStep: '최신 가이드의 요청 규격·HTTPS 제공·출처 표기를 확인하고 키로 검증.' }),
-  candidate({ serviceId: 'library-naru', name: '도서관 정보나루', category: '교육·도서', homeUrl: 'https://www.data4library.kr', priority: 2, access: 'public-key',
+  candidate({ serviceId: 'library-naru', name: '도서관 정보나루', category: '교육·도서', homeUrl: 'https://www.data4library.kr', priority: 2, access: 'public-key', checkedAt: '2026-10-19',
     sourceUrl: 'https://www.data4library.kr/apiUtilization', documentedScope: '참여 도서관 목록·서지·인기 대출 등 API. 공식 MCP 활용 안내도 제공.',
-    proposedActions: ['동네 도서관 찾기', '도서 소장·대출 가능 여부 조회'], nextStep: 'API와 기존 MCP의 범위를 비교하고 HTTPS·도서관별 자료 시점을 검증.' }),
+    proposedActions: ['동네 도서관 찾기', '도서 소장·대출 가능 여부 조회'], nextStep: 'libSrch(도서관 목록) → libSrchByBook(ISBN 소장 도서관) → bookExist(개별 소장) 순서로 정의. 본인 authKey 발급·HTTPS 제공·소장/대출 필드·자료 시점 및 공식 MCP 권한을 확인. 네이버 서지 검색과 대출 가능 여부를 구분.' }),
   candidate({ serviceId: 'seoul-bike', name: '서울 따릉이', category: '지도·교통', homeUrl: 'https://www.bikeseoul.com', priority: 2, access: 'public-key', checkedAt: '2026-10-17',
     sourceUrl: 'https://data.seoul.go.kr/dataList/OA-15493/A/1/datasetView.do', documentedScope: '서울시 실시간 대여정보: 구간별 최대 1,000건, 대여소 ID·잔여 자전거·좌표. 공식 HTTP 샘플 확인, HTTPS 접속 실패. 관측 시각 미제공.',
     proposedActions: ['대여소 잔여 자전거 조회'], implementedActionIds: ['seoul-bike.stations'], nextStep: '조회 실행기·계정 화면 구현. HTTP 키 전송은 운영자 설정 전 차단. 본인 일반 키로 구간·빈 결과·한도 검증, 공식 HTTPS 제공 여부 재확인. 결제·대여 실행은 별도.' }),

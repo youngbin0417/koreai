@@ -10,7 +10,7 @@ import { TestVault, tempDir } from './helpers.js';
 import { runtimeApi, runtimeLogin } from './mcp-oauth-fixture.js';
 
 test('all 36 requested apps merge into unique catalog/backlog entries and retain activation boundaries', () => {
-  assert.equal(requestedApps.length, 36); assert.equal(services.length, 99); assert.equal(appApiBacklog.length, 58);
+  assert.equal(requestedApps.length, 36); assert.equal(services.length, 99); assert.equal(appApiBacklog.length, 59);
   assert.equal(new Set(services.map(service => service.id)).size, services.length);
   for (const request of requestedApps) {
     const service = services.find(item => item.id === request.serviceId), candidate = appApiBacklog.find(item => item.serviceId === request.serviceId);
@@ -32,7 +32,7 @@ test('HTTP exposes requested plans and reviewed actions without provider calls, 
   try {
     const cookie = await runtimeLogin(r), state = await (await runtimeApi(r, '/api/state', 'GET', undefined, cookie)).json();
     assert.equal(state.services.length, 99); assert.equal(state.backlog.filter((entry: {connectionPlan?:unknown}) => entry.connectionPlan).length, 36);
-    assert.equal(r.engine.discover(admin).filter(action => action.method === 'api' && action.implemented).length, 32);
+    assert.equal(r.engine.discover(admin).filter(action => action.method === 'api' && action.implemented).length, 34);
     assert.equal(r.engine.discover(admin).filter(action => action.method === 'handoff').length, 10);
     const ids = new Set(requestedApps.map(item => item.serviceId)); assert.deepEqual(r.engine.discover(admin).filter(action => ids.has(action.serviceId)).map(action => action.id).sort(), ['animal-hospitals.search', 'chzzk.channels.get', 'chzzk.lives.list', 'seoul-bike.stations']);
     for (const id of ['musinsa.products.search', 'gasapp.bills.list']) assert.equal((await runtimeApi(r, '/api/jobs', 'POST', { actionId: id, input: {}, idempotencyKey: randomUUID() }, cookie)).status, 404);

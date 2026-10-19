@@ -11,7 +11,7 @@ const groups: [string, Row[]][] = [
     ['naver-mail','네이버 메일','https://mail.naver.com',['메일 조회','초안 작성','메일 전송']],
   ]],
   ['검색·콘텐츠', [
-    ['naver-search','네이버 검색','https://www.naver.com',['뉴스 검색','블로그 검색','지역 검색']],
+    ['naver-search','네이버 검색','https://www.naver.com',['뉴스 검색','블로그 검색','지역 검색','도서 검색','ISBN 도서 조회']],
     ['daum-search','다음 검색','https://www.daum.net',['웹 검색','블로그 검색','카페 검색']],
     ['naver-blog','네이버 블로그','https://blog.naver.com',['글 검색','글 조회','글 작성']],
     ['tistory','티스토리','https://www.tistory.com',['글 조회','초안 작성','글 작성']],
@@ -78,6 +78,7 @@ const groups: [string, Row[]][] = [
 ];
 export const services: Service[] = groups.flatMap(([category,rows])=>rows.map(([id,name,homeUrl,candidateActions])=>({id,name,category,homeUrl,candidateActions,note:'조사 대상입니다. 아래 후보 행동은 구현·권한 확인 전이며 지원 기능 수에 포함되지 않습니다.'})));
 const notes: Record<string,string> = {
+  'naver-search':'뉴스·블로그·카페글·쇼핑·지역 검색과 도서 검색·ISBN 상세 조회를 구현합니다. 네이버 검색 앱 키와 행동별 허용이 필요하며 재고·구매내역은 포함하지 않습니다.',
   'dcinside':'자동 수집 제한이 명시되어 있습니다. 자동화 연결은 제휴·허용 범위 확인이 필요합니다.',
   'coupang':'공개 상품 후보 조회의 입력·옵션/가격 조건·배송 안내를 정의했습니다. 판매자 Open API와 파트너스 상품 API를 구분하며 소비자 자동 조회는 확인 대기입니다.',
   'kurly':'공개 상품 후보 찾기의 입력·가격/옵션·배송 안내 결과를 정의했습니다. 소비자 자동 조회는 확인 대기이며 KLS 화주 물류 API와 구분합니다.',
