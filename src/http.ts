@@ -15,6 +15,7 @@ import { kmaAction, kmaExecutor } from './connectors/kma.js';
 import { airkoreaAction, airkoreaExecutor } from './connectors/airkorea.js';
 import { tagoActions, tagoExecutor } from './connectors/tago.js';
 import { egenAction, egenExecutor } from './connectors/egen.js';
+import { hiraAction, hiraExecutor } from './connectors/hira.js';
 import { neisActions, neisExecutor } from './connectors/neis.js';
 import { kobisAction, kobisExecutor } from './connectors/kobis.js';
 import { seoulBikeAction, seoulBikeExecutor } from './connectors/seoul-bike.js';
@@ -60,6 +61,7 @@ async function createUnlockedRuntime(options:RuntimeOptions){
     engine.register([airkoreaAction],airkoreaExecutor(options.fetcher));
     engine.register(tagoActions,tagoExecutor(options.fetcher));
     engine.register([egenAction],egenExecutor(options.fetcher));
+    engine.register([hiraAction],hiraExecutor(options.fetcher));
     engine.register(neisActions,neisExecutor(options.fetcher));
     engine.register([kobisAction],kobisExecutor(options.fetcher));
     engine.register([seoulBikeAction],seoulBikeExecutor(options.fetcher,options.allowSeoulBikeHttp===true));

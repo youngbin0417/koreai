@@ -6,6 +6,7 @@ import { kmaAction, kmaExample, kmaRequestTemplate } from '../kma.js';
 import { airkoreaAction, airkoreaExample, airkoreaRequestTemplate } from '../airkorea.js';
 import { tagoActions, tagoArrivalsAction, tagoCitiesAction, tagoStopsAction, tagoExample, tagoRequestTemplate } from '../tago.js';
 import { egenAction, egenRequestTemplate } from '../egen.js';
+import { hiraAction, hiraExample, hiraRequestTemplate } from '../hira.js';
 import { neisActions, neisSchoolsAction, neisMealsAction, neisExample, neisRequestTemplate } from '../neis.js';
 import { kobisAction, kobisExample, kobisRequestTemplate } from '../kobis.js';
 import { seoulBikeAction, seoulBikeExample, seoulBikeRequestTemplate } from '../seoul-bike.js';
@@ -34,6 +35,8 @@ interface Definition {
 
 // Request templates contain no secrets and never dispatch HTTP.
 const definitions: Definition[] = [
+  { actionId: hiraAction.id, serviceId: hiraAction.serviceId, title: hiraAction.title, description: hiraAction.description, schema: hiraAction.schema,
+    example: hiraExample(), resultCheck: hiraAction.resultCheck, request: hiraRequestTemplate },
   ...naruActions.map(action => ({ actionId: action.id, serviceId: action.serviceId, title: action.title, description: action.description,
     schema: action.schema, example: naruExample(action.id), resultCheck: action.resultCheck, request: (input: Record<string, any>) => naruRequestTemplate(action.id, input) })),
   ...naverBooksActions.map(action => ({ actionId: action.id, serviceId: action.serviceId, title: action.title, description: action.description,
@@ -108,6 +111,7 @@ const definitions: Definition[] = [
 ];
 
 export const planningActions: Action[] = definitions.map(definition => {
+  if (definition.serviceId === 'hira') return hiraAction;
   if (definition.serviceId === 'library-naru') return naruActions.find(action => action.id === definition.actionId)!;
   if (definition.serviceId === 'animal-hospitals') return animalHospitalsAction;
   if (definition.serviceId === 'naver-search') return naverBooksActions.find(action => action.id === definition.actionId)!;
