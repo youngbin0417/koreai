@@ -70,6 +70,12 @@
 
 `GET /api/backlog` 및 관리자 `/api/state.backlog`의 선택 필드 `notice`는 공급자 공지를 담습니다. 알라딘의 `type: "shutdown"`에는 `newKeysClosedOn: "2026-09-04"`, `existingAccessEndsOn: "2026-10-30"`, 확인일·공식 URL·설명이 포함됩니다. 이는 종료 공지이며 실행 행동·계정 권한을 생성하지 않습니다.
 
+### 공공파일 동물병원 조회
+
+`animal-hospitals.search`는 `{"region":"서울강남구","query":"동물","status":"normal","page":1,"limit":10}`처럼 요청합니다. `accountId`와 공급자 키는 필요하지 않으며 에이전트 토큰의 해당 행동 권한은 필요합니다. `region`은 JSON Schema의 공식 지역 이름 중 선택합니다. 결과는 해당 지역 인허가 자료이며 현재 진료를 확인하지 않습니다. [입력·결과·파일 처리](ANIMAL_HOSPITALS.md)
+
+행동의 `method: "public-data"`는 공개 파일을 조회하는 연결 방식입니다. 공식 API 구현 수와 따로 집계합니다. 미리보기는 `responseFormat: "csv"`, `authentication: {"type":"none"}`, 공식 한도 확인 `preflight`, 전송하지 않는 `localFilter`를 표시하며 외부 호출은 없습니다.
+
 ### 오류
 
 ```json

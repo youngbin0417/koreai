@@ -10,6 +10,27 @@ import { TestVault,tempDir,providerMock } from './helpers.js';
 import { browserDefaults, type BrowserChannel } from '../src/core/platform.js';
 const testChannel=(process.env.KOREAI_TEST_BROWSER_CHANNEL??browserDefaults().channel) as BrowserChannel;
 
+test('animal hospital mobile UI previews and queries public files without account setup or conflating registration with treatment', async () => {
+  let calls=0;
+  const csv='개방자치단체코드,관리번호,사업장명,영업상태코드,영업상태명,상세영업상태코드,상세영업상태명,인허가일자,폐업일자,도로명주소,지번주소,전화번호,데이터갱신시점,최종수정시점,좌표정보(X),좌표정보(Y)\r\n3220000,001234,시험동물병원,01,영업/정상,0000,정상,2020-01-01,,서울특별시 강남구 시험로 1,,02-000-0000,2026-10-17 22:02:00,2026-10-16 15:53:45,204264,446792\r\n';
+  const r=await createRuntime({dataDir:tempDir('animal-ui'),port:0,vault:new TestVault(),bootstrapCode:'animal-ui-bootstrap',evidenceMode:'mock',fetcher:async address=>{calls++;return String(address).includes('/validate/')?new Response():new Response(csv,{headers:{'Content-Type':'text/csv;charset=UTF-8'}});}});
+  const browser=await chromium.launch({channel:testChannel,headless:true});
+  try{
+    const page=await browser.newPage({viewport:{width:390,height:844}}),errors:string[]=[];page.on('pageerror',error=>errors.push(error.message));
+    await page.goto(`${r.baseUrl}/#setup=animal-ui-bootstrap`);await page.getByRole('button',{name:'엔진 연결'}).click();
+    await page.getByRole('button',{name:'확장 계획',exact:false}).click();await page.getByLabel('추가 요청 앱만 보기').check();
+    const card=page.getByRole('article',{name:'공공 동물병원 정보 확장 계획'});assert((await card.innerText()).includes('키 없이 조회'));await card.getByRole('button',{name:'조회 기능 열기'}).click();
+    const dialog=page.getByRole('dialog');assert.equal(await dialog.getByRole('button',{name:'계정 관리',exact:true}).count(),0);assert(await dialog.getByRole('button',{name:'실행 요청',exact:false}).isEnabled());
+    await page.getByRole('button',{name:'예시 입력 불러오기'}).click();await page.waitForFunction(()=>document.querySelector<HTMLTextAreaElement>('textarea.code-input')?.value.includes('서울강남구'));
+    await page.getByRole('button',{name:'요청 구조 미리보기'}).click();await page.getByRole('heading',{name:'요청 구조 · 외부 호출 없음'}).waitFor();
+    const preview=await page.locator('.draft-inspector pre').innerText();assert(preview.includes('file.localdata.go.kr'));assert(preview.includes('download-count'));assert(preview.includes('EPSG:5174'));assert.equal(calls,0);
+    await page.getByRole('button',{name:'실행 요청',exact:false}).click();await page.getByRole('heading',{name:'실행 결과',exact:true}).waitFor();
+    const text=await page.getByRole('dialog').innerText();assert(text.includes('시험동물병원'));assert(text.includes('"currentlyTreating": null'));assert(text.includes('"latitude": null'));assert(text.includes('EPSG:5174'));assert.equal(calls,2);
+    assert.equal(r.engine.accounts().length,0);assert.equal(r.engine.metrics().verifiedServices,0);assert.deepEqual(errors,[]);assert(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth));
+    const dir=resolve('.test-data/screenshots');mkdirSync(dir,{recursive:true});await page.screenshot({path:resolve(dir,'animal-hospitals-mobile.png'),fullPage:true});
+  }finally{await browser.close();await r.close();}
+});
+
 test('CHZZK mobile UI registers Client credentials, previews both actions and displays live/channel results and Aladin shutdown', async () => {
   let calls = 0;
   const r = await createRuntime({ dataDir: tempDir('chzzk-ui'), port: 0, vault: new TestVault(), bootstrapCode: 'chzzk-ui-bootstrap', evidenceMode: 'mock', fetcher: async address => {

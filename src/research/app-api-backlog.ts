@@ -7,7 +7,7 @@ export interface ApiCandidate {
   category: string;
   homeUrl: string;
   priority: 1 | 2 | 3;
-  access: 'public-key' | 'merchant' | 'unknown';
+  access: 'public-key' | 'public-file' | 'merchant' | 'unknown';
   verification: Extract<Verification, 'documented' | 'unresearched'>;
   sourceUrl: string;
   checkedAt: string | null;
@@ -100,7 +100,7 @@ for (const request of requestedApps) {
     if (request.checkedAt) existing.checkedAt = request.checkedAt;
     existing.proposedActions = [...new Set([...existing.proposedActions, request.plan.firstRead])];
   } else appApiBacklog.push(candidate({serviceId:request.serviceId,name:request.name,category:request.category,homeUrl:request.homeUrl,sourceUrl:request.sourceUrl,
-    priority:request.priority,access:request.plan.method==='official-api'?'public-key':'unknown',documentedScope:request.documentedScope,checkedAt:request.checkedAt??'2026-10-16',
+    priority:request.priority,access:request.plan.method==='official-api'?'public-key':request.plan.method==='public-data'?'public-file':'unknown',documentedScope:request.documentedScope,checkedAt:request.checkedAt??'2026-10-16',
     proposedActions:[request.plan.firstRead],nextStep:request.plan.nextStep,connectionPlan:request.plan,notice:request.notice,implementedActionIds:request.implementedActionIds}));
 }
 

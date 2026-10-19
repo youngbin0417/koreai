@@ -19,7 +19,7 @@ test('expansion candidates and draft actions reference unique catalog services a
   assert.equal(new Set(appApiBacklog.map(c => c.serviceId)).size, appApiBacklog.length);
   assert.equal(services.length, 99);
   assert.equal(draftActions.length, 0);
-  assert.equal(planningActions.length, 12);
+  assert.equal(planningActions.length, 13);
   for (const candidate of appApiBacklog) {
     assert(services.some(s => s.id === candidate.serviceId));
     assert(candidate.sourceUrl.startsWith('https://'));

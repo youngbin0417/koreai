@@ -1,6 +1,6 @@
 import type { ZodTypeAny } from 'zod';
 
-export type Method = 'api' | 'browser' | 'mcp' | 'handoff' | 'partnership';
+export type Method = 'api' | 'public-data' | 'browser' | 'mcp' | 'handoff' | 'partnership';
 export type Verification = 'unresearched' | 'documented' | 'account_verified' | 'supported' | 'suspended';
 export type JobState = 'queued' | 'pending_approval' | 'running' | 'awaiting_auth' | 'awaiting_user' | 'needs_review' | 'succeeded' | 'failed' | 'cancelled';
 export interface Action {

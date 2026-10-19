@@ -16,8 +16,13 @@
 | 에어코리아 | `airkorea.forecast` | 발표 날짜·PM10/PM25/O3별 예보 통보, 대상 날짜·등급 원문·출처 |
 | TAGO | `tago.cities`, `tago.bus.stops`, `tago.bus.arrivals` | 지원 도시, 이름/번호 정류소 탐색, 노선별 도착예정·차량·남은 정류소 |
 | E-Gen | `egen.hospitals.search` | 지역·기관명·진료요일 검색, 기관 식별자·주소·전화·제공된 진료시간 |
+| 나이스 | `neis.schools.search`, `neis.meals` | 학교 검색, 학교/일자별 급식과 알레르기 원문 |
+| KOBIS | `kobis.boxoffice.daily` | 날짜별 전국 박스오피스·관객수·매출 원문 |
+| 서울 따릉이 | `seoul-bike.stations` | 구간별 잔여 자전거·대여소·좌표, HTTP 운영자 설정 필요 |
+| 치지직 | `chzzk.lives.list`, `chzzk.channels.get` | Client 인증의 라이브 페이지·공개 채널 정보 |
+| 공공 동물병원 파일 | `animal-hospitals.search` | 키 없이 선택 지역의 인허가 상태·주소·전화·갱신 원문·EPSG:5174 좌표 조회 |
 
-공식 문서 확인일은 **2026-09-29**입니다. 모든 기본 행동의 최초 검증 상태는 `documented`입니다. 실제 키·심사·계정 호출이 성공하기 전에는 실사용 지원으로 표시하지 않습니다.
+초기 8개 커넥터의 공식 문서 확인일은 **2026-09-29**입니다. 추가 행동의 확인일은 각 `checkedAt`과 개별 문서에 기록합니다. 모든 기본 행동의 최초 검증 상태는 `documented`입니다. 실제 공급자 검증과 운영 범위를 확인하기 전에는 배포 지원으로 표시하지 않습니다.
 
 기상청 추가 행동의 문서 확인일은 **2026-10-12**입니다. [공공데이터포털 상세](https://www.data.go.kr/data/15084084/openapi.do)의 HTTPS 요청 주소·`ServiceKey` 필드와 2026년 9월 활용가이드의 단위·결측 기준을 확인했습니다. 실행기는 `src/connectors/kma.ts`, 계정 종류는 `kma-api`, 필요한 값은 일반 인증키(Decoding) `serviceKey`입니다. `URLSearchParams`로 인증키를 한 번 인코딩하며 요청 주소·키를 결과나 오류에 복사하지 않습니다. 정상 응답의 기준일·정시·격자·페이지를 대조하고, 900 이상 또는 -900 이하 관측값은 원본을 보존하면서 `value: null`, `status: missing`으로 반환합니다. 모의 검증 통과와 실제 계정 검증을 따로 관리합니다.
 
@@ -30,6 +35,8 @@ TAGO 추가 행동의 문서 확인일은 **2026-10-14**입니다. [tago.ts](../
 E-Gen 추가 행동의 문서 확인일은 **2026-10-14**입니다. [egen.ts](../src/connectors/egen.ts)는 고정 HTTPS 목록 조회와 `egen-api`의 `serviceKey`를 사용합니다. `fast-xml-parser` 5.11.2로 문법을 검사하고 문자열을 보존하며 DTD·외부/사용자 엔티티 선언을 거절합니다. 병원 식별자·전화·제공된 요일별 시간과 원문 값을 반환하고, 미제공 시간·자료 갱신 시각·현재 진료 가능 여부를 확정하지 않습니다. [사용·결과 규격](EGEN.md)
 
 ## 새 공식 API 커넥터 추가
+
+공공파일 조회는 `method: 'public-data'`로 선언해 공식 API 수와 구분합니다. 동물병원은 계정을 요구하지 않으며 공식 한도 확인 후 고정 HTTPS 파일을 읽습니다. CSV·인코딩·지역·관리번호·필드 검증을 수행하고 자료의 시점과 범위를 결과에 남깁니다. [구현](../src/connectors/animal-hospitals.ts), [사용·검증 경계](ANIMAL_HOSPITALS.md). 모의 응답은 실제 서비스 검증으로 승격하지 않으며 공개 파일의 실제 호출도 검증한 지역/형식 범위 안에서 기록합니다.
 
 초안 생성 도구:
 
