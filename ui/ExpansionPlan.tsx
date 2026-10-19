@@ -22,6 +22,7 @@ export function ExpansionPlan({ candidates, actionTitles, openAction }: { candid
       <div className="panel-heading"><h2>{c.name}</h2><span className="badge">{c.priority}순위</span></div>
       <p>{accessLabels[c.access]}</p>
       <p>{c.documentedScope ?? '공식 API 제공 범위를 아직 확인하지 않았습니다.'}</p>
+      {c.notice&&<p role="status" className="warning"><strong>{c.notice.title}</strong><br/>{c.notice.message} <a href={c.notice.url} target="_blank" rel="noreferrer">공식 종료 공지 ↗</a></p>}
       <p className="muted small">{c.checkedAt ? `문서 확인: ${c.checkedAt} · 계정 미검증` : '미조사 · 홈페이지를 조사 시작점으로 등록'}</p>
       <h3>먼저 정의할 행동</h3><ul>{c.proposedActions.map(a => <li key={a}>{a}</li>)}</ul>
       <h3>다음 작업</h3><p>{c.nextStep}</p>

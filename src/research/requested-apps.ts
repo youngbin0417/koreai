@@ -6,14 +6,18 @@ export interface ConnectionPlan {
 interface RequestedApp {
   serviceId: string; name: string; category: string; homeUrl: string; sourceUrl: string;
   priority: 2 | 3; documentedScope: string | null; plan: ConnectionPlan;
+  checkedAt?: string; implementedActionIds?: string[]; notice?: ProviderNotice;
 }
+export interface ProviderNotice { type: 'shutdown'; checkedAt: string; url: string; title: string; message: string; newKeysClosedOn: string; existingAccessEndsOn: string }
+const aladinNotice: ProviderNotice = { type: 'shutdown', checkedAt: '2026-10-19', url: 'https://blog.aladin.co.kr/openapi/5353304', title: '알라딘 OpenAPI 종료 공지',
+  message: '신규 인증키 발급은 2026-09-04 종료됐고, 기존 이용자 API도 2026-10-30 종료됩니다. KoreAI는 신규 API 연결을 제공하지 않습니다.', newKeysClosedOn: '2026-09-04', existingAccessEndsOn: '2026-10-30' };
 type Row = [id:string,name:string,url:string,firstRead:string,boundary:string,aliases?:string[]];
 const groups: [string, Row[]][] = [
   ['쇼핑·중고', [
     ['musinsa','무신사','https://www.musinsa.com','공개 상품·옵션 후보 찾기','판매자 주문 API와 소비자 상품·주문 권한을 구분. 옵션·회원가·쿠폰 조건 확인.',['musinsa']],
     ['kream','KREAM','https://kream.co.kr','상품·사이즈별 표시 가격 확인','구매/판매 호가·체결가·수수료 구분. 비공식 앱 내부 API를 공식 경로로 사용하지 않음.',['크림','kream']],
     ['kyobo','교보문고','https://www.kyobobook.co.kr','도서·ISBN·매장 재고 후보 찾기','서지 검색과 지점별 재고·개인 구매내역을 분리.',['kyobo']],
-    ['aladin','알라딘','https://www.aladin.co.kr','도서 검색·ISBN 상세 확인','TTB 키·등록 URL·이용약관·표시/캐시/LLM 전달 조건 확인. 개인 구매내역과 구분.',['aladin']],
+    ['aladin','알라딘','https://www.aladin.co.kr','도서 검색·ISBN 대체 경로 검토','신규 키 발급 종료·기존 API 2026-10-30 종료 공지. 신규 연결 미지원이며 다른 도서 제공자의 조건은 별도로 검토.',['aladin']],
     ['yes24-books','YES24 도서','https://www.yes24.com','도서·ISBN 후보 찾기','도서 상품과 YES24 티켓을 별도 서비스로 관리. 소비자 검색 제공 경로 확인.',['예스24','yes24']],
   ]],
   ['의료·예약', [
@@ -49,7 +53,7 @@ const groups: [string, Row[]][] = [
     ['animal-clinic-fees','동물병원 진료비 공개','https://animalclinicfee.or.kr','지역·항목별 공개 진료비 통계 확인','조사연도·지역·항목·통계 종류를 유지. 특정 병원의 견적·추천·진단으로 사용하지 않음.',['동물병원비','반려동물 진료비']],
   ]],
   ['검색·콘텐츠', [
-    ['chzzk','치지직','https://chzzk.naver.com','라이브 목록·채널 정보 확인','공식 개발자 앱·필요 권한·한도를 확인. 채팅 발송·방송 설정 변경은 별도 승인.',['chzzk']],
+    ['chzzk','치지직','https://chzzk.naver.com','라이브 목록·채널 정보 확인','Client 앱 인증·최대 20개·다음 커서·미반환 ID를 구분. 실제 앱·권한·한도 검증 대기. 채팅·후원·방송 설정은 별도.',['chzzk']],
     ['soop','SOOP','https://www.sooplive.com','공개 라이브·채널 후보 찾기','국내 SOOP과 다른 동명 서비스를 구분. 공식 API·확장 프로그램 범위를 확인하고 후원/채팅은 별도.',['숲','아프리카TV','soop']],
   ]],
   ['공공·세무', [
@@ -67,7 +71,7 @@ const groups: [string, Row[]][] = [
   ]],
 ];
 const evidence: Record<string, {url:string;scope?:string;method?:ConnectionPlan['method']}> = {
-  aladin: {url:'https://www.aladin.co.kr/ttb/wmain.aspx',scope:'공식 TTB OpenAPI의 상품 검색·상품 정보 및 가입/이용 안내.',method:'official-api'},
+  aladin: {url:'https://blog.aladin.co.kr/openapi/5353304',scope:'공식 2026-09-04 공지: 신규 키 발급 종료, 기존 도서 검색·도서정보 API는 2026-10-30 종료. 신규 연결 미지원.',method:'official-api'},
   chzzk: {url:'https://chzzk.gitbook.io/chzzk',scope:'공식 개발자 문서의 라이브 목록·채널 조회 및 권한별 API 안내.',method:'official-api'},
   'seoul-bike': {url:'https://data.seoul.go.kr/dataList/OA-15493/A/1/datasetView.do',method:'official-api'},
   'animal-hospitals': {url:'https://www.data.go.kr/data/15045050/fileData.do',scope:'공공 파일 데이터의 동물병원 인허가일·영업상태·사업장명·주소. 실시간 진료·예약 정보가 아님.',method:'public-data'},
@@ -76,6 +80,7 @@ const evidence: Record<string, {url:string;scope?:string;method?:ConnectionPlan[
 export const requestedApps: RequestedApp[] = groups.flatMap(([category,rows]) => rows.map(([serviceId,name,homeUrl,firstRead,boundary,aliases=[]]) => {
   const source = evidence[serviceId], method = source?.method ?? 'partnership';
   return {serviceId,name,category,homeUrl,sourceUrl:source?.url??homeUrl,priority:method==='partnership'?3:2,documentedScope:source?.scope??null,
-    plan:{requestedAt:'2026-10-16',aliases,method,firstRead,requiredAccess:serviceId==='seoul-bike'?'서울 열린데이터광장 일반 인증키·행동 권한·운영자의 HTTP 키 전송 허용 설정':method==='official-api'?'사용자 소유 개발자 키·권한·이용 조건 확인':method==='public-data'?'공개 데이터의 이용 조건·파일 형식·갱신일 확인':'소비자용 공식 API/제휴·자동 접근 허용 확인. 확보 전 사용자 직접 진행',
-      resultCheck:boundary,nextStep:serviceId==='seoul-bike'?'구간 조회 실행기 구현 완료. 본인 키·빈 구간·한도 검증과 공식 HTTPS 제공 여부 재확인.':method==='partnership'?'공식 제공 경로·권한·한도·보관/LLM 전달 조건 확인 후 첫 조회 규격 확정. 예약·결제·전송은 이후 별도 승인 단계.':'최신 요청/파일 규격·자료 기준일·한도·출처/캐시 조건을 검증한 뒤 조회 실행기 구현. 실제 키/계정 검증은 별도.'}};
+    ...(serviceId==='aladin'?{notice:aladinNotice,checkedAt:'2026-10-19'}:{}), ...(serviceId==='chzzk'?{checkedAt:'2026-10-19',implementedActionIds:['chzzk.lives.list','chzzk.channels.get']}:{}),
+    plan:{requestedAt:'2026-10-16',aliases,method,firstRead,requiredAccess:serviceId==='aladin'?'신규 키 발급 종료로 신규 연결 미지원. 대체 공급자 조건을 별도로 확인':serviceId==='chzzk'?'치지직 개발자 앱의 Client ID·Client Secret과 해당 API 접근 권한':serviceId==='seoul-bike'?'서울 열린데이터광장 일반 인증키·행동 권한·운영자의 HTTP 키 전송 허용 설정':method==='official-api'?'사용자 소유 개발자 키·권한·이용 조건 확인':method==='public-data'?'공개 데이터의 이용 조건·파일 형식·갱신일 확인':'소비자용 공식 API/제휴·자동 접근 허용 확인. 확보 전 사용자 직접 진행',
+      resultCheck:boundary,nextStep:serviceId==='aladin'?'종료 공지 반영 완료. 기존 키의 신규 연동은 구현하지 않고 도서관 정보나루·네이버 도서 검색의 첫 조회/이용 조건을 별도로 검토.':serviceId==='chzzk'?'라이브 한 페이지·공개 채널 ID 조회 실행기 구현 완료. 본인 개발자 앱으로 반복 channelIds·커서·권한·한도 검증. 채팅·후원·방송 설정은 별도.':serviceId==='seoul-bike'?'구간 조회 실행기 구현 완료. 본인 키·빈 구간·한도 검증과 공식 HTTPS 제공 여부 재확인.':method==='partnership'?'공식 제공 경로·권한·한도·보관/LLM 전달 조건 확인 후 첫 조회 규격 확정. 예약·결제·전송은 이후 별도 승인 단계.':'최신 요청/파일 규격·자료 기준일·한도·출처/캐시 조건을 검증한 뒤 조회 실행기 구현. 실제 키/계정 검증은 별도.'}};
 }));

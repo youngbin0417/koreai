@@ -10,6 +10,38 @@ import { TestVault,tempDir,providerMock } from './helpers.js';
 import { browserDefaults, type BrowserChannel } from '../src/core/platform.js';
 const testChannel=(process.env.KOREAI_TEST_BROWSER_CHANNEL??browserDefaults().channel) as BrowserChannel;
 
+test('CHZZK mobile UI registers Client credentials, previews both actions and displays live/channel results and Aladin shutdown', async () => {
+  let calls = 0;
+  const r = await createRuntime({ dataDir: tempDir('chzzk-ui'), port: 0, vault: new TestVault(), bootstrapCode: 'chzzk-ui-bootstrap', evidenceMode: 'mock', fetcher: async address => {
+    calls++; return Response.json({ code: 200, content: new URL(String(address)).pathname.endsWith('/lives') ? { data: [{ liveId: 123, liveTitle: '휴대폰 시험 방송', concurrentUserCount: 0, openDate: '2026-10-19 10:00:00', adult: false, tags: [], channelId: 'channel-1', channelName: '시험 채널' }], page: { next: 'next-cursor' } } : { data: [{ channelId: 'channel-1', channelName: '시험 채널', followerCount: 123, verifiedMark: true }] } });
+  } });
+  const browser = await chromium.launch({ channel: testChannel, headless: true });
+  try {
+    const page = await browser.newPage({ viewport: { width: 390, height: 844 } }), errors: string[] = []; page.on('pageerror', error => errors.push(error.message));
+    await page.goto(`${r.baseUrl}/#setup=chzzk-ui-bootstrap`); await page.getByRole('button', { name: '엔진 연결' }).click();
+    await page.getByRole('button', { name: '연결 계정', exact: false }).first().click(); await page.getByRole('button', { name: '＋ 계정 연결' }).click();
+    await page.getByLabel('계정 종류').selectOption('chzzk-client'); await page.getByLabel('내가 알아볼 계정 이름').fill('치지직 시험 앱'); await page.getByLabel('clientId', { exact: true }).fill('ui-chzzk-private-id'); await page.getByLabel('clientSecret', { exact: true }).fill('ui-chzzk-private-secret');
+    await page.getByLabel('치지직 라이브 목록 조회', { exact: false }).check(); await page.getByLabel('치지직 채널 정보 조회', { exact: false }).check(); await page.getByRole('button', { name: '계정 저장', exact: true }).click(); await page.getByRole('heading', { name: '치지직 시험 앱' }).waitFor();
+    await page.getByRole('button', { name: '확장 계획', exact: false }).click(); await page.getByLabel('추가 요청 앱만 보기').check();
+    const aladin = page.getByRole('article', { name: '알라딘 확장 계획' }); assert((await aladin.innerText()).includes('2026-10-30')); assert.equal(await aladin.getByRole('button').count(), 0);
+    assert.equal(await aladin.getByRole('link', { name: '공식 종료 공지', exact: false }).getAttribute('href'), 'https://blog.aladin.co.kr/openapi/5353304');
+    const card = page.getByRole('article', { name: '치지직 확장 계획' });
+    for (const title of ['치지직 라이브 목록 조회', '치지직 채널 정보 조회']) {
+      await card.getByRole('button', { name: title }).click(); await page.getByRole('button', { name: '예시 입력 불러오기' }).click();
+      await page.waitForFunction(() => { const value = document.querySelector<HTMLTextAreaElement>('textarea.code-input')?.value ?? ''; return value.includes('"size": 20') || value.includes('00000000000000000000000000000000'); });
+      if (title.includes('채널')) await page.getByLabel('실행할 내용 · JSON').fill('{"channelIds":["channel-1"]}');
+      await page.getByRole('button', { name: '요청 구조 미리보기' }).click(); await page.getByRole('heading', { name: '요청 구조 · 외부 호출 없음' }).waitFor();
+      const preview = await page.locator('.draft-inspector pre').innerText(); assert(preview.includes('openapi.chzzk.naver.com')); assert(preview.includes('Client-Secret')); assert(!preview.includes('ui-chzzk-private-secret')); assert.equal(calls, title.includes('채널') ? 1 : 0);
+      await page.getByRole('button', { name: '실행 요청', exact: false }).click(); await page.getByRole('heading', { name: '실행 결과', exact: true }).waitFor();
+      const text = await page.getByRole('dialog').innerText(); assert(text.includes(title.includes('채널') ? '"followers": 123' : '휴대폰 시험 방송')); assert(!text.includes('ui-chzzk-private-secret')); assert(!text.includes('ui-chzzk-private-id'));
+      assert(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth));
+      if (title.includes('채널')) { const dir = resolve('.test-data/screenshots'); mkdirSync(dir, { recursive: true }); await page.screenshot({ path: resolve(dir, 'chzzk-mobile.png'), fullPage: true }); }
+      await page.getByRole('button', { name: '닫기', exact: true }).click(); await page.getByRole('button', { name: '확장 계획', exact: false }).click();
+    }
+    assert.equal(calls, 2); assert.deepEqual(errors, []); assert.equal(r.engine.metrics().verifiedServices, 0);
+  } finally { await browser.close(); await r.close(); }
+});
+
 test('bike mobile UI connects an account, previews without sending a key and respects the operator transport switch', async () => {
   const browser = await chromium.launch({ channel: testChannel, headless: true });
   try {
@@ -257,7 +289,7 @@ test('React dashboard supports onboarding, expanded catalog, basic connections, 
     await page.goto(`${r.baseUrl}/#setup=ui-bootstrap`);await page.getByRole('button',{name:'로컬 엔진 연결'}).click();await page.getByRole('button',{name:'둘러보기',exact:false}).click();await page.getByRole('heading',{name:'일상에 필요한 연결을 한곳에.'}).waitFor();
     assert.equal(new URL(page.url()).hash,'');
     const screenshotDir=resolve('.test-data/screenshots');mkdirSync(screenshotDir,{recursive:true});await page.screenshot({path:resolve(screenshotDir,'dashboard.png'),fullPage:true});
-    assert.equal(await page.locator('.stat').filter({hasText:'구현된 API 행동'}).locator('strong').textContent(),'30↗');
+    assert.equal(await page.locator('.stat').filter({hasText:'구현된 API 행동'}).locator('strong').textContent(),'32↗');
     await page.getByRole('button',{name:'서비스 카탈로그',exact:false}).click();assert.equal(await page.locator('.service-card').count(),99);
     await page.getByRole('button',{name:'확장 계획',exact:false}).click();
     assert.equal(await page.locator('.expansion-card').count(),58);

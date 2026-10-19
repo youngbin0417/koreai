@@ -27,6 +27,7 @@ const credentials:Record<string,{name:string;fields:string[];help:string}>={
   'tago-api':{name:'TAGO 도시·정류소·버스 도착',fields:['serviceKey'],help:'공공데이터포털에서 TAGO 버스도착정보와 버스정류소정보를 각각 활용 신청하고 일반 인증키(Decoding)를 입력하세요. 도시 목록에서 코드를 확인하고 정류소 검색 결과의 nodeId로 도착정보를 조회합니다.'},
   'egen-api':{name:'E-Gen 병·의원 찾기',fields:['serviceKey'],help:'공공데이터포털의 국립중앙의료원 전국 병·의원 찾기 서비스를 활용 신청하고 일반 인증키(Decoding)를 입력하세요. 진료시간은 제공된 일정이며 현재 진료 가능 여부는 방문 전 기관에 확인하세요.'},
   'neis-api':{name:'나이스 학교·급식',fields:['apiKey'],help:'나이스 교육정보 개방 포털(open.neis.go.kr)에서 발급받은 인증키를 입력하세요. 공공데이터포털 키와 다릅니다. 학교 검색 결과의 지역·주소를 확인하고 교육청·학교 코드로 급식을 조회하세요.'},
+  'chzzk-client':{name:'치지직 개발자 앱',fields:['clientId','clientSecret'],help:'치지직 개발자센터에서 본인 애플리케이션을 등록하고 Client ID·Client Secret을 입력하세요. 네이버 검색 앱 키와 다릅니다. 라이브 목록·공개 채널 조회만 제공하며 사용자 OAuth·채팅·후원·방송 설정은 포함하지 않습니다.'},
   'seoul-bike-api':{name:'서울 따릉이',fields:['apiKey'],help:'서울 열린데이터광장에서 발급한 일반 인증키를 입력하세요. 따릉이 앱 로그인·공공데이터포털 키와 다릅니다. 공급자는 HTTP로 키를 받으므로 운영자의 전송 허용 설정이 필요합니다. sample 키는 실사용에 사용할 수 없습니다.'},
   'kobis-api':{name:'KOBIS 일별 박스오피스',fields:['apiKey'],help:'KOBIS 오픈API 사이트의 키 발급/관리에서 본인 인증키를 발급받아 입력하세요. 날짜별 순위·관객수·매출 집계를 조회하며 상영시간·좌석·예매 정보는 제공하지 않습니다.'},
 };

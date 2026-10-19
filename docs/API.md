@@ -64,6 +64,12 @@
 
 `seoul-bike.stations`는 `seoul-bike-api` 계정의 `apiKey`와 `{"start":1,"end":100,"query":"망원"}` 같은 입력을 사용합니다. 최대 1,000건의 요청 구간 안에서 필터링하며 관측 시각·서울 전체 대여소 수는 미제공입니다. HTTP 전송은 운영자가 `KOREAI_ALLOW_SEOUL_BIKE_HTTP=1`로 서버를 실행한 경우에만 허용됩니다. 꺼져 있으면 작업이 `failed` / `TRANSPORT_DISABLED`로 끝나고 공급자 호출은 없습니다. 관리자 `/api/state.runtime.seoulBikeHttpAllowed`에서 현재 설정을 확인합니다. 모델·에이전트는 이 설정을 바꿀 수 없습니다. [입력·결과·Linux 설정](SEOUL_BIKE.md)
 
+### 치지직 공개 조회와 종료 공지
+
+`chzzk.lives.list`는 `{"size":20,"next":"선택한 이전 커서"}`, `chzzk.channels.get`은 `{"channelIds":["채널ID"]}`를 사용합니다. `chzzk-client` 계정의 `clientId`·`clientSecret`과 행동별 계정 권한이 필요합니다. 각 최대 20개이며 사용자 OAuth 행동은 포함하지 않습니다. 미리보기의 `authentication.headers`에는 비밀 필드명만 있고 실제 값은 없습니다. [사용법·결과](CHZZK.md)
+
+`GET /api/backlog` 및 관리자 `/api/state.backlog`의 선택 필드 `notice`는 공급자 공지를 담습니다. 알라딘의 `type: "shutdown"`에는 `newKeysClosedOn: "2026-09-04"`, `existingAccessEndsOn: "2026-10-30"`, 확인일·공식 URL·설명이 포함됩니다. 이는 종료 공지이며 실행 행동·계정 권한을 생성하지 않습니다.
+
 ### 오류
 
 ```json

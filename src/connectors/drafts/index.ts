@@ -9,12 +9,13 @@ import { egenAction, egenRequestTemplate } from '../egen.js';
 import { neisActions, neisSchoolsAction, neisMealsAction, neisExample, neisRequestTemplate } from '../neis.js';
 import { kobisAction, kobisExample, kobisRequestTemplate } from '../kobis.js';
 import { seoulBikeAction, seoulBikeExample, seoulBikeRequestTemplate } from '../seoul-bike.js';
+import { chzzkActions, chzzkExample, chzzkRequestTemplate } from '../chzzk.js';
 
 export interface DraftRequest {
   method: 'GET';
   endpoint: string;
-  query: Record<string, string | number>;
-  authentication: { secretField: 'serviceKey' | 'apiKey'; queryParameter: string } | { secretField: 'apiKey'; pathParameter: string };
+  query: Record<string, string | number | string[]>;
+  authentication: { secretField: 'serviceKey' | 'apiKey'; queryParameter: string } | { secretField: 'apiKey'; pathParameter: string } | { headers: Record<string, { secretField: string }> };
   responseFormat: 'json' | 'xml';
 }
 interface Definition {
@@ -30,6 +31,8 @@ interface Definition {
 
 // Request templates contain no secrets and never dispatch HTTP.
 const definitions: Definition[] = [
+  ...chzzkActions.map(action => ({ actionId: action.id, serviceId: action.serviceId, title: action.title, description: action.description,
+    schema: action.schema, example: chzzkExample(action.id), resultCheck: action.resultCheck, request: (input: Record<string, any>) => chzzkRequestTemplate(action.id, input) })),
   {
     serviceId: 'kma', title: '기상청 초단기실황 조회',
     description: kmaAction.description,
@@ -96,6 +99,7 @@ const definitions: Definition[] = [
 ];
 
 export const planningActions: Action[] = definitions.map(definition => {
+  if (definition.serviceId === 'chzzk') return chzzkActions.find(action => action.id === definition.actionId)!;
   if (definition.serviceId === 'kma') return kmaAction;
   if (definition.serviceId === 'airkorea') return airkoreaAction;
   if (definition.serviceId === 'tago') return tagoActions.find(action => action.id === definition.actionId)!;

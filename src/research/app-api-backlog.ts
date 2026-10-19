@@ -1,5 +1,5 @@
 import type { Service, Verification } from '../types.js';
-import { requestedApps, type ConnectionPlan } from './requested-apps.js';
+import { requestedApps, type ConnectionPlan, type ProviderNotice } from './requested-apps.js';
 
 export interface ApiCandidate {
   serviceId: string;
@@ -17,6 +17,7 @@ export interface ApiCandidate {
   implementedActionIds: string[];
   nextStep: string;
   connectionPlan?: ConnectionPlan;
+  notice?: ProviderNotice;
 }
 
 const checkedAt = '2026-10-11';
@@ -94,10 +95,13 @@ for (const request of requestedApps) {
   const existing = appApiBacklog.find(item => item.serviceId === request.serviceId);
   if (existing) {
     existing.name = request.name; existing.connectionPlan = request.plan;
+    if (request.notice) existing.notice = request.notice;
+    if (request.implementedActionIds) existing.implementedActionIds = request.implementedActionIds;
+    if (request.checkedAt) existing.checkedAt = request.checkedAt;
     existing.proposedActions = [...new Set([...existing.proposedActions, request.plan.firstRead])];
   } else appApiBacklog.push(candidate({serviceId:request.serviceId,name:request.name,category:request.category,homeUrl:request.homeUrl,sourceUrl:request.sourceUrl,
-    priority:request.priority,access:request.plan.method==='official-api'?'public-key':'unknown',documentedScope:request.documentedScope,checkedAt:'2026-10-16',
-    proposedActions:[request.plan.firstRead],nextStep:request.plan.nextStep,connectionPlan:request.plan}));
+    priority:request.priority,access:request.plan.method==='official-api'?'public-key':'unknown',documentedScope:request.documentedScope,checkedAt:request.checkedAt??'2026-10-16',
+    proposedActions:[request.plan.firstRead],nextStep:request.plan.nextStep,connectionPlan:request.plan,notice:request.notice,implementedActionIds:request.implementedActionIds}));
 }
 
 export function expansionServices(existingIds: ReadonlySet<string>): Service[] {

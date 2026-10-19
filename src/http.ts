@@ -18,6 +18,7 @@ import { egenAction, egenExecutor } from './connectors/egen.js';
 import { neisActions, neisExecutor } from './connectors/neis.js';
 import { kobisAction, kobisExecutor } from './connectors/kobis.js';
 import { seoulBikeAction, seoulBikeExecutor } from './connectors/seoul-bike.js';
+import { chzzkActions, chzzkExecutor } from './connectors/chzzk.js';
 import { BrowserRunner, browserActions } from './connectors/browser.js';
 import { RemoteRegistry } from './connectors/remote.js';
 import { mcpOAuthCallbackPath, mcpOAuthCookie } from './core/mcp-oauth.js';
@@ -59,6 +60,7 @@ async function createUnlockedRuntime(options:RuntimeOptions){
     engine.register(neisActions,neisExecutor(options.fetcher));
     engine.register([kobisAction],kobisExecutor(options.fetcher));
     engine.register([seoulBikeAction],seoulBikeExecutor(options.fetcher,options.allowSeoulBikeHttp===true));
+    engine.register(chzzkActions,chzzkExecutor(options.fetcher));
     const defaults=browserDefaults();
     browser=new BrowserRunner(options.dataDir,options.channel??defaults.channel,options.headless??defaults.headless);engine.register(browserActions,browser.execute);
     connections=new LifestyleConnections(store);engine.register(connections.actions,connections.execute);
