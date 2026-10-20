@@ -10,7 +10,7 @@ import { TestVault, tempDir } from './helpers.js';
 import { runtimeApi, runtimeLogin } from './mcp-oauth-fixture.js';
 
 test('all 36 requested apps merge into unique catalog/backlog entries and retain activation boundaries', () => {
-  assert.equal(requestedApps.length, 36); assert.equal(services.length, 102); assert.equal(appApiBacklog.length, 62);
+  assert.equal(requestedApps.length, 36); assert.equal(services.length, 103); assert.equal(appApiBacklog.length, 63);
   assert.equal(new Set(services.map(service => service.id)).size, services.length);
   for (const request of requestedApps) {
     const service = services.find(item => item.id === request.serviceId), candidate = appApiBacklog.find(item => item.serviceId === request.serviceId);
@@ -31,8 +31,8 @@ test('HTTP exposes requested plans and reviewed actions without provider calls, 
   const r = await createRuntime({ dataDir: tempDir('requested-apps'), port: 0, vault: new TestVault(), fetcher, aiFetcher: fetcher, evidenceMode: 'mock' });
   try {
     const cookie = await runtimeLogin(r), state = await (await runtimeApi(r, '/api/state', 'GET', undefined, cookie)).json();
-    assert.equal(state.services.length, 102); assert.equal(state.backlog.filter((entry: {connectionPlan?:unknown}) => entry.connectionPlan).length, 36);
-    assert.equal(r.engine.discover(admin).filter(action => action.method === 'api' && action.implemented && !action.unavailable).length, 44);
+    assert.equal(state.services.length, 103); assert.equal(state.backlog.filter((entry: {connectionPlan?:unknown}) => entry.connectionPlan).length, 36);
+    assert.equal(r.engine.discover(admin).filter(action => action.method === 'api' && action.implemented && !action.unavailable).length, 45);
     assert.equal(r.engine.discover(admin).filter(action => action.method === 'handoff').length, 10);
     const ids = new Set(requestedApps.map(item => item.serviceId)); assert.deepEqual(r.engine.discover(admin).filter(action => ids.has(action.serviceId)).map(action => action.id).sort(), ['animal-hospitals.search', 'chzzk.channels.get', 'chzzk.lives.list', 'seoul-bike.stations']);
     for (const id of ['musinsa.products.search', 'gasapp.bills.list']) assert.equal((await runtimeApi(r, '/api/jobs', 'POST', { actionId: id, input: {}, idempotencyKey: randomUUID() }, cookie)).status, 404);

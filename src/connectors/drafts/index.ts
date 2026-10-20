@@ -15,6 +15,7 @@ import { foodsafetyAction, foodsafetyExample, foodsafetyRequestTemplate } from '
 import { lhAction, lhExample, lhRequestTemplate } from '../lh.js';
 import { kosisAction, kosisExample, kosisRequestTemplate } from '../kosis.js';
 import { tmapAction, tmapExample, tmapRequestTemplate } from '../tmap.js';
+import { work24Action, work24Example, work24RequestTemplate } from '../work24.js';
 import { vehicleEnergyActions, vehicleEnergyExample, vehicleEnergyRequestTemplate } from '../vehicle-energy.js';
 import { opggActions, opggExample, opggRequestTemplate } from '../opgg.js';
 import { seoulBikeAction, seoulBikeExample, seoulBikeRequestTemplate } from '../seoul-bike.js';
@@ -27,7 +28,7 @@ export interface DraftRequest {
   method: 'GET' | 'POST';
   endpoint: string;
   query: Record<string, string | number | string[]>;
-  authentication: { secretField: 'serviceKey' | 'apiKey'; queryParameter: string } | { secretField: 'apiKey'; pathParameter: string } | { headers: Record<string, { secretField: string }> } | { type: 'none' };
+  authentication: { secretField: 'serviceKey' | 'apiKey' | 'authKey'; queryParameter: string } | { secretField: 'apiKey'; pathParameter: string } | { headers: Record<string, { secretField: string }> } | { type: 'none' };
   responseFormat: 'json' | 'xml' | 'csv' | 'mcp';
   body?: Record<string, unknown>;
 }
@@ -44,6 +45,7 @@ interface Definition {
 
 // Request templates contain no secrets and never dispatch HTTP.
 const definitions: Definition[] = [
+  {actionId:work24Action.id,serviceId:work24Action.serviceId,title:work24Action.title,description:work24Action.description,schema:work24Action.schema,example:work24Example(),resultCheck:work24Action.resultCheck,request:work24RequestTemplate},
   {actionId:tmapAction.id,serviceId:tmapAction.serviceId,title:tmapAction.title,description:tmapAction.description,schema:tmapAction.schema,example:tmapExample(),resultCheck:tmapAction.resultCheck,request:tmapRequestTemplate},
   ...opggActions.map(action=>({actionId:action.id,serviceId:action.serviceId,title:action.title,description:action.description,schema:action.schema,
     example:opggExample(action.id),resultCheck:action.resultCheck,request:(input:Record<string,any>)=>opggRequestTemplate(action.id,input)})),
@@ -135,6 +137,7 @@ const definitions: Definition[] = [
 ];
 
 export const planningActions: Action[] = definitions.map(definition => {
+  if(definition.actionId===work24Action.id)return work24Action;
   if(definition.actionId===tmapAction.id)return tmapAction;
   if (definition.serviceId === 'opgg') return opggActions.find(action=>action.id===definition.actionId)!;
   if (vehicleEnergyActions.some(action=>action.id===definition.actionId)) return vehicleEnergyActions.find(action=>action.id===definition.actionId)!;

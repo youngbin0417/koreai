@@ -480,10 +480,10 @@ test('React dashboard supports onboarding, expanded catalog, basic connections, 
     await page.goto(`${r.baseUrl}/#setup=ui-bootstrap`);await page.getByRole('button',{name:'로컬 엔진 연결'}).click();await page.getByRole('button',{name:'둘러보기',exact:false}).click();await page.getByRole('heading',{name:'일상에 필요한 연결을 한곳에.'}).waitFor();
     assert.equal(new URL(page.url()).hash,'');
     const screenshotDir=resolve('.test-data/screenshots');mkdirSync(screenshotDir,{recursive:true});await page.screenshot({path:resolve(screenshotDir,'dashboard.png'),fullPage:true});
-    assert.equal(await page.locator('.stat').filter({hasText:'구현된 API 행동'}).locator('strong').textContent(),'44↗');
-    await page.getByRole('button',{name:'서비스 카탈로그',exact:false}).click();assert.equal(await page.locator('.service-card').count(),102);
+    assert.equal(await page.locator('.stat').filter({hasText:'구현된 API 행동'}).locator('strong').textContent(),'45↗');
+    await page.getByRole('button',{name:'서비스 카탈로그',exact:false}).click();assert.equal(await page.locator('.service-card').count(),103);
     await page.getByRole('button',{name:'확장 계획',exact:false}).click();
-    assert.equal(await page.locator('.expansion-card').count(),62);
+    assert.equal(await page.locator('.expansion-card').count(),63);
     await page.getByLabel('확장 우선순위').selectOption('1');assert.equal(await page.locator('.expansion-card').count(),9);
     await page.getByRole('article',{name:'기상청 날씨 확장 계획'}).getByRole('button',{name:'조회 기능 열기'}).click();
     assert(await page.getByRole('button',{name:'실행 요청',exact:false}).isDisabled());

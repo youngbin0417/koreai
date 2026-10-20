@@ -13,7 +13,7 @@
 | 메서드 | 경로 | 동작 |
 |---|---|---|
 | GET | `/api/health` | 인증 없이 로컬 엔진 상태 확인 |
-| GET | `/api/services` | 99개 조사 대상·후보 행동과 클라이언트에게 허용된 행동·초안 |
+| GET | `/api/services` | 103개 조사 대상·후보 행동과 클라이언트에게 허용된 행동·초안 |
 | GET | `/api/connections` | 클라이언트의 행동 범위에 포함된 기본 커넥터의 준비 상태·진입 경로 |
 | GET | `/api/actions?q=검색어&service=서비스ID` | 허용된 행동 검색 |
 | GET | `/api/actions/:id` | JSON Schema, 계정 요구사항, 범위, 근거·검증 상태 |
@@ -25,6 +25,8 @@
 | POST | `/api/jobs/:id/cancel` | 취소 요청 |
 
 ### 실행 요청
+
+고용24 조회는 `actionId: "work24.jobs.search"`, 승인된 `work24-api` 계정 ID, `input: {"keyword":"개발자","page":1,"limit":10}`을 사용합니다. HTTP 200의 공급자 서비스 미등록 오류도 작업 `awaiting_auth`·`WORK24_SERVICE_ACCESS_REQUIRED`로 반환합니다. [기업회원 신청 조건과 전체 입력](WORK24.md)
 
 기간 제한이 있는 행동은 `Action.resultTtlMs`를 선언하고 성공 작업에 `resultExpiresAt`을 반환합니다. 만료 후 상세/목록/같은 멱등 요청은 결과 본문을 제거하고 `RESULT_EXPIRED`를 표시합니다. 작업 성공 이력은 보존하고 재전송하지 않습니다. 해당 결과를 포함한 대화의 재개는 `CHAT_RESULT_EXPIRED`로 거절하며 모델용 프로토콜과 이후 AI 응답을 정리합니다. [TMAP 사용기한](TMAP.md#요금과-결과-사용기한)
 

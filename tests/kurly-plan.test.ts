@@ -46,7 +46,7 @@ test('Kurly preparation cannot activate consumer search, execute a handoff fallb
     await assert.rejects(() => basic.execute(kurlyProductAction, ctx), (error: unknown) => error instanceof ActionError && error.code === 'NOT_IMPLEMENTED');
     assert.throws(() => r.engine.release(kurlyProductAction.id)); await r.engine.idle();
     assert.equal(calls, 0); assert.equal(r.engine.jobs().length, 0); assert.equal(r.store.list('evidence').length, 0); assert.equal(r.engine.metrics().verifiedServices, 0); assert.equal(r.engine.metrics().supportedActions, 0);
-    assert.equal(r.engine.discover(admin).filter(action => action.method === 'api' && action.implemented && !action.unavailable).length, 44);
+    assert.equal(r.engine.discover(admin).filter(action => action.method === 'api' && action.implemented && !action.unavailable).length, 45);
   } finally { await r.close(); }
 });
 

@@ -29,6 +29,9 @@ function candidate(input: CandidateInput): ApiCandidate {
 
 // Proposed actions are product ideas; documentedScope describes only the reviewed source.
 export const appApiBacklog: ApiCandidate[] = [
+  candidate({serviceId:'work24',name:'고용24',category:'교육·취업',homeUrl:'https://www.work24.go.kr',priority:2,access:'public-key',checkedAt:'2026-10-21',
+    sourceUrl:'https://www.work24.go.kr/cm/e/a/0110/selectOpenApiSvcInfo.do?apiSvcId=000000000000000000000000000060&fullApiSvcId=000000000000000000000000000000%5E000000000000000000000000000001&upprApiSvcId=000000000000000000000000000059',documentedScope:'기업회원 전용·신청/심사 후 인증키 발급. HTTPS 채용정보 목록 XML의 검색어·지역 코드·고용형태·페이지/건수·구인인증번호·급여/마감 원문 확인. 무효 키의 HTTP 200/GO24 서비스 미등록 오류 확인.',
+    proposedActions:['검색어·지역별 채용공고 조회'],implementedActionIds:['work24.jobs.search'],nextStep:'전용 기업회원 계정·목록 조회·키 없는 미리보기 구현. 승인받은 본인 키로 정상/빈 목록·검색어/지역 코드·고용형태·페이지·출처 링크·이용 조건/한도 확인. 개인 로그인·이력서·지원·추천·상세/지역코드 검색은 후속 정의.'}),
   candidate({serviceId:'opgg',name:'OP.GG',category:'게임·e스포츠',homeUrl:'https://op.gg',priority:1,access:'public-mcp',checkedAt:'2026-10-20',
     sourceUrl:'https://github.com/opgginc/opgg-mcp/blob/main/README.ko.md',documentedScope:'공식 Streamable HTTP MCP의 키 없는 도구 목록 29개와 LoL 프로필/최근 전적/라인 통계·TFT 메타 덱·발로란트 요원 응답 확인. 일부 array outputSchema 및 LoL class 데이터 표기 호환 차이는 전용 조회 어댑터로 처리.',
     proposedActions:['LoL 소환사 프로필 조회','LoL 최근 전적 조회','LoL 라인별 챔피언 통계','TFT 메타 덱 조회','발로란트 요원 찾기'],implementedActionIds:['opgg.lol.profile','opgg.lol.matches','opgg.lol.meta','opgg.tft.meta','opgg.valorant.agents'],
