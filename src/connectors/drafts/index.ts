@@ -12,6 +12,7 @@ import { kobisAction, kobisExample, kobisRequestTemplate } from '../kobis.js';
 import { kopisActions, kopisExample, kopisRequestTemplate } from '../kopis.js';
 import { tourapiActions, tourapiExample, tourapiRequestTemplate } from '../tourapi.js';
 import { foodsafetyAction, foodsafetyExample, foodsafetyRequestTemplate } from '../foodsafety.js';
+import { lhAction, lhExample, lhRequestTemplate } from '../lh.js';
 import { seoulBikeAction, seoulBikeExample, seoulBikeRequestTemplate } from '../seoul-bike.js';
 import { naverBooksActions, naverBooksExample, naverBooksRequestTemplate } from '../naver-books.js';
 import { naruActions, naruExample, naruRequestTemplate } from '../library-naru.js';
@@ -38,6 +39,8 @@ interface Definition {
 
 // Request templates contain no secrets and never dispatch HTTP.
 const definitions: Definition[] = [
+  { actionId:lhAction.id, serviceId:lhAction.serviceId, title:lhAction.title, description:lhAction.description,
+    schema:lhAction.schema, example:lhExample(), resultCheck:lhAction.resultCheck, request:lhRequestTemplate },
   { actionId:foodsafetyAction.id, serviceId:foodsafetyAction.serviceId, title:foodsafetyAction.title, description:foodsafetyAction.description,
     schema:foodsafetyAction.schema, example:foodsafetyExample(), resultCheck:foodsafetyAction.resultCheck, request:foodsafetyRequestTemplate },
   ...tourapiActions.map(action => ({ actionId: action.id, serviceId: action.serviceId, title: action.title, description: action.description,
@@ -120,6 +123,7 @@ const definitions: Definition[] = [
 ];
 
 export const planningActions: Action[] = definitions.map(definition => {
+  if (definition.serviceId === 'lh') return lhAction;
   if (definition.serviceId === 'foodsafety') return foodsafetyAction;
   if (definition.serviceId === 'tourapi') return tourapiActions.find(action => action.id === definition.actionId)!;
   if (definition.serviceId === 'kopis') return kopisActions.find(action => action.id === definition.actionId)!;
@@ -158,6 +162,7 @@ export interface DraftPreview {
   nextStep: string;
 }
 export function draftExample(actionId: string): Record<string, unknown> | undefined {
+  if (actionId === lhAction.id) return lhExample();
   if (actionId === foodsafetyAction.id) return foodsafetyExample();
   if (tourapiActions.some(action => action.id === actionId)) return tourapiExample(actionId);
   if (kopisActions.some(action => action.id === actionId)) return kopisExample(actionId);

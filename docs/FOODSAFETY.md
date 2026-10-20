@@ -93,6 +93,6 @@ KoreAI는 `source.attribution`에 **출처: 식품의약품안전처 식품안�
 
 모의 단위/HTTP·모바일 크기 화면·Linux 검증·공개 샘플과 본인 계정 검증을 [검증 기록](VALIDATION.md#2026-10-20-식품안전나라-회수-조회-검증)에 구분합니다. 본인 키·I0490 승인으로 정상/빈 결과·보고번호·등록/변경일 경계·한도·요청 구간을 검증해야 합니다. 실제 휴대폰 기기 시험은 남아 있습니다.
 
-과거 전체 CSV 조회·공고 상세·자동 알림은 별도 단계입니다. 다음 신규 후보는 **LH 임대·분양 공고 조회**의 공식 API·입력/상태·권한 확인입니다. [작업 체크리스트](../TODO.md)
+과거 전체 CSV 조회·공고 상세·자동 알림은 별도 단계입니다. [LH 임대·분양 공고 조회](LH.md)도 첫 실행기를 구현했으며 후속 순서는 [작업 체크리스트](../TODO.md)에서 관리합니다.
 
 공식 근거: [I0490 명세·오류 코드](https://www.foodsafetykorea.go.kr/api/openApiInfo.do?menu_grp=MENU_GRP31&menu_no=661&show_cnt=10&start_idx=1&svc_no=I0490&svc_type_cd=API_TYPE06), [키 발급·데이터활용서비스](https://www.foodsafetykorea.go.kr/api/main.do), 위 운영 공지 세 건. HTML·공지 텍스트·공개 샘플·시험 보고서는 `.test-data`에만 보관합니다.
