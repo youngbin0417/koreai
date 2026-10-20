@@ -79,7 +79,7 @@ const groups: [string, Row[]][] = [
 export const services: Service[] = groups.flatMap(([category,rows])=>rows.map(([id,name,homeUrl,candidateActions])=>({id,name,category,homeUrl,candidateActions,note:'조사 대상입니다. 아래 후보 행동은 구현·권한 확인 전이며 지원 기능 수에 포함되지 않습니다.'})));
 const notes: Record<string,string> = {
   'hira':'심평원 신고 기준의 병원 기본목록 검색을 구현합니다. 암호화 요양기호·지역 코드와 E-Gen ID를 구분하며 현재 진료·예약·비급여·평가 정보는 별도 범위입니다.',
-  'naver-search':'뉴스·블로그·카페글·쇼핑·지역 검색과 도서 검색·ISBN 상세 조회를 구현합니다. 네이버 검색 앱 키와 행동별 허용이 필요하며 재고·구매내역은 포함하지 않습니다.',
+  'naver-search':'쇼핑·도서 API 종료와 검색 데이터의 AI 이용 제한으로 7개 행동을 중단했습니다. API HUB의 별도 이용 조건을 확인한 뒤 재검토하며 과거 규격·이력은 보존합니다.',
   'dcinside':'자동 수집 제한이 명시되어 있습니다. 자동화 연결은 제휴·허용 범위 확인이 필요합니다.',
   'coupang':'공개 상품 후보 조회의 입력·옵션/가격 조건·배송 안내를 정의했습니다. 판매자 Open API와 파트너스 상품 API를 구분하며 소비자 자동 조회는 확인 대기입니다.',
   'kurly':'공개 상품 후보 찾기의 입력·가격/옵션·배송 안내 결과를 정의했습니다. 소비자 자동 조회는 확인 대기이며 KLS 화주 물류 API와 구분합니다.',

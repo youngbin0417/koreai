@@ -10,9 +10,9 @@
 
 전기차 충전소 1개·오피넷 3개 조회와 두 전용 계정·미리보기를 추가했습니다. EV 공식 v1.25의 지역/상태/제한/삭제·평면 JSON과 XML, 오피넷 지역코드·저가순·ID 상세/유종별 가격·KATEC를 구현했습니다. 실제 무효 키의 EV 403/30은 인증 대기, 오피넷 200의 빈 OIL은 **결과 확인 필요**로 중단합니다. 본인 키 정상 응답·최신 자료·한도·이용 조건 검증은 대기입니다. [사용 안내](VEHICLE_ENERGY.md).
 
-**기상청·에어코리아·TAGO·E-Gen·HIRA·나이스·KOBIS·KOPIS·TourAPI·식품안전나라·LH·KOSIS·전기차 충전소·오피넷·따릉이·치지직·네이버 도서·정보나루의 확장 조회 행동 30개를 구현했습니다.** 구현된 공식 API는 총 25개 커넥터·50개 행동이며 따릉이는 HTTP 전송을 운영자가 허용해야 실행됩니다. 신규 실행기도 실제 키 검증 전에는 실사용 지원으로 집계하지 않습니다. 후보 데이터의 `implementedActionIds`와 `draftActionIds`로 구현/초안 상태를 구분합니다. 후속 초안은 `implemented: false`로 유지하며 지원·구현 수에 포함하지 않습니다. 알라딘은 종료 공지만 표시하고 신규 연결·행동을 추가하지 않았습니다. 미조사 후보의 홈페이지 등록은 API 존재·이용 허용을 확인했다는 뜻이 아닙니다.
+**네이버 검색 7개를 제외한 공식 API 구현은 24개 커넥터·43개 행동**입니다. 확장 API는 도서 2개를 제외한 **28개**, 공공파일 1개·공개 MCP 5개를 합치면 활성 확장 정의는 34개입니다. 과거 코드·규격을 보존한 중단 행동은 구현/지원 집계에서 제외합니다. 따릉이는 HTTP 전송을 운영자가 허용해야 실행되고, 신규 실행기의 실제 키 검증과 공개 지원 지정도 구분합니다. 후보의 `implementedActionIds`·`draftActionIds`·`unavailableActionIds`가 활성 구현·초안·중단 규격을 구분합니다. 미조사 후보의 홈페이지 등록은 API 존재·이용 허용을 확인했다는 뜻이 아닙니다.
 
-네이버 도서는 `naver.search.book`·`naver.book.isbn`을 추가했습니다. 기존 검색 앱 키를 쓰되 새 행동은 직접 허용해야 합니다. [공식 도서 규격](https://developers.naver.com/docs/serviceapi/search/book/book.md)의 JSON 검색·XML ISBN 상세 검색을 사용하며 가격·재고·출간일·검색 생성 시각을 구분합니다. [사용 안내](NAVER_BOOKS.md)에 정보나루의 도서관 → ISBN 소장 → 개별 소장 조회 순서와 별도 인증·자료 시점 확인 항목도 기록했습니다.
+네이버 도서 `naver.search.book`·`naver.book.isbn`과 쇼핑 검색은 [공식 종료 공지](https://developers.naver.com/notice/article/32564)로 중단했습니다. 뉴스·블로그·카페글·지역 검색도 현재 검색 약관의 AI 입력 제한 때문에 이 프로젝트에서는 중단합니다. 과거 키·권한·증거가 있어도 실행하지 않습니다. [상태·API HUB 후속 조건](NAVER_AVAILABILITY.md), [과거 도서 규격](NAVER_BOOKS.md), [정보나루](LIBRARY_NARU.md)를 참고하세요.
 
 정보나루는 공식 매뉴얼 v20260620의 `library-naru.libraries.search`·`library-naru.collections.search`·`library-naru.book.status`를 구현했습니다. 세 HTTPS XML 경로의 무효 키 오류를 실제 실행기에서 인증 대기로 확인했습니다. 소장 제공값·전날 기준 대출 상태·현재 상태를 구분하며 본인 키의 정상 응답·등록 서버 IP·사용량 검증은 남아 있습니다. 공식 MCP 매뉴얼의 주소·`X-Auth-Key`·공유 사용량과 후속 항목도 [사용 안내](LIBRARY_NARU.md)에 기록했습니다.
 

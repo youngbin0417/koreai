@@ -16,8 +16,8 @@ test('catalog has 102 unique services, 8 core official API connectors, 20 core o
   assert.equal(services.length,102);assert.equal(new Set(services.map(s=>s.id)).size,102);assert.equal(officialActions.length,20);assert.equal(new Set(officialActions.map(a=>a.connectorId)).size,8);
   assert(officialActions.every(a=>a.sourceUrl.startsWith('https://')&&a.verification==='documented'));
 });
-test('all 20 official actions form requests and validate documented provider responses',async t=>{
-  for(const action of officialActions)await t.test(action.id,async()=>{
+test('15 available core actions form requests and validate documented provider responses',async t=>{
+  for(const action of officialActions.filter(a=>!a.unavailable))await t.test(action.id,async()=>{
     const {engine,store,mock}=fixture();try{
       const a=await account(engine,action.id);const job=engine.create(admin,{actionId:action.id,accountId:a.id,input:inputFor(action.id),idempotencyKey:randomUUID()});
       if(action.effect==='write'){assert.equal(job.state,'pending_approval');assert.equal(mock.requests.length,0);approve(engine,job);}

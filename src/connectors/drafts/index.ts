@@ -168,6 +168,7 @@ export const draftActions = planningActions.filter(action => !action.implemented
 
 export interface DraftPreview {
   actionId: string;
+  unavailable?: Action['unavailable'];
   networkDispatched: false;
   validatedInput: Record<string, unknown>;
   request: DraftRequest | null;
@@ -195,6 +196,7 @@ export function previewDraftRequest(actionId: string, raw: unknown): DraftPrevie
   const definition = definitions[index]!;
   return {
     actionId, networkDispatched: false, validatedInput: input,
+    ...(action.unavailable?{unavailable:action.unavailable}:{}),
     request: definition.request?.(input) ?? null,
     mappingStatus: definition.request ? 'documented-template' : 'pending-parameter-review',
     nextStep: appApiBacklog.find(c => c.serviceId === action.serviceId)!.nextStep,

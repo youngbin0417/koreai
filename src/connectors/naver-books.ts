@@ -1,7 +1,8 @@
 import { z } from 'zod';
 import { zodToJsonSchema } from 'zod-to-json-schema';
 import { XMLParser, XMLValidator } from 'fast-xml-parser';
-import { ActionError, type Action, type Executor } from '../types.js';
+import { ActionError, assertActionAvailable, type Action, type Executor } from '../types.js';
+import { naverSearchAvailability } from './naver-availability.js';
 
 const docs = 'https://developers.naver.com/docs/serviceapi/search/book/book.md';
 function validIsbn(value: string) {
@@ -18,7 +19,7 @@ export const naverBooksSearchSchema = z.object({ query: z.string().trim().min(1)
 export const naverBookIsbnSchema = z.object({ isbn: z.string().trim().max(32).transform(value => value.replace(/[\s-]/g, '').toUpperCase()).refine(validIsbn, '체크 숫자가 유효한 ISBN-10 또는 ISBN-13 문자열을 입력하세요.') }).strict();
 const common = { serviceId: 'naver-search', connectorId: 'naver-search', category: '교육·도서', effect: 'read', method: 'api', credentialType: 'naver-app', requiredSecrets: ['clientId', 'clientSecret'], scopes: [], sourceUrl: docs, checkedAt: '2026-10-19', verification: 'documented', domains: ['openapi.naver.com'], version: '0.1.0', maintainer: 'KoreAI', origin: 'bundled', implemented: true } as const;
 function define(id: string, title: string, description: string, schema: z.ZodTypeAny): Action {
-  return { ...common, requiredSecrets: [...common.requiredSecrets], scopes: [], domains: [...common.domains], id, title, description, schema, inputSchema: zodToJsonSchema(schema, { $refStrategy: 'none' }) as Record<string, unknown>, resultCheck: '응답 구조·페이지·ISBN·가격을 검증하고 검색 생성 시각과 출간일을 구분합니다. ISBN 조회는 반환 식별자도 대조합니다. 재고·구매·대출 가능 여부는 미확인입니다.' };
+  return { ...common, requiredSecrets: [...common.requiredSecrets], scopes: [], domains: [...common.domains], id, title, description, schema, inputSchema: zodToJsonSchema(schema, { $refStrategy: 'none' }) as Record<string, unknown>, unavailable: naverSearchAvailability(id), resultCheck: '종료된 API의 과거 규격 검토용입니다. 응답 파서는 보존하며 실제 실행은 차단합니다.' };
 }
 export const naverBooksSearchAction = define('naver.search.book', '네이버 도서 검색', '공식 검색 API로 책 제목·저자·출판사·ISBN·제공된 판매 가격을 조회합니다. 기존 네이버 검색 앱 키를 쓰며 서점별 재고·주문·개인 구매내역은 포함하지 않습니다.', naverBooksSearchSchema);
 export const naverBookIsbnAction = define('naver.book.isbn', '네이버 ISBN 도서 조회', '공식 XML 상세 검색으로 ISBN에 맞는 도서를 조회합니다. ISBN-10/13 체크 숫자와 반환 ISBN을 확인하며 결과가 없어도 절판으로 단정하지 않습니다.', naverBookIsbnSchema);
@@ -96,6 +97,7 @@ async function readBody(response: Response) {
 }
 export function naverBooksExecutor(fetcher: typeof fetch = fetch): Executor {
   return async (action, context) => {
+    assertActionAvailable(action);
     if (!naverBooksActions.some(item => item.id === action.id)) throw new ActionError('NOT_IMPLEMENTED', '도서 실행기에 등록되지 않은 행동입니다.');
     const input = action.schema.parse(context.job.input), template = naverBooksRequestTemplate(action.id, input);
     if (context.signal.aborted) throw new ActionError('CANCELLED', '작업이 취소됐습니다.', 'cancelled');

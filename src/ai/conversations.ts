@@ -68,6 +68,7 @@ export class Conversations {
   submit(id: string, raw: unknown) {
     const input = z.object({ requestId: z.string().uuid(), content: z.string().trim().min(1).max(8000) }).strict().parse(raw);
     const record = this.load(id); const digest = hash(input.content);
+    if(record.allowedActions.some(actionId=>this.engine.actions.get(actionId)?.unavailable)) throw new ActionError('CHAT_ACTION_UNAVAILABLE','이 대화에 종료·이용 제한된 행동이 포함돼 있습니다. 기존 이력은 보존하며 사용 가능한 기능으로 새 대화를 시작하세요.');
     const previous = record.requests.find(request => request.id === input.requestId);
     if (previous) {
       if (previous.digest !== digest) throw new ActionError('IDEMPOTENCY_CONFLICT', '같은 요청 ID의 내용이 바뀌었습니다.');
@@ -94,6 +95,7 @@ export class Conversations {
       this.save(record);
     };
     try {
+      if(record.allowedActions.some(actionId=>this.engine.actions.get(actionId)?.unavailable)) throw new ActionError('CHAT_ACTION_UNAVAILABLE','종료·이용 제한된 행동이 포함된 대화입니다. 새 대화를 시작하세요.');
       apiKey = await this.credentials.load();
       if (signal.aborted) throw new Error('stopped');
       const client = new DeepSeekClient(apiKey, this.fetcher, signal);

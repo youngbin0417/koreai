@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import { Store } from './store.js';
 import { canUse, canonical, constantEqual, hash, redact, token, type Vault } from './security.js';
-import { ActionError, type Account, type Action, type ClientRecord, type Evidence, type Executor, type Job, type JobState, type Principal } from '../types.js';
+import { ActionError, assertActionAvailable, type Account, type Action, type ClientRecord, type Evidence, type Executor, type Job, type JobState, type Principal } from '../types.js';
 
 export const requestSchema = z.object({
   actionId:z.string().min(1).max(160), accountId:z.string().uuid().optional(),
@@ -31,6 +31,7 @@ export class Engine {
   unregister(prefix: string): void { for(const key of this.actions.keys()) if(key.startsWith(prefix)){this.actions.delete(key);this.executors.delete(key);} }
   action(id: string): Action { const action=this.actions.get(id);if(!action)throw new ActionError('NOT_FOUND','행동을 찾을 수 없습니다.');return action; }
   verification(action: Action): string {
+    if(action.unavailable)return 'suspended';
     if(this.store.get<{suspended:boolean}>('action-status',action.id)?.suspended)return 'suspended';
     const evidence=this.store.list<Evidence>('evidence').find(e=>e.actionId===action.id&&e.kind==='live'&&e.outcome==='passed'&&e.connectorVersion===action.version);
     if(evidence && this.store.get<{version:string}>('released',action.id)?.version===action.version)return 'supported';
@@ -39,11 +40,11 @@ export class Engine {
   describe(action: Action, principal: Principal=admin) {
     const {schema,...dto}=action;
     const accounts=this.accounts(principal).filter(a=>a.enabled&&a.credentialType===action.credentialType&&a.allowedActions.includes(action.id));
-    return {...dto,verification:this.verification(action),enabled:action.implemented&&this.verification(action)!=='suspended'&&(!action.credentialType||accounts.length>0),accountIds:accounts.map(a=>a.id),disabledReason:!action.implemented?'구현과 검증이 필요한 후보 행동입니다.':this.verification(action)==='suspended'?'운영 중단':action.credentialType&&accounts.length===0?'계정 연결과 행동 권한이 필요합니다.':null};
+    return {...dto,verification:this.verification(action),enabled:action.implemented&&!action.unavailable&&this.verification(action)!=='suspended'&&(!action.credentialType||accounts.length>0),accountIds:action.unavailable?[]:accounts.map(a=>a.id),disabledReason:action.unavailable?.reason??(!action.implemented?'구현과 검증이 필요한 후보 행동입니다.':this.verification(action)==='suspended'?'운영 중단':action.credentialType&&accounts.length===0?'계정 연결과 행동 권한이 필요합니다.':null)};
   }
   discover(principal: Principal, query='', serviceId?:string) {
     const normalized=query.trim().toLocaleLowerCase();
-    return [...this.actions.values()].filter(a=>canUse(principal,a.id)&&(!serviceId||a.serviceId===serviceId)&&`${a.title} ${a.description} ${a.id} ${a.category}`.toLocaleLowerCase().includes(normalized)).map(a=>this.describe(a,principal));
+    return [...this.actions.values()].filter(a=>(principal.role==='admin'||!a.unavailable)&&canUse(principal,a.id)&&(!serviceId||a.serviceId===serviceId)&&`${a.title} ${a.description} ${a.id} ${a.category}`.toLocaleLowerCase().includes(normalized)).map(a=>this.describe(a,principal));
   }
   accounts(principal: Principal=admin): Omit<Account,'sealed'>[] {
     return this.store.list<Account>('account').filter(a=>principal.role==='admin'||principal.allowedAccountIds.includes(a.id)).map(({sealed,...account})=>account);
@@ -59,6 +60,7 @@ export class Engine {
     if(!eligible.length)throw new ActionError('INVALID_ACCOUNT','알 수 없는 계정 종류입니다.');
     for(const actionId of input.allowedActions){
       const a=eligible.find(a=>a.id===actionId);if(!a)throw new ActionError('INVALID_GRANT','계정에 맞지 않는 행동 권한입니다.');
+      assertActionAvailable(a);
       if(a.requiredSecrets.some(k=>!secrets[k]?.trim()))throw new ActionError('MISSING_CREDENTIALS',`필수 키: ${a.requiredSecrets.join(', ')}`);
     }
     const allowedKeys=new Set(eligible.flatMap(a=>a.requiredSecrets).concat(['clientId','clientSecret','refreshToken']));
@@ -74,7 +76,7 @@ export class Engine {
   }
   createClient(raw: unknown) {
     const v=z.object({name:z.string().trim().min(1).max(80),allowedActions:z.array(z.string()).min(1).max(200),allowedAccountIds:z.array(z.string().uuid()).default([])}).strict().parse(raw);
-    for(const id of v.allowedActions)this.action(id);
+    for(const id of v.allowedActions)assertActionAvailable(this.action(id));
     for(const id of v.allowedAccountIds)if(!this.store.get<Account>('account',id))throw new ActionError('NOT_FOUND','계정을 찾을 수 없습니다.');
     const secret=token();const client:ClientRecord={...v,id:randomUUID(),role:'agent',tokenHash:hash(secret),revoked:false,createdAt:now()};
     this.store.put('client',client.id,client);const {tokenHash,...safe}=client;return {...safe,token:secret};
@@ -92,6 +94,7 @@ export class Engine {
   }
   private authorize(principal: Principal, action: Action, accountId?:string): void {
     if(!canUse(principal,action.id))throw new ActionError('FORBIDDEN','이 클라이언트에 허용되지 않은 행동입니다.');
+    assertActionAvailable(action);
     if(!action.implemented)throw new ActionError('NOT_IMPLEMENTED','구현과 검증이 필요한 후보 행동입니다.');
     if(this.verification(action)==='suspended')throw new ActionError('UNAVAILABLE','중단된 행동입니다.');
     if(action.credentialType){
@@ -113,9 +116,14 @@ export class Engine {
     this.store.insertJob(job);if(job.state==='queued')this.schedule(job.id);return job;
   }
   get(principal: Principal, id:string): Job {
-    const job=this.store.job(id);if(!job||(principal.role!=='admin'&&job.clientId!==principal.id))throw new ActionError('NOT_FOUND','작업을 찾을 수 없습니다.');return job;
+    const job=this.store.job(id);if(!job||(principal.role!=='admin'&&job.clientId!==principal.id))throw new ActionError('NOT_FOUND','작업을 찾을 수 없습니다.');return this.jobView(job,principal);
   }
-  jobs(principal: Principal=admin):Job[]{return this.store.jobs().filter(j=>principal.role==='admin'||j.clientId===principal.id);}
+  private jobView(job:Job,principal:Principal):Job{
+    const unavailable=this.actions.get(job.actionId)?.unavailable;
+    if(principal.role==='admin'||!unavailable)return job;
+    const {result,...safe}=job;return {...safe,error:{code:'RESULT_UNAVAILABLE',message:unavailable.reason}};
+  }
+  jobs(principal: Principal=admin):Job[]{return this.store.jobs().filter(j=>principal.role==='admin'||j.clientId===principal.id).map(j=>this.jobView(j,principal));}
   digest(job:Job):string{return hash(canonical({actionId:job.actionId,version:this.action(job.actionId).version,accountId:job.accountId,input:job.input,revision:job.revision}));}
   private owner(job:Job):Principal {
     if(job.clientId===admin.id)return admin;
@@ -197,6 +205,7 @@ export class Engine {
     this.store.put('released',actionId,{version:action.version,at:now()});
   }
   async suspend(actionId:string,suspended:boolean):Promise<void>{
+    if(!suspended)assertActionAvailable(this.action(actionId));
     this.action(actionId);this.store.put('action-status',actionId,{suspended});
     if(suspended)for(const job of this.store.allJobs())if(job.actionId===actionId&&!terminal.has(job.state))await this.cancel(admin,job.id);
   }

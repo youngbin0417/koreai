@@ -4,7 +4,7 @@
 
 | 커넥터 | 행동 ID | 범위 |
 |---|---|---|
-| 네이버 검색 | `naver.search.news`, `.blog`, `.cafearticle`, `.shop`, `.local` | 공개 검색 결과의 제목·요약·링크 |
+| 네이버 검색 | `naver.search.news`, `.blog`, `.cafearticle`, `.shop`, `.local` | 중단: 쇼핑 API 종료·나머지 검색의 AI 입력 제한. [현재 상태](NAVER_AVAILABILITY.md) |
 | 네이버 카페 | `naver.cafe.join`, `.publish` | 가입 요청, 텍스트·HTML 글 작성 |
 | 네이버 캘린더 | `naver.calendar.create` | 기본 캘린더의 단일 일정 추가 |
 | 밴드 | `band.bands`, `.posts`, `.post`, `.publish` | 모임·게시글 조회와 글 작성 |
@@ -35,6 +35,8 @@ TAGO 추가 행동의 문서 확인일은 **2026-10-14**입니다. [tago.ts](../
 E-Gen 추가 행동의 문서 확인일은 **2026-10-14**입니다. [egen.ts](../src/connectors/egen.ts)는 고정 HTTPS 목록 조회와 `egen-api`의 `serviceKey`를 사용합니다. `fast-xml-parser` 5.11.2로 문법을 검사하고 문자열을 보존하며 DTD·외부/사용자 엔티티 선언을 거절합니다. 병원 식별자·전화·제공된 요일별 시간과 원문 값을 반환하고, 미제공 시간·자료 갱신 시각·현재 진료 가능 여부를 확정하지 않습니다. [사용·결과 규격](EGEN.md)
 
 ## 새 공식 API 커넥터 추가
+
+공급자 종료·이용 제한은 `Action.unavailable`로 선언합니다. 관리자는 사유·공식 근거와 과거 규격을 확인할 수 있고 에이전트 발견·신규 권한·실행·재개·지원 집계에서는 제외합니다. 운영 중단 토글로 해제하지 않습니다. `implemented`는 코드 존재 여부이므로 구현 집계에는 `!action.unavailable` 조건을 함께 적용합니다. 기존 네이버 검색 7개를 제외한 API 집계는 24개 커넥터·43개 행동입니다.
 
 공공파일 조회는 `method: 'public-data'`로 선언해 공식 API 수와 구분합니다. 동물병원은 계정을 요구하지 않으며 공식 한도 확인 후 고정 HTTPS 파일을 읽습니다. CSV·인코딩·지역·관리번호·필드 검증을 수행하고 자료의 시점과 범위를 결과에 남깁니다. [구현](../src/connectors/animal-hospitals.ts), [사용·검증 경계](ANIMAL_HOSPITALS.md). 모의 응답은 실제 서비스 검증으로 승격하지 않으며 공개 파일의 실제 호출도 검증한 지역/형식 범위 안에서 기록합니다.
 

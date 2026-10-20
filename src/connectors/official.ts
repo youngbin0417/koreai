@@ -1,7 +1,8 @@
 import { z } from 'zod';
 import { zodToJsonSchema } from 'zod-to-json-schema';
 import iconv from 'iconv-lite';
-import { ActionError, type Action, type Executor, type ExecutionContext } from '../types.js';
+import { ActionError, assertActionAvailable, type Action, type Executor, type ExecutionContext } from '../types.js';
+import { naverSearchAvailability } from './naver-availability.js';
 import { redact } from '../core/security.js';
 
 const text = (description: string, max = 1000) => z.string().trim().min(1).max(max).describe(description);
@@ -20,7 +21,7 @@ const urls = {
   gov: 'https://www.data.go.kr/data/15113968/openapi.do',
 };
 function define(args: { id: string; serviceId: string; connectorId: string; title: string; description: string; category: string; schema: z.ZodTypeAny; credentialType: string; requiredSecrets: string[]; sourceUrl: string; domains: string[]; scopes?: string[]; effect?: 'read' | 'write'; resultCheck?: string }): Action {
-  return { ...args, inputSchema: jsonSchema(args.schema), effect: args.effect ?? 'read', method: 'api', scopes: args.scopes ?? [], checkedAt, verification: 'documented', resultCheck: args.resultCheck ?? '공급자 정상 응답과 결과 필드 확인', version: '0.1.0', maintainer: 'KoreAI', origin: 'bundled', implemented: true };
+  return { ...args, inputSchema: jsonSchema(args.schema), effect: args.effect ?? 'read', method: 'api', scopes: args.scopes ?? [], checkedAt, verification: 'documented', resultCheck: args.resultCheck ?? '공급자 정상 응답과 결과 필드 확인', version: '0.1.0', maintainer: 'KoreAI', origin: 'bundled', implemented: true, unavailable: naverSearchAvailability(args.id) };
 }
 export const officialActions: Action[] = [
   ...(['news', 'blog', 'cafearticle', 'shop', 'local'] as const).map((kind, i) => define({
@@ -101,6 +102,7 @@ export function buildRequest(action: Action, context: ExecutionContext): ApiRequ
 }
 export function officialExecutor(fetcher: typeof fetch = fetch): Executor {
   return async (action, context) => {
+    assertActionAvailable(action);
     const {url,init}=buildRequest(action,context);
     if(context.signal.aborted) throw new ActionError('CANCELLED','작업이 취소됐습니다.','cancelled');
     context.dispatch();

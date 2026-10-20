@@ -1,17 +1,20 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
-import { naverBooksActions, naverBooksSearchAction, naverBookIsbnAction, naverBooksSearchSchema, naverBookIsbnSchema, naverBooksRequestTemplate, naverBooksExecutor } from '../src/connectors/naver-books.js';
+import { naverBooksActions as retiredActions, naverBooksSearchAction as retiredSearch, naverBookIsbnAction as retiredIsbn, naverBooksSearchSchema, naverBookIsbnSchema, naverBooksRequestTemplate, naverBooksExecutor } from '../src/connectors/naver-books.js';
 import { createRuntime } from '../src/http.js';
 import { ActionError, type Action, type ExecutionContext } from '../src/types.js';
 import { TestVault, tempDir } from './helpers.js';
 import { runtimeApi, runtimeLogin } from './mcp-oauth-fixture.js';
 
+// Legacy wire/parser fixtures only; production availability is tested separately.
+const naverBooksActions = retiredActions.map(action=>({...action,unavailable:undefined}));
+const naverBooksSearchAction = {...retiredSearch,unavailable:undefined}, naverBookIsbnAction = {...retiredIsbn,unavailable:undefined};
 const secrets = { clientId: 'test-books-private-id', clientSecret: 'test-books-private-secret' };
 const row = () => ({ title: '<b>시험</b> 도서', link: 'https://search.shopping.naver.com/book/catalog/123', author: '시험 저자', publisher: '시험 출판', isbn: '0306406152 9780306406157', description: 'API 시험 자료', pubdate: '20240229', discount: '14000' });
 const json = (items: Record<string, unknown>[] = [row()], patch = {}) => ({ lastBuildDate: 'Mon, 19 Oct 2026 10:00:00 +0900', total: items.length, start: 1, display: 10, items, ...patch });
 const xml = (item = '<item><title>시험 <b>도서</b></title><link>https://book.naver.com/bookdb/book_detail.nhn?bid=123</link><author>저자</author><publisher>출판사</publisher><isbn>0306406152 9780306406157</isbn><description><![CDATA[소개 <b>문장</b>]]></description><pubdate>20240229</pubdate></item>', total = 1) => `<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel><lastBuildDate>Mon, 19 Oct 2026 10:00:00 +0900</lastBuildDate><total>${total}</total><start>1</start><display>100</display>${item}</channel></rss>`;
-function context(action = naverBooksSearchAction, input: Record<string, unknown> = { query: '도서' }, controller = new AbortController()) {
+function context(action: Action = naverBooksSearchAction, input: Record<string, unknown> = { query: '도서' }, controller = new AbortController()) {
   let dispatched = 0;
   const ctx: ExecutionContext = { job: { id: randomUUID(), clientId: 'local-admin', actionId: action.id, input, idempotencyKey: randomUUID(), requestHash: 'test', effect: 'read', state: 'running', revision: 1, dispatched: false, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), interventions: 0, events: [] }, secrets: { ...secrets }, signal: controller.signal, dispatch: () => { dispatched++; } };
   return { ctx, dispatched: () => dispatched };
@@ -88,24 +91,16 @@ test('book failures await valid Naver credentials, handle quotas/timeouts and ne
   await assert.rejects(() => naverBooksExecutor()({ ...naverBooksSearchAction, id: 'naver.orders' }, context().ctx), hasCode('NOT_IMPLEMENTED'));
 });
 
-test('book HTTP reuses Naver app credentials only after new action grants, scopes agent access and supports preview/idempotency/auth resume', async () => {
-  let calls = 0, denied = false;
-  const r = await createRuntime({ dataDir: tempDir('books-http'), port: 0, vault: new TestVault(), evidenceMode: 'mock', fetcher: async address => { calls++; if (denied) return new Response(secrets.clientSecret, { status: 403 }); return String(address).includes('book_adv.xml') ? new Response(xml()) : Response.json(json()); } });
-  try {
-    const cookie = await runtimeLogin(r), api = (path: string, method = 'GET', body?: unknown, bearer?: string) => runtimeApi(r, `/api${path}`, method, body, cookie, bearer ? { Authorization: `Bearer ${bearer}` } : {});
-    for (const action of naverBooksActions) { const input = action.id === naverBooksSearchAction.id ? { query: '도서' } : { isbn: '9780306406157' }; const preview = await (await api(`/drafts/${action.id}/preview`, 'POST', input)).json(); assert.equal(preview.networkDispatched, false); assert.equal(preview.request.authentication.headers['X-Naver-Client-Id'].secretField, 'clientId'); }
-    assert.equal(calls, 0);
-    const original = await r.engine.saveAccount({ label: '기존 네이버 앱', credentialType: 'naver-app', allowedActions: ['naver.search.news'], secrets });
-    const request = { actionId: naverBooksSearchAction.id, accountId: original.id, input: { query: '도서' }, idempotencyKey: randomUUID() };
-    const refused = await api('/jobs', 'POST', request); assert.equal((await refused.json()).error.code, 'ACCOUNT_REQUIRED'); assert.equal(calls, 0);
-    const account = await r.engine.saveAccount({ id: original.id, label: original.label, credentialType: 'naver-app', allowedActions: ['naver.search.news', ...naverBooksActions.map(action => action.id)] });
-    const client = r.engine.createClient({ name: 'book reader', allowedActions: naverBooksActions.map(action => action.id), allowedAccountIds: [account.id] });
-    for (const limits of [{ allowedActions: [naverBooksSearchAction.id], allowedAccountIds: [] }, { allowedActions: ['naver.search.news'], allowedAccountIds: [account.id] }]) { const blocked = r.engine.createClient({ name: 'blocked', ...limits }); assert.equal((await api('/jobs', 'POST', request, blocked.token)).status, 403); }
-    const response = await api('/jobs', 'POST', request, client.token); assert.equal(response.status, 202); const job = await response.json(); await r.engine.idle();
-    const result = await (await api(`/jobs/${job.id}`, 'GET', undefined, client.token)).json(); assert.equal(result.state, 'succeeded'); assert.equal(result.result.contentTrust, 'external_data'); for (const secret of Object.values(secrets)) assert(!JSON.stringify(result).includes(secret));
-    await api('/jobs', 'POST', request, client.token); await r.engine.idle(); assert.equal(calls, 1);
-    denied = true; const paused = await (await api('/jobs', 'POST', { ...request, actionId: naverBookIsbnAction.id, input: { isbn: '9780306406157' }, idempotencyKey: randomUUID() }, client.token)).json(); await r.engine.idle(); assert.equal((await (await api(`/jobs/${paused.id}`, 'GET', undefined, client.token)).json()).state, 'awaiting_auth');
-    denied = false; assert.equal((await api(`/jobs/${paused.id}/resume`, 'POST', {}, client.token)).status, 200); await r.engine.idle(); const resumed = await (await api(`/jobs/${paused.id}`, 'GET', undefined, client.token)).json(); assert.equal(resumed.state, 'succeeded'); assert.equal(resumed.result.data.requestedIsbn, '9780306406157');
-    assert.equal(r.engine.metrics().verifiedServices, 0); assert.equal(r.engine.metrics().supportedActions, 0);
-  } finally { await r.close(); }
+test('retired book HTTP keeps historical previews and rejects execution or new account grants without provider calls', async () => {
+  let calls=0;const r=await createRuntime({dataDir:tempDir('retired-books-http'),port:0,vault:new TestVault(),evidenceMode:'mock',fetcher:async()=>{calls++;throw Error('must not call');}});
+  try{
+    const cookie=await runtimeLogin(r),api=(path:string,method='GET',body?:unknown)=>runtimeApi(r,'/api'+path,method,body,cookie);
+    for(const action of retiredActions){
+      const input=action.id===retiredSearch.id?{query:'book'}:{isbn:'9780306406157'};
+      const preview=await(await api('/drafts/'+action.id+'/preview','POST',input)).json();assert.equal(preview.networkDispatched,false);assert.equal(preview.unavailable.kind,'retired');
+      const response=await api('/jobs','POST',{actionId:action.id,input,idempotencyKey:randomUUID()});assert.equal(response.status,409);assert.equal((await response.json()).error.code,'SERVICE_RETIRED');
+      await assert.rejects(()=>r.engine.saveAccount({label:'retired',credentialType:'naver-app',allowedActions:[action.id],secrets}),hasCode('SERVICE_RETIRED'));
+    }
+    assert.equal(calls,0);assert.equal(r.engine.accounts().length,0);assert.equal(r.engine.metrics().verifiedServices,0);
+  }finally{await r.close();}
 });

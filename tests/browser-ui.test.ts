@@ -180,38 +180,6 @@ test('Naru mobile UI registers its own key, previews three XML operations and se
   } finally { await browser.close(); await r.close(); }
 });
 
-test('book mobile UI connects existing Naver credentials, previews JSON/XML and executes both book reads without exposing keys', async () => {
-  let calls = 0;
-  const book = { title: '휴대폰 시험 도서', link: 'https://book.naver.com/123', author: '저자', publisher: '출판사', isbn: '9788960515529', description: '시험 소개', pubdate: '20261019' };
-  const r = await createRuntime({ dataDir: tempDir('books-ui'), port: 0, vault: new TestVault(), bootstrapCode: 'books-ui-bootstrap', evidenceMode: 'mock', fetcher: async address => {
-    calls++; const body = { lastBuildDate: 'Mon, 19 Oct 2026 10:00:00 +0900', total: 1, start: 1, display: 10, items: [book] };
-    if (!String(address).includes('book_adv.xml')) return Response.json(body);
-    return new Response(`<rss><channel><lastBuildDate>${body.lastBuildDate}</lastBuildDate><total>1</total><start>1</start><display>100</display><item>${Object.entries(book).map(([key, value]) => `<${key}>${value}</${key}>`).join('')}</item></channel></rss>`);
-  } });
-  const browser = await chromium.launch({ channel: testChannel, headless: true });
-  try {
-    const page = await browser.newPage({ viewport: { width: 390, height: 844 } }), errors: string[] = []; page.on('pageerror', error => errors.push(error.message));
-    await page.goto(`${r.baseUrl}/#setup=books-ui-bootstrap`); await page.getByRole('button', { name: '엔진 연결' }).click();
-    await page.getByRole('button', { name: '연결 계정', exact: false }).first().click(); await page.getByRole('button', { name: '＋ 계정 연결' }).click();
-    await page.getByLabel('계정 종류').selectOption('naver-app'); await page.getByLabel('내가 알아볼 계정 이름').fill('도서 시험 앱'); await page.getByLabel('clientId', { exact: true }).fill('ui-book-private-id'); await page.getByLabel('clientSecret', { exact: true }).fill('ui-book-private-secret');
-    await page.getByLabel('네이버 도서 검색', { exact: false }).check(); await page.getByLabel('네이버 ISBN 도서 조회', { exact: false }).check(); await page.getByRole('button', { name: '계정 저장', exact: true }).click(); await page.getByRole('heading', { name: '도서 시험 앱' }).waitFor();
-    for (const title of ['네이버 도서 검색', '네이버 ISBN 도서 조회']) {
-      await page.getByRole('button', { name: '확장 계획', exact: false }).click();
-      await page.getByRole('article', { name: '네이버 도서 검색 확장 계획' }).getByRole('button', { name: title, exact: true }).click();
-      await page.getByRole('button', { name: '예시 입력 불러오기' }).click();
-      await page.waitForFunction(() => { const value = document.querySelector<HTMLTextAreaElement>('textarea.code-input')?.value ?? ''; return value.includes('한국 문학') || value.includes('9788960515529'); });
-      await page.getByRole('button', { name: '요청 구조 미리보기' }).click(); await page.getByRole('heading', { name: '요청 구조 · 외부 호출 없음' }).waitFor();
-      const preview = await page.locator('.draft-inspector pre').innerText(); assert(preview.includes(title.includes('ISBN') ? 'book_adv.xml' : 'book.json')); assert(preview.includes('X-Naver-Client-Secret')); assert(!preview.includes('ui-book-private-secret')); assert.equal(calls, title.includes('ISBN') ? 1 : 0);
-      await page.getByRole('button', { name: '실행 요청', exact: false }).click(); await page.getByRole('heading', { name: '실행 결과', exact: true }).waitFor();
-      const text = await page.getByRole('dialog').innerText(); assert(text.includes('휴대폰 시험 도서')); assert(text.includes('"sellingPriceKrw": null')); assert(text.includes('unverified')); assert(!text.includes('ui-book-private-secret')); assert(!text.includes('ui-book-private-id'));
-      assert(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth));
-      if (title.includes('ISBN')) { const dir = resolve('.test-data/screenshots'); mkdirSync(dir, { recursive: true }); await page.screenshot({ path: resolve(dir, 'naver-books-mobile.png'), fullPage: true }); }
-      await page.getByRole('button', { name: '닫기', exact: true }).click();
-    }
-    assert.equal(calls, 2); assert.deepEqual(errors, []); assert.equal(r.engine.metrics().verifiedServices, 0);
-  } finally { await browser.close(); await r.close(); }
-});
-
 test('animal hospital mobile UI previews and queries public files without account setup or conflating registration with treatment', async () => {
   let calls=0;
   const csv='개방자치단체코드,관리번호,사업장명,영업상태코드,영업상태명,상세영업상태코드,상세영업상태명,인허가일자,폐업일자,도로명주소,지번주소,전화번호,데이터갱신시점,최종수정시점,좌표정보(X),좌표정보(Y)\r\n3220000,001234,시험동물병원,01,영업/정상,0000,정상,2020-01-01,,서울특별시 강남구 시험로 1,,02-000-0000,2026-10-17 22:02:00,2026-10-16 15:53:45,204264,446792\r\n';
@@ -512,7 +480,7 @@ test('React dashboard supports onboarding, expanded catalog, basic connections, 
     await page.goto(`${r.baseUrl}/#setup=ui-bootstrap`);await page.getByRole('button',{name:'로컬 엔진 연결'}).click();await page.getByRole('button',{name:'둘러보기',exact:false}).click();await page.getByRole('heading',{name:'일상에 필요한 연결을 한곳에.'}).waitFor();
     assert.equal(new URL(page.url()).hash,'');
     const screenshotDir=resolve('.test-data/screenshots');mkdirSync(screenshotDir,{recursive:true});await page.screenshot({path:resolve(screenshotDir,'dashboard.png'),fullPage:true});
-    assert.equal(await page.locator('.stat').filter({hasText:'구현된 API 행동'}).locator('strong').textContent(),'50↗');
+    assert.equal(await page.locator('.stat').filter({hasText:'구현된 API 행동'}).locator('strong').textContent(),'43↗');
     await page.getByRole('button',{name:'서비스 카탈로그',exact:false}).click();assert.equal(await page.locator('.service-card').count(),102);
     await page.getByRole('button',{name:'확장 계획',exact:false}).click();
     assert.equal(await page.locator('.expansion-card').count(),62);

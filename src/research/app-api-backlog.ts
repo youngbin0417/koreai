@@ -15,6 +15,7 @@ export interface ApiCandidate {
   proposedActions: string[];
   draftActionIds: string[];
   implementedActionIds: string[];
+  unavailableActionIds?: string[];
   nextStep: string;
   connectionPlan?: ConnectionPlan;
   notice?: ProviderNotice;
@@ -38,9 +39,10 @@ export const appApiBacklog: ApiCandidate[] = [
   candidate({serviceId:'opinet',name:'오피넷 주유소',category:'지도·교통',homeUrl:'https://www.opinet.co.kr',priority:1,access:'public-key',checkedAt:'2026-10-20',
     sourceUrl:'https://www.opinet.co.kr/user/custapi/openApiInfo.do',documentedScope:'공식 지역코드·지역 저가순 TOP20·ID 상세/유종별 가격 HTTPS API. 일반 API 신청·하루 300회·상업적 이용 조건 확인. 세 무효 키 경로가 HTTP 200의 빈 OIL을 반환해 인증 성공과 구분 불가.',
     proposedActions:['오피넷 지역코드 찾기','지역별 저렴한 주유소 찾기','주유소 상세·유종별 가격 조회'],implementedActionIds:['opinet.regions.list','opinet.stations.cheapest','opinet.stations.get'],nextStep:'세 조회·전용 계정·미리보기 구현. 빈 OIL은 결과 확인 필요로 중단하며 성공 증거를 생성하지 않음. 본인 키로 정상/빈·지역/ID·가격 기준 시각·한도·이용 조건 검증. 반경 검색은 KATEC 좌표 변환을 검증한 뒤 별도 구현.'}),
-  candidate({ serviceId: 'naver-search', name: '네이버 도서 검색', category: '교육·도서', homeUrl: 'https://search.naver.com', priority: 2, access: 'public-key', checkedAt: '2026-10-19',
-    sourceUrl: 'https://developers.naver.com/docs/serviceapi/search/book/book.md', documentedScope: '기존 검색 앱 키로 키워드 JSON 검색과 제목/ISBN XML 상세 검색. 앱별 검색 API 사용량 공유. 서점 재고·구매내역은 포함하지 않음.',
-    proposedActions: ['도서 검색', 'ISBN 도서 조회'], implementedActionIds: ['naver.search.book', 'naver.book.isbn'], nextStep: '검색·ISBN 실행기와 미리보기 구현. 기존 계정에도 두 행동을 명시적으로 허용한 뒤 본인 키로 정상/빈 결과·권한 오류를 검증. 도서관 소장·대출 여부는 정보나루의 별도 키·제공 시점 확인 후 구현.' }),
+  candidate({ serviceId: 'naver-search', name: '네이버 도서 검색', category: '교육·도서', homeUrl: 'https://search.naver.com', priority: 2, access: 'unknown', checkedAt: '2026-10-20',
+    sourceUrl: 'https://developers.naver.com/notice/article/32564', documentedScope: '쇼핑·책·전문자료 검색은 2026-07-31 종료 공지. 나머지 기존 검색도 현행 약관의 데이터 AI 입력 제한으로 KoreAI에서 중단. API HUB 이용 조건은 별도 확인.',
+    notice: {type:'shutdown',checkedAt:'2026-10-20',newKeysClosedOn:'2026-07-31',existingAccessEndsOn:'2026-07-31',title:'네이버 도서 API 종료·검색 AI 이용 제한',message:'기존 키로 신규 연결·실행하지 않습니다. 과거 요청 규격만 보존하며 API 구현/지원 수에서 제외합니다.',url:'https://developers.naver.com/notice/article/32564'},
+    proposedActions: ['도서 검색 대체 경로 조사', '검색 AI 이용 허용 경로 확인'], unavailableActionIds:['naver.search.book','naver.book.isbn'], nextStep: 'API HUB의 별도 약관·AI 입력/저장/제3자 전달·키·비용·결과 규격을 확인한 뒤 새 커넥터로 검토. 도서관·ISBN 소장 조회는 정보나루 안내 참조. 과거 파서·작업 이력은 보존.' }),
   candidate({ serviceId: 'kma', name: '기상청 날씨', category: '날씨·환경', homeUrl: 'https://www.weather.go.kr', priority: 1, access: 'public-key', checkedAt: '2026-10-12',
     sourceUrl: 'https://www.data.go.kr/data/15084084/openapi.do', documentedScope: '초단기실황·초단기예보·단기예보 조회, JSON/XML, 공공데이터포털 키.',
     proposedActions: ['동네 날씨 조회', '시간별 예보 조회'], implementedActionIds: ['kma.observation'], nextStep: '초단기실황 실행기 구현·모의 검증 완료. 실제 키 검증과 주소→격자 변환·예보 조회는 다음 단계.' }),

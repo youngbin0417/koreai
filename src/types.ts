@@ -11,6 +11,7 @@ export interface Action {
   sourceUrl: string; checkedAt: string | null; verification: Verification;
   resultCheck: string; domains: string[]; version: string; maintainer: string;
   origin: 'bundled' | 'user'; implemented: boolean;
+  unavailable?: { kind: 'retired' | 'policy-restricted'; reason: string; sourceUrl: string; effectiveAt: string; checkedAt: string };
 }
 export interface Service {
   id: string; name: string; category: string; homeUrl: string;
@@ -44,6 +45,9 @@ export interface ExecutionResult { data: unknown; evidence: string }
 export type Executor = (action: Action, context: ExecutionContext) => Promise<ExecutionResult>;
 export class ActionError extends Error {
   constructor(public code: string, message: string, public state: JobState = 'failed', public handoff?: string) { super(message); }
+}
+export function assertActionAvailable(action: Action): void {
+  if (action.unavailable) throw new ActionError(action.unavailable.kind === 'retired' ? 'SERVICE_RETIRED' : 'PROVIDER_POLICY_RESTRICTED', action.unavailable.reason);
 }
 export interface Evidence {
   actionId: string; kind: 'mock' | 'live'; outcome: 'passed' | 'failed';

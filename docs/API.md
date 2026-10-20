@@ -26,6 +26,8 @@
 
 ### 실행 요청
 
+공급자 종료·이용 제한 행동은 관리자 응답의 `unavailable: {kind, reason, sourceUrl, effectiveAt, checkedAt}`와 `enabled: false`로 표시합니다. 에이전트의 `/api/actions`에서는 제외하고 신규 권한·실행·재개는 HTTP 409의 `SERVICE_RETIRED` 또는 `PROVIDER_POLICY_RESTRICTED`로 거절합니다. 이전 작업 결과는 관리자 이력에 보존하되 에이전트 응답에서는 결과 본문을 제외하고 `RESULT_UNAVAILABLE` 사유를 반환합니다. 중단 행동이 있는 이전 대화의 추가 메시지는 `CHAT_ACTION_UNAVAILABLE`로 거절합니다. [네이버 적용 범위](NAVER_AVAILABILITY.md)
+
 ```json
 {
   "actionId": "kakao.map.places",
