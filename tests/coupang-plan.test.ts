@@ -46,7 +46,7 @@ test('Coupang preparation cannot activate search, dispatch through basic links o
     await assert.rejects(() => basic.execute(coupangProductAction, ctx), (error: unknown) => error instanceof ActionError && error.code === 'NOT_IMPLEMENTED');
     assert.throws(() => r.engine.release(coupangProductAction.id)); await r.engine.idle();
     assert.equal(calls, 0); assert.equal(r.engine.jobs().length, 0); assert.equal(r.store.list('evidence').length, 0); assert.equal(r.engine.metrics().verifiedServices, 0); assert.equal(r.engine.metrics().supportedActions, 0);
-    assert.equal(r.engine.discover(admin).filter(action => action.method === 'api' && action.implemented).length, 45);
+    assert.equal(r.engine.discover(admin).filter(action => action.method === 'api' && action.implemented).length, 46);
   } finally { await r.close(); }
 });
 

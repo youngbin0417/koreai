@@ -10,6 +10,19 @@ import { TestVault,tempDir,providerMock } from './helpers.js';
 import { browserDefaults, type BrowserChannel } from '../src/core/platform.js';
 const testChannel=(process.env.KOREAI_TEST_BROWSER_CHANNEL??browserDefaults().channel) as BrowserChannel;
 
+test('KOSIS mobile UI connects its own key and preserves statistical symbols, periods and unreturned cells',async()=>{
+  let calls=0;const r=await createRuntime({dataDir:tempDir('kosis-ui'),port:0,vault:new TestVault(),bootstrapCode:'kosis-ui-bootstrap',evidenceMode:'mock',fetcher:async address=>{
+    calls++;const url=new URL(String(address));return Response.json([{ORG_ID:'101',TBL_ID:'DT_1YL20631',TBL_NM:'고령인구비율(시도/시/군/구)',C1:'11',C1_NM:'서울특별시',ITM_ID:'T10',ITM_NM:'고령인구비율',UNIT_NM:'%',PRD_SE:'M',PRD_DE:url.searchParams.get('endPrdDe'),DT:'p21.2',LST_CHN_DE:'2026-10-12'}]);
+  }});const browser=await chromium.launch({channel:testChannel,headless:true});
+  try{
+    const page=await browser.newPage({viewport:{width:390,height:844}}),errors:string[]=[];page.on('pageerror',error=>errors.push(error.message));await page.goto(`${r.baseUrl}/#setup=kosis-ui-bootstrap`);await page.getByRole('button',{name:'엔진 연결'}).click();await page.getByRole('button',{name:'연결 계정',exact:false}).first().click();await page.getByRole('button',{name:'＋ 계정 연결'}).click();await page.getByLabel('계정 종류').selectOption('kosis-api');await page.getByLabel('내가 알아볼 계정 이름').fill('KOSIS 시험 계정');await page.getByLabel('apiKey',{exact:true}).fill('ui-kosis-private-key');await page.getByLabel('KOSIS 지역 인구·고령화 지표 조회',{exact:false}).check();await page.getByRole('button',{name:'계정 저장',exact:true}).click();await page.getByRole('heading',{name:'KOSIS 시험 계정'}).waitFor();
+    await page.getByRole('button',{name:'확장 계획',exact:false}).click();await page.getByRole('article',{name:'KOSIS 지역통계 확장 계획'}).getByRole('button',{name:'조회 기능 열기',exact:true}).click();await page.getByRole('button',{name:'예시 입력 불러오기'}).click();await page.waitForFunction(()=>document.querySelector<HTMLTextAreaElement>('textarea.code-input')?.value.includes('regionCodes'));
+    await page.getByRole('button',{name:'요청 구조 미리보기'}).click();await page.getByRole('heading',{name:'요청 구조 · 외부 호출 없음'}).waitFor();const preview=await page.locator('.draft-inspector pre').innerText();assert(preview.includes('statisticsParameterData.do'));assert(preview.includes('DT_1YL20631'));assert(!preview.includes('ui-kosis-private-key'));assert.equal(calls,0);
+    await page.getByRole('button',{name:'실행 요청',exact:false}).click();await page.getByRole('heading',{name:'실행 결과',exact:true}).waitFor();const result=await page.getByRole('dialog').innerText();for(const value of ['p21.2','"numericValue": null','notReturned','"currentPopulation": null','출처: KOSIS'])assert(result.includes(value),value);assert(!result.includes('ui-kosis-private-key'));assert(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth));assert.equal(calls,1);assert.deepEqual(errors,[]);assert.equal(r.engine.metrics().verifiedServices,0);
+    const dir=resolve('.test-data/screenshots');mkdirSync(dir,{recursive:true});await page.screenshot({path:resolve(dir,'kosis-mobile.png'),fullPage:true});
+  }finally{await browser.close();await r.close();}
+});
+
 test('LH mobile UI connects a key and shows date filters, compound IDs and checked links without eligibility claims',async()=>{
   let calls=0;const r=await createRuntime({dataDir:tempDir('lh-ui'),port:0,vault:new TestVault(),bootstrapCode:'lh-ui-bootstrap',evidenceMode:'mock',fetcher:async address=>{
     calls++;const url=new URL(String(address));return Response.json([{dsSch:[{PAGE:url.searchParams.get('PAGE'),PG_SZ:url.searchParams.get('PG_SZ'),PAN_ST_DT:url.searchParams.get('PAN_ST_DT'),PAN_ED_DT:url.searchParams.get('PAN_ED_DT')}]},{resHeader:[{SS_CODE:'Y',RS_DTTM:'20261020120000'}],dsList:[{PAN_ID:'0000061060',UPP_AIS_TP_CD:'06',AIS_TP_CD:'07',SPL_INF_TP_CD:'050',CCR_CNNT_SYS_DS_CD:'02',RNUM:'1',ALL_CNT:'1',PAN_NM:'휴대폰 시험 LH 공고',PAN_SS:'접수중',PAN_NT_ST_DT:'2026.10.01',CLSG_DT:'2026.10.31',DTL_URL:'https://apply.lh.or.kr/lhapply/apply/wt/wrtanc/selectWrtancInfo.do?panId=0000061060&ccrCnntSysDsCd=02'}]}]);
@@ -464,7 +477,7 @@ test('React dashboard supports onboarding, expanded catalog, basic connections, 
     await page.goto(`${r.baseUrl}/#setup=ui-bootstrap`);await page.getByRole('button',{name:'로컬 엔진 연결'}).click();await page.getByRole('button',{name:'둘러보기',exact:false}).click();await page.getByRole('heading',{name:'일상에 필요한 연결을 한곳에.'}).waitFor();
     assert.equal(new URL(page.url()).hash,'');
     const screenshotDir=resolve('.test-data/screenshots');mkdirSync(screenshotDir,{recursive:true});await page.screenshot({path:resolve(screenshotDir,'dashboard.png'),fullPage:true});
-    assert.equal(await page.locator('.stat').filter({hasText:'구현된 API 행동'}).locator('strong').textContent(),'45↗');
+    assert.equal(await page.locator('.stat').filter({hasText:'구현된 API 행동'}).locator('strong').textContent(),'46↗');
     await page.getByRole('button',{name:'서비스 카탈로그',exact:false}).click();assert.equal(await page.locator('.service-card').count(),99);
     await page.getByRole('button',{name:'확장 계획',exact:false}).click();
     assert.equal(await page.locator('.expansion-card').count(),59);

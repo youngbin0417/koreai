@@ -13,6 +13,7 @@ import { kopisActions, kopisExample, kopisRequestTemplate } from '../kopis.js';
 import { tourapiActions, tourapiExample, tourapiRequestTemplate } from '../tourapi.js';
 import { foodsafetyAction, foodsafetyExample, foodsafetyRequestTemplate } from '../foodsafety.js';
 import { lhAction, lhExample, lhRequestTemplate } from '../lh.js';
+import { kosisAction, kosisExample, kosisRequestTemplate } from '../kosis.js';
 import { seoulBikeAction, seoulBikeExample, seoulBikeRequestTemplate } from '../seoul-bike.js';
 import { naverBooksActions, naverBooksExample, naverBooksRequestTemplate } from '../naver-books.js';
 import { naruActions, naruExample, naruRequestTemplate } from '../library-naru.js';
@@ -39,6 +40,8 @@ interface Definition {
 
 // Request templates contain no secrets and never dispatch HTTP.
 const definitions: Definition[] = [
+  { actionId:kosisAction.id, serviceId:kosisAction.serviceId, title:kosisAction.title, description:kosisAction.description,
+    schema:kosisAction.schema, example:kosisExample(), resultCheck:kosisAction.resultCheck, request:kosisRequestTemplate },
   { actionId:lhAction.id, serviceId:lhAction.serviceId, title:lhAction.title, description:lhAction.description,
     schema:lhAction.schema, example:lhExample(), resultCheck:lhAction.resultCheck, request:lhRequestTemplate },
   { actionId:foodsafetyAction.id, serviceId:foodsafetyAction.serviceId, title:foodsafetyAction.title, description:foodsafetyAction.description,
@@ -123,6 +126,7 @@ const definitions: Definition[] = [
 ];
 
 export const planningActions: Action[] = definitions.map(definition => {
+  if (definition.serviceId === 'kosis') return kosisAction;
   if (definition.serviceId === 'lh') return lhAction;
   if (definition.serviceId === 'foodsafety') return foodsafetyAction;
   if (definition.serviceId === 'tourapi') return tourapiActions.find(action => action.id === definition.actionId)!;
@@ -162,6 +166,7 @@ export interface DraftPreview {
   nextStep: string;
 }
 export function draftExample(actionId: string): Record<string, unknown> | undefined {
+  if (actionId === kosisAction.id) return kosisExample();
   if (actionId === lhAction.id) return lhExample();
   if (actionId === foodsafetyAction.id) return foodsafetyExample();
   if (tourapiActions.some(action => action.id === actionId)) return tourapiExample(actionId);
