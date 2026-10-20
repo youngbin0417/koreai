@@ -11,6 +11,7 @@ import { neisActions, neisSchoolsAction, neisMealsAction, neisExample, neisReque
 import { kobisAction, kobisExample, kobisRequestTemplate } from '../kobis.js';
 import { kopisActions, kopisExample, kopisRequestTemplate } from '../kopis.js';
 import { tourapiActions, tourapiExample, tourapiRequestTemplate } from '../tourapi.js';
+import { foodsafetyAction, foodsafetyExample, foodsafetyRequestTemplate } from '../foodsafety.js';
 import { seoulBikeAction, seoulBikeExample, seoulBikeRequestTemplate } from '../seoul-bike.js';
 import { naverBooksActions, naverBooksExample, naverBooksRequestTemplate } from '../naver-books.js';
 import { naruActions, naruExample, naruRequestTemplate } from '../library-naru.js';
@@ -37,6 +38,8 @@ interface Definition {
 
 // Request templates contain no secrets and never dispatch HTTP.
 const definitions: Definition[] = [
+  { actionId:foodsafetyAction.id, serviceId:foodsafetyAction.serviceId, title:foodsafetyAction.title, description:foodsafetyAction.description,
+    schema:foodsafetyAction.schema, example:foodsafetyExample(), resultCheck:foodsafetyAction.resultCheck, request:foodsafetyRequestTemplate },
   ...tourapiActions.map(action => ({ actionId: action.id, serviceId: action.serviceId, title: action.title, description: action.description,
     schema: action.schema, example: tourapiExample(action.id), resultCheck: action.resultCheck, request: (input: Record<string,any>) => tourapiRequestTemplate(action.id,input) })),
   ...kopisActions.map(action => ({ actionId: action.id, serviceId: action.serviceId, title: action.title, description: action.description,
@@ -117,6 +120,7 @@ const definitions: Definition[] = [
 ];
 
 export const planningActions: Action[] = definitions.map(definition => {
+  if (definition.serviceId === 'foodsafety') return foodsafetyAction;
   if (definition.serviceId === 'tourapi') return tourapiActions.find(action => action.id === definition.actionId)!;
   if (definition.serviceId === 'kopis') return kopisActions.find(action => action.id === definition.actionId)!;
   if (definition.serviceId === 'hira') return hiraAction;
@@ -154,6 +158,7 @@ export interface DraftPreview {
   nextStep: string;
 }
 export function draftExample(actionId: string): Record<string, unknown> | undefined {
+  if (actionId === foodsafetyAction.id) return foodsafetyExample();
   if (tourapiActions.some(action => action.id === actionId)) return tourapiExample(actionId);
   if (kopisActions.some(action => action.id === actionId)) return kopisExample(actionId);
   if (actionId === kmaAction.id) return kmaExample();

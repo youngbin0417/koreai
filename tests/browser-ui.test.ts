@@ -10,6 +10,19 @@ import { TestVault,tempDir,providerMock } from './helpers.js';
 import { browserDefaults, type BrowserChannel } from '../src/core/platform.js';
 const testChannel=(process.env.KOREAI_TEST_BROWSER_CHANNEL??browserDefaults().channel) as BrowserChannel;
 
+test('FoodSafety mobile UI connects an owner key and previews native path conditions before showing raw recall evidence',async()=>{
+  let calls=0;const r=await createRuntime({dataDir:tempDir('foodsafety-ui'),port:0,vault:new TestVault(),bootstrapCode:'foodsafety-ui-bootstrap',evidenceMode:'mock',fetcher:async()=>{calls++;return Response.json({I0490:{total_count:'1',RESULT:{CODE:'INFO-000'},row:[{RTRVLDSUSE_SEQ:'000123',PRDTNM:'휴대폰 시험 식품',RTRVLPRVNS:'시험 회수사유',MNFDT:'데이터없음',DISTBTMLMT:'제조일로부터 12개월',BRCDNO:'R001234',TELNO:null,CRET_DTM:'2026-10-20 17:07:36.204883'}]}});}});
+  const browser=await chromium.launch({channel:testChannel,headless:true});
+  try{
+    const page=await browser.newPage({viewport:{width:390,height:844}}),errors:string[]=[];page.on('pageerror',error=>errors.push(error.message));await page.goto(`${r.baseUrl}/#setup=foodsafety-ui-bootstrap`);await page.getByRole('button',{name:'엔진 연결'}).click();
+    await page.getByRole('button',{name:'연결 계정',exact:false}).first().click();await page.getByRole('button',{name:'＋ 계정 연결'}).click();await page.getByLabel('계정 종류').selectOption('foodsafety-api');await page.getByLabel('내가 알아볼 계정 이름').fill('식품안전나라 시험 계정');await page.getByLabel('apiKey',{exact:true}).fill('ui-foodsafety-private-key');await page.getByLabel('식품 회수·판매중지 조회',{exact:false}).check();await page.getByRole('button',{name:'계정 저장',exact:true}).click();await page.getByRole('heading',{name:'식품안전나라 시험 계정'}).waitFor();
+    await page.getByRole('button',{name:'확장 계획',exact:false}).click();await page.getByRole('article',{name:'식품안전나라 확장 계획'}).getByRole('button',{name:'조회 기능 열기',exact:true}).click();await page.getByRole('button',{name:'예시 입력 불러오기'}).click();await page.waitForFunction(()=>document.querySelector<HTMLTextAreaElement>('textarea.code-input')?.value.includes('changedSince'));
+    await page.getByRole('button',{name:'요청 구조 미리보기'}).click();await page.getByRole('heading',{name:'요청 구조 · 외부 호출 없음'}).waitFor();const preview=await page.locator('.draft-inspector pre').innerText();assert(preview.includes('https://openapi.foodsafetykorea.go.kr/api/{apiKey}/I0490/json/1/10/CHNG_DT='));assert(preview.includes('requested_range'));assert(!preview.includes('ui-foodsafety-private-key'));assert.equal(calls,0);
+    await page.getByRole('button',{name:'실행 요청',exact:false}).click();await page.getByRole('heading',{name:'실행 결과',exact:true}).waitFor();const text=await page.getByRole('dialog').innerText();for(const value of ['휴대폰 시험 식품','데이터없음','제조일로부터 12개월','R001234','"productSafety": null','"appliesToUserProduct": null','출처: 식품의약품안전처'])assert(text.includes(value),value);assert(!text.includes('ui-foodsafety-private-key'));assert.equal(calls,1);assert.equal(r.engine.metrics().verifiedServices,0);assert.deepEqual(errors,[]);assert(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth));
+    const dir=resolve('.test-data/screenshots');mkdirSync(dir,{recursive:true});await page.screenshot({path:resolve(dir,'foodsafety-mobile.png'),fullPage:true});
+  }finally{await browser.close();await r.close();}
+});
+
 test('TourAPI mobile UI connects its key and previews then executes legal-dong, place and festival queries',async()=>{
   let calls=0;const r=await createRuntime({dataDir:tempDir('tourapi-ui'),port:0,vault:new TestVault(),bootstrapCode:'tourapi-ui-bootstrap',evidenceMode:'mock',fetcher:async address=>{
     calls++;const url=new URL(String(address)),codes=url.pathname.endsWith('ldongCode2'),festival=url.pathname.endsWith('searchFestival2');
@@ -440,7 +453,7 @@ test('React dashboard supports onboarding, expanded catalog, basic connections, 
     await page.goto(`${r.baseUrl}/#setup=ui-bootstrap`);await page.getByRole('button',{name:'로컬 엔진 연결'}).click();await page.getByRole('button',{name:'둘러보기',exact:false}).click();await page.getByRole('heading',{name:'일상에 필요한 연결을 한곳에.'}).waitFor();
     assert.equal(new URL(page.url()).hash,'');
     const screenshotDir=resolve('.test-data/screenshots');mkdirSync(screenshotDir,{recursive:true});await page.screenshot({path:resolve(screenshotDir,'dashboard.png'),fullPage:true});
-    assert.equal(await page.locator('.stat').filter({hasText:'구현된 API 행동'}).locator('strong').textContent(),'43↗');
+    assert.equal(await page.locator('.stat').filter({hasText:'구현된 API 행동'}).locator('strong').textContent(),'44↗');
     await page.getByRole('button',{name:'서비스 카탈로그',exact:false}).click();assert.equal(await page.locator('.service-card').count(),99);
     await page.getByRole('button',{name:'확장 계획',exact:false}).click();
     assert.equal(await page.locator('.expansion-card').count(),59);
