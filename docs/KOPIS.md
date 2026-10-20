@@ -86,6 +86,6 @@ KOPIS는 자료를 활용한 서비스에 출처 표시를 요구합니다. 결�
 
 모의 공급자 단위/HTTP 검증, Windows Edge의 모바일 크기 화면, Ubuntu API/엔진 검증과 실제 HTTPS 무효 키 오류를 구분해 [검증 기록](VALIDATION.md#2026-10-19-kopis-공연정보-조회-검증)에 남깁니다. 실제 휴대폰 기기 시험·본인 키의 정상/빈 응답·지역/장르 필터·상세 예매처·운영 한도는 아직 확인하지 않았습니다.
 
-시설 상세·축제·예매는 후속 행동으로 정의합니다. 다음 신규 구현은 **EXP-02 TourAPI 관광지·축제 조회**의 공식 버전·키·지역 검색·출처 조건 확인입니다. [작업 체크리스트](../TODO.md)
+시설 상세·축제·예매는 후속 행동으로 정의합니다. [TourAPI 관광지·축제 조회](TOURAPI.md)도 첫 실행기를 구현했으며 다음 신규 서비스는 식품안전나라 회수·판매중지 정보입니다. [작업 체크리스트](../TODO.md)
 
 공식 근거: [이용·키 발급 안내](https://kopis.or.kr/por/cs/openapi/openApiInfo.do?menuId=MNU_00077), [개발 가이드 v5.0](https://kopis.or.kr/upload/openApi/공연예술통합전산망OpenAPI개발가이드.pdf), [공통 코드](https://kopis.or.kr/upload/openApi/공연예술통합전산망OpenAPI공통코드.pdf).

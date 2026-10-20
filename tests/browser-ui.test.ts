@@ -10,6 +10,27 @@ import { TestVault,tempDir,providerMock } from './helpers.js';
 import { browserDefaults, type BrowserChannel } from '../src/core/platform.js';
 const testChannel=(process.env.KOREAI_TEST_BROWSER_CHANNEL??browserDefaults().channel) as BrowserChannel;
 
+test('TourAPI mobile UI connects its key and previews then executes legal-dong, place and festival queries',async()=>{
+  let calls=0;const r=await createRuntime({dataDir:tempDir('tourapi-ui'),port:0,vault:new TestVault(),bootstrapCode:'tourapi-ui-bootstrap',evidenceMode:'mock',fetcher:async address=>{
+    calls++;const url=new URL(String(address)),codes=url.pathname.endsWith('ldongCode2'),festival=url.pathname.endsWith('searchFestival2');
+    return Response.json({response:{header:{resultCode:'0000'},body:{items:{item:codes?[{code:'11',name:'서울특별시'}]:[{contentid:'001234',contenttypeid:festival?'15':'12',title:'휴대폰 시험 관광정보',lDongRegnCd:'11',modifiedtime:'20261020120000',...(festival?{eventstartdate:'20260101',eventenddate:'20261231',progresstype:'행사연기'}:{})}]},pageNo:1,numOfRows:Number(url.searchParams.get('numOfRows')),totalCount:1}}});
+  }});const browser=await chromium.launch({channel:testChannel,headless:true});
+  try{
+    const page=await browser.newPage({viewport:{width:390,height:844}}),errors:string[]=[];page.on('pageerror',error=>errors.push(error.message));
+    await page.goto(`${r.baseUrl}/#setup=tourapi-ui-bootstrap`);await page.getByRole('button',{name:'엔진 연결'}).click();await page.getByRole('button',{name:'연결 계정',exact:false}).first().click();await page.getByRole('button',{name:'＋ 계정 연결'}).click();
+    await page.getByLabel('계정 종류').selectOption('tourapi-api');await page.getByLabel('내가 알아볼 계정 이름').fill('TourAPI 시험 계정');await page.getByLabel('serviceKey',{exact:true}).fill('ui-tourapi-private-key');
+    const titles=['TourAPI 법정동 지역 찾기','TourAPI 지역 관광정보 조회','TourAPI 축제·행사 조회'];for(const title of titles)await page.getByLabel(title,{exact:false}).check();await page.getByRole('button',{name:'계정 저장',exact:true}).click();await page.getByRole('heading',{name:'TourAPI 시험 계정'}).waitFor();
+    for(const[index,title]of titles.entries()){
+      await page.getByRole('button',{name:'확장 계획',exact:false}).click();await page.getByRole('article',{name:'한국관광 TourAPI 확장 계획'}).getByRole('button',{name:title,exact:true}).click();await page.getByRole('button',{name:'예시 입력 불러오기'}).click();
+      await page.waitForFunction(()=>{const value=document.querySelector<HTMLTextAreaElement>('textarea.code-input')?.value??'';return value.includes('"limit": 100')||value.includes('contentTypeId')||value.includes('eventStartDate');});
+      await page.getByRole('button',{name:'요청 구조 미리보기'}).click();await page.getByRole('heading',{name:'요청 구조 · 외부 호출 없음'}).waitFor();const preview=await page.locator('.draft-inspector pre').innerText();assert(preview.includes('KorService2/'));assert(!preview.includes('ui-tourapi-private-key'));assert.equal(calls,index);
+      await page.getByRole('button',{name:'실행 요청',exact:false}).click();await page.getByRole('heading',{name:'실행 결과',exact:true}).waitFor();const text=await page.getByRole('dialog').innerText();assert(text.includes(index===0?'서울특별시':'휴대폰 시험 관광정보'));assert(text.includes('출처: 한국관광공사'));if(index===2){assert(text.includes('행사연기'));assert(text.includes('"currentlyHappening": null'));}assert(!text.includes('ui-tourapi-private-key'));assert(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth));
+      if(index===2){const dir=resolve('.test-data/screenshots');mkdirSync(dir,{recursive:true});await page.screenshot({path:resolve(dir,'tourapi-mobile.png'),fullPage:true});}await page.getByRole('button',{name:'닫기',exact:true}).click();
+    }
+    assert.equal(calls,3);assert.deepEqual(errors,[]);assert.equal(r.engine.metrics().verifiedServices,0);
+  }finally{await browser.close();await r.close();}
+});
+
 test('KOPIS mobile UI registers its own key, previews two XML operations and shows attributed performance information', async () => {
   let calls=0;
   const r=await createRuntime({dataDir:tempDir('kopis-ui'),port:0,vault:new TestVault(),bootstrapCode:'kopis-ui-bootstrap',evidenceMode:'mock',fetcher:async()=>{
@@ -419,7 +440,7 @@ test('React dashboard supports onboarding, expanded catalog, basic connections, 
     await page.goto(`${r.baseUrl}/#setup=ui-bootstrap`);await page.getByRole('button',{name:'로컬 엔진 연결'}).click();await page.getByRole('button',{name:'둘러보기',exact:false}).click();await page.getByRole('heading',{name:'일상에 필요한 연결을 한곳에.'}).waitFor();
     assert.equal(new URL(page.url()).hash,'');
     const screenshotDir=resolve('.test-data/screenshots');mkdirSync(screenshotDir,{recursive:true});await page.screenshot({path:resolve(screenshotDir,'dashboard.png'),fullPage:true});
-    assert.equal(await page.locator('.stat').filter({hasText:'구현된 API 행동'}).locator('strong').textContent(),'40↗');
+    assert.equal(await page.locator('.stat').filter({hasText:'구현된 API 행동'}).locator('strong').textContent(),'43↗');
     await page.getByRole('button',{name:'서비스 카탈로그',exact:false}).click();assert.equal(await page.locator('.service-card').count(),99);
     await page.getByRole('button',{name:'확장 계획',exact:false}).click();
     assert.equal(await page.locator('.expansion-card').count(),59);

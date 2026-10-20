@@ -19,6 +19,7 @@ import { hiraAction, hiraExecutor } from './connectors/hira.js';
 import { neisActions, neisExecutor } from './connectors/neis.js';
 import { kobisAction, kobisExecutor } from './connectors/kobis.js';
 import { kopisActions, kopisExecutor } from './connectors/kopis.js';
+import { tourapiActions, tourapiExecutor } from './connectors/tourapi.js';
 import { seoulBikeAction, seoulBikeExecutor } from './connectors/seoul-bike.js';
 import { naverBooksActions, naverBooksExecutor } from './connectors/naver-books.js';
 import { naruActions, naruExecutor } from './connectors/library-naru.js';
@@ -66,6 +67,7 @@ async function createUnlockedRuntime(options:RuntimeOptions){
     engine.register(neisActions,neisExecutor(options.fetcher));
     engine.register([kobisAction],kobisExecutor(options.fetcher));
     engine.register(kopisActions,kopisExecutor(options.fetcher));
+    engine.register(tourapiActions,tourapiExecutor(options.fetcher));
     engine.register([seoulBikeAction],seoulBikeExecutor(options.fetcher,options.allowSeoulBikeHttp===true));
     engine.register(chzzkActions,chzzkExecutor(options.fetcher));
     engine.register(naverBooksActions,naverBooksExecutor(options.fetcher));
