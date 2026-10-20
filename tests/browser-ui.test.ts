@@ -10,6 +10,26 @@ import { TestVault,tempDir,providerMock } from './helpers.js';
 import { browserDefaults, type BrowserChannel } from '../src/core/platform.js';
 const testChannel=(process.env.KOREAI_TEST_BROWSER_CHANNEL??browserDefaults().channel) as BrowserChannel;
 
+test('vehicle energy mobile UI connects separate keys, previews four actions and shows restricted chargers, fuel prices and ambiguous empty results',async()=>{
+  let calls=0,empty=false;const r=await createRuntime({dataDir:tempDir('vehicle-energy-ui'),port:0,vault:new TestVault(),bootstrapCode:'energy-ui-bootstrap',evidenceMode:'mock',fetcher:async address=>{
+    calls++;const url=new URL(String(address));if(url.pathname.endsWith('getChargerInfo'))return Response.json({resultCode:'00',pageNo:1,numOfRows:Number(url.searchParams.get('numOfRows')),totalCount:1,items:{item:[{statId:'ME000001',chgerId:'01',statNm:'휴대폰 시험 충전소',chgerType:'04',addr:'서울 강남구 시험로',lat:'37.5',lng:'127.01',stat:'2',statUpdDt:'20261020121020',zcode:'11',zscode:'11680',limitYn:'Y',limitDetail:'거주자만 이용',delYn:'N'}]}});
+    if(empty)return Response.json({RESULT:{OIL:[]}});
+    return Response.json({RESULT:{OIL:url.pathname.endsWith('areaCode.do')?[{AREA_CD:'0113',AREA_NM:'강남구'}]:[{UNI_ID:'A0010207',OS_NM:'휴대폰 시험 주유소',NEW_ADR:'서울 강남구 시험로',SIGUNCD:'0113',PRICE:'1734.5',GIS_X_COOR:'314871.8',GIS_Y_COOR:'544012',...(url.pathname.endsWith('detailById.do')?{CAR_WASH_YN:'Y',OIL_PRICE:[{PRODCD:'B027',PRICE:'1734.5',TRADE_DT:'20261020',TRADE_TM:'145618'}]}:{})}]}});
+  }});const browser=await chromium.launch({channel:testChannel,headless:true});
+  try{
+    const page=await browser.newPage({viewport:{width:390,height:844}}),errors:string[]=[];page.on('pageerror',error=>errors.push(error.message));await page.goto(`${r.baseUrl}/#setup=energy-ui-bootstrap`);await page.getByRole('button',{name:'엔진 연결'}).click();
+    const titles=['전기차 충전소 찾기','오피넷 지역코드 찾기','지역별 저렴한 주유소 찾기','주유소 상세·유종별 가격 조회'];
+    for(const[type,field,selected]of [['ev-chargers-api','serviceKey',titles.slice(0,1)],['opinet-api','apiKey',titles.slice(1)]] as const){await page.getByRole('button',{name:'연결 계정',exact:false}).first().click();await page.getByRole('button',{name:'＋ 계정 연결'}).click();await page.getByLabel('계정 종류').selectOption(type);await page.getByLabel('내가 알아볼 계정 이름').fill(type);await page.getByLabel(field,{exact:true}).fill('ui-energy-private-key');for(const title of selected)await page.getByLabel(title,{exact:false}).check();await page.getByRole('button',{name:'계정 저장',exact:true}).click();await page.getByRole('heading',{name:type,exact:true}).waitFor();}
+    async function open(index:number){await page.getByRole('button',{name:'확장 계획',exact:false}).click();const card=page.getByRole('article',{name:index===0?'전기차 충전소 확장 계획':'오피넷 주유소 확장 계획'});await card.getByRole('button',{name:index===0?'조회 기능 열기':titles[index],exact:true}).click();await page.getByRole('button',{name:'예시 입력 불러오기'}).click();await page.waitForFunction(()=>{const s=document.querySelector<HTMLTextAreaElement>('textarea.code-input')?.value??'';return s.includes('provinceCode')||s.includes('areaCode')||s.includes('stationId');});}
+    for(const[index,title]of titles.entries()){
+      await open(index);await page.getByRole('button',{name:'요청 구조 미리보기'}).click();await page.getByRole('heading',{name:'요청 구조 · 외부 호출 없음'}).waitFor();const preview=await page.locator('.draft-inspector pre').innerText();assert(preview.includes(index===0?'getChargerInfo':'opinet.co.kr/api/'));assert(!preview.includes('ui-energy-private-key'));assert.equal(calls,index);
+      await page.getByRole('button',{name:'실행 요청',exact:false}).click();await page.getByRole('heading',{name:'실행 결과',exact:true}).waitFor();const result=await page.getByRole('dialog').innerText();if(index===0){for(const value of ['거주자만 이용','"restricted": true','"availableOnArrival": null','출처: 한국환경공단'])assert(result.includes(value),title+value);}else{assert(result.includes('출처: 한국석유공사 오피넷'));if(index>1){assert(result.includes('1734.5'));assert(result.includes('KATEC'));}if(index===3)assert(result.includes('20261020'));}assert(!result.includes('ui-energy-private-key'));assert(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth));await page.getByRole('button',{name:'닫기',exact:true}).click();
+    }
+    empty=true;await open(2);await page.getByRole('button',{name:'실행 요청',exact:false}).click();await page.getByRole('dialog').getByText('결과 확인 필요',{exact:true}).waitFor();assert((await page.getByRole('dialog').innerText()).includes('무효 키도 같은 응답'));assert.equal(calls,5);assert.equal(r.engine.metrics().verifiedServices,0);assert.deepEqual(errors,[]);
+    const dir=resolve('.test-data/screenshots');mkdirSync(dir,{recursive:true});await page.screenshot({path:resolve(dir,'vehicle-energy-mobile.png'),fullPage:true});
+  }finally{await browser.close();await r.close();}
+});
+
 test('KOSIS mobile UI connects its own key and preserves statistical symbols, periods and unreturned cells',async()=>{
   let calls=0;const r=await createRuntime({dataDir:tempDir('kosis-ui'),port:0,vault:new TestVault(),bootstrapCode:'kosis-ui-bootstrap',evidenceMode:'mock',fetcher:async address=>{
     calls++;const url=new URL(String(address));return Response.json([{ORG_ID:'101',TBL_ID:'DT_1YL20631',TBL_NM:'고령인구비율(시도/시/군/구)',C1:'11',C1_NM:'서울특별시',ITM_ID:'T10',ITM_NM:'고령인구비율',UNIT_NM:'%',PRD_SE:'M',PRD_DE:url.searchParams.get('endPrdDe'),DT:'p21.2',LST_CHN_DE:'2026-10-12'}]);
@@ -477,11 +497,11 @@ test('React dashboard supports onboarding, expanded catalog, basic connections, 
     await page.goto(`${r.baseUrl}/#setup=ui-bootstrap`);await page.getByRole('button',{name:'로컬 엔진 연결'}).click();await page.getByRole('button',{name:'둘러보기',exact:false}).click();await page.getByRole('heading',{name:'일상에 필요한 연결을 한곳에.'}).waitFor();
     assert.equal(new URL(page.url()).hash,'');
     const screenshotDir=resolve('.test-data/screenshots');mkdirSync(screenshotDir,{recursive:true});await page.screenshot({path:resolve(screenshotDir,'dashboard.png'),fullPage:true});
-    assert.equal(await page.locator('.stat').filter({hasText:'구현된 API 행동'}).locator('strong').textContent(),'46↗');
-    await page.getByRole('button',{name:'서비스 카탈로그',exact:false}).click();assert.equal(await page.locator('.service-card').count(),99);
+    assert.equal(await page.locator('.stat').filter({hasText:'구현된 API 행동'}).locator('strong').textContent(),'50↗');
+    await page.getByRole('button',{name:'서비스 카탈로그',exact:false}).click();assert.equal(await page.locator('.service-card').count(),101);
     await page.getByRole('button',{name:'확장 계획',exact:false}).click();
-    assert.equal(await page.locator('.expansion-card').count(),59);
-    await page.getByLabel('확장 우선순위').selectOption('1');assert.equal(await page.locator('.expansion-card').count(),6);
+    assert.equal(await page.locator('.expansion-card').count(),61);
+    await page.getByLabel('확장 우선순위').selectOption('1');assert.equal(await page.locator('.expansion-card').count(),8);
     await page.getByRole('article',{name:'기상청 날씨 확장 계획'}).getByRole('button',{name:'조회 기능 열기'}).click();
     assert(await page.getByRole('button',{name:'실행 요청',exact:false}).isDisabled());
     await page.getByRole('button',{name:'예시 입력 불러오기'}).click();

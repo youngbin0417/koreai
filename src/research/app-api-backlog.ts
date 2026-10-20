@@ -28,6 +28,12 @@ function candidate(input: CandidateInput): ApiCandidate {
 
 // Proposed actions are product ideas; documentedScope describes only the reviewed source.
 export const appApiBacklog: ApiCandidate[] = [
+  candidate({serviceId:'ev-chargers',name:'전기차 충전소',category:'지도·교통',homeUrl:'https://ev.or.kr',priority:1,access:'public-key',checkedAt:'2026-10-20',
+    sourceUrl:'https://www.data.go.kr/data/15076352/openapi.do',documentedScope:'한국환경공단 공식 가이드 v1.25(2026-07-01)의 getChargerInfo·지역/ID·충전기 타입/상태·제한/삭제·좌표/변경시각, JSON/XML. HTTPS 무효 키 403/30 확인.',
+    proposedActions:['지역별 충전소·충전기 상태 찾기'],implementedActionIds:['ev-chargers.search'],nextStep:'조회·전용 계정·미리보기 구현. 본인 키로 정상/빈·지역/ID·페이지·응답 구조·제한/삭제/상태 시각·한도 검증. 이름/타입/삭제 필터는 받은 페이지 안에서 적용. 반경/거리순·차량 호환·요금·예약은 후속 정의.'}),
+  candidate({serviceId:'opinet',name:'오피넷 주유소',category:'지도·교통',homeUrl:'https://www.opinet.co.kr',priority:1,access:'public-key',checkedAt:'2026-10-20',
+    sourceUrl:'https://www.opinet.co.kr/user/custapi/openApiInfo.do',documentedScope:'공식 지역코드·지역 저가순 TOP20·ID 상세/유종별 가격 HTTPS API. 일반 API 신청·하루 300회·상업적 이용 조건 확인. 세 무효 키 경로가 HTTP 200의 빈 OIL을 반환해 인증 성공과 구분 불가.',
+    proposedActions:['오피넷 지역코드 찾기','지역별 저렴한 주유소 찾기','주유소 상세·유종별 가격 조회'],implementedActionIds:['opinet.regions.list','opinet.stations.cheapest','opinet.stations.get'],nextStep:'세 조회·전용 계정·미리보기 구현. 빈 OIL은 결과 확인 필요로 중단하며 성공 증거를 생성하지 않음. 본인 키로 정상/빈·지역/ID·가격 기준 시각·한도·이용 조건 검증. 반경 검색은 KATEC 좌표 변환을 검증한 뒤 별도 구현.'}),
   candidate({ serviceId: 'naver-search', name: '네이버 도서 검색', category: '교육·도서', homeUrl: 'https://search.naver.com', priority: 2, access: 'public-key', checkedAt: '2026-10-19',
     sourceUrl: 'https://developers.naver.com/docs/serviceapi/search/book/book.md', documentedScope: '기존 검색 앱 키로 키워드 JSON 검색과 제목/ISBN XML 상세 검색. 앱별 검색 API 사용량 공유. 서점 재고·구매내역은 포함하지 않음.',
     proposedActions: ['도서 검색', 'ISBN 도서 조회'], implementedActionIds: ['naver.search.book', 'naver.book.isbn'], nextStep: '검색·ISBN 실행기와 미리보기 구현. 기존 계정에도 두 행동을 명시적으로 허용한 뒤 본인 키로 정상/빈 결과·권한 오류를 검증. 도서관 소장·대출 여부는 정보나루의 별도 키·제공 시점 확인 후 구현.' }),

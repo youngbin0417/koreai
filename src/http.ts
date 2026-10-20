@@ -23,6 +23,7 @@ import { tourapiActions, tourapiExecutor } from './connectors/tourapi.js';
 import { foodsafetyAction, foodsafetyExecutor } from './connectors/foodsafety.js';
 import { lhAction, lhExecutor } from './connectors/lh.js';
 import { kosisAction, kosisExecutor } from './connectors/kosis.js';
+import { vehicleEnergyActions, vehicleEnergyExecutor } from './connectors/vehicle-energy.js';
 import { seoulBikeAction, seoulBikeExecutor } from './connectors/seoul-bike.js';
 import { naverBooksActions, naverBooksExecutor } from './connectors/naver-books.js';
 import { naruActions, naruExecutor } from './connectors/library-naru.js';
@@ -74,6 +75,7 @@ async function createUnlockedRuntime(options:RuntimeOptions){
     engine.register([foodsafetyAction],foodsafetyExecutor(options.fetcher));
     engine.register([lhAction],lhExecutor(options.fetcher));
     engine.register([kosisAction],kosisExecutor(options.fetcher));
+    engine.register(vehicleEnergyActions,vehicleEnergyExecutor(options.fetcher));
     engine.register([seoulBikeAction],seoulBikeExecutor(options.fetcher,options.allowSeoulBikeHttp===true));
     engine.register(chzzkActions,chzzkExecutor(options.fetcher));
     engine.register(naverBooksActions,naverBooksExecutor(options.fetcher));
