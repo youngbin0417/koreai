@@ -18,6 +18,7 @@ export interface Conversation {
 }
 interface Record extends Conversation {
   sealed?: string;
+  expiredResultsAt?: string;
   protocol: ChatMessage[];
   requests: { id: string; digest: string }[];
 }
@@ -45,8 +46,18 @@ export class Conversations {
     return record;
   }
   private save(record: Record) { record.updatedAt = stamp(); this.store.put('chat', record.id, record); }
+  private expireTranscript(record: Record): boolean {
+    if(record.expiredResultsAt)return true;
+    const expired=record.jobIds.map(id=>this.store.job(id)).filter(job=>job?.resultExpiresAt&&(!Number.isFinite(Date.parse(job.resultExpiresAt))||Date.parse(job.resultExpiresAt)<=Date.now()));
+    if(!expired.length)return false;
+    const cutoff=expired.map(job=>job!.createdAt).sort()[0]!;
+    for(const job of expired)this.engine.get(admin,job!.id);
+    record.messages=record.messages.map(message=>message.role==='assistant'&&message.at>=cutoff?{...message,content:'조회 결과의 사용기한이 만료되어 이 응답을 제거했습니다. 새 대화에서 다시 조회하세요.'}:message);
+    record.protocol=[{role:'system',content:instructions}];record.expiredResultsAt=stamp();record.status='interrupted';record.error='공급자 결과의 사용기한이 만료됐습니다. 새 대화에서 다시 조회하세요.';this.save(record);return true;
+  }
   private view(record: Record): Conversation {
-    const { sealed, protocol, requests, ...visible } = record;
+    this.expireTranscript(record);
+    const { sealed, protocol, requests, expiredResultsAt, ...visible } = record;
     return visible;
   }
   list() { return this.store.list<Record>('chat').map(record => this.view(record)); }
@@ -68,6 +79,7 @@ export class Conversations {
   submit(id: string, raw: unknown) {
     const input = z.object({ requestId: z.string().uuid(), content: z.string().trim().min(1).max(8000) }).strict().parse(raw);
     const record = this.load(id); const digest = hash(input.content);
+    if(this.expireTranscript(record))throw new ActionError('CHAT_RESULT_EXPIRED','공급자 결과의 사용기한이 만료됐습니다. 새 대화에서 다시 조회하세요.');
     if(record.allowedActions.some(actionId=>this.engine.actions.get(actionId)?.unavailable)) throw new ActionError('CHAT_ACTION_UNAVAILABLE','이 대화에 종료·이용 제한된 행동이 포함돼 있습니다. 기존 이력은 보존하며 사용 가능한 기능으로 새 대화를 시작하세요.');
     const previous = record.requests.find(request => request.id === input.requestId);
     if (previous) {
@@ -95,10 +107,15 @@ export class Conversations {
       this.save(record);
     };
     try {
+      if(this.expireTranscript(record))throw new ActionError('CHAT_RESULT_EXPIRED','공급자 결과의 사용기한이 만료됐습니다. 새 대화에서 다시 조회하세요.');
       if(record.allowedActions.some(actionId=>this.engine.actions.get(actionId)?.unavailable)) throw new ActionError('CHAT_ACTION_UNAVAILABLE','종료·이용 제한된 행동이 포함된 대화입니다. 새 대화를 시작하세요.');
       apiKey = await this.credentials.load();
       if (signal.aborted) throw new Error('stopped');
-      const client = new DeepSeekClient(apiKey, this.fetcher, signal);
+      const guardedFetch:typeof fetch=async(address,init)=>{
+        if(this.expireTranscript(record))throw new ActionError('CHAT_RESULT_EXPIRED','공급자 결과의 사용기한이 만료됐습니다. 새 대화에서 다시 조회하세요.');
+        return (this.fetcher??fetch)(address,init);
+      };
+      const client = new DeepSeekClient(apiKey, guardedFetch, signal);
       let text: string, protocol: ChatMessage[];
       if (record.sealed && record.clientId) {
         clientToken = (await this.vault.open(record.sealed)).token!;
@@ -116,6 +133,7 @@ export class Conversations {
         if (result.message.tool_calls?.length) throw new Error('unexpected tools');
         text = result.message.content ?? ''; protocol.push(result.message);
       }
+      if(this.expireTranscript(record))throw new ActionError('CHAT_RESULT_EXPIRED','응답 처리 중 결과의 사용기한이 만료됐습니다. 새 대화에서 다시 조회하세요.');
       record.protocol = redact(protocol, [apiKey, clientToken]) as ChatMessage[];
       record.messages.push({ id: randomUUID(), role: 'assistant', content: String(redact(text || '작업 상태와 결과를 확인해주세요.', [apiKey, clientToken])), at: stamp() });
       record.status = 'ready'; captureJobs();

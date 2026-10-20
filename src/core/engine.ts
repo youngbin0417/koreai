@@ -20,6 +20,7 @@ export class Engine {
   private tasks=new Set<Promise<void>>();
   private closing=false;
   constructor(readonly store: Store, readonly vault: Vault, readonly evidenceMode: 'live' | 'mock'='live') {
+    for(const job of store.allJobs())this.expireResult(job);
     // Crash recovery is conservative: writes may have reached the provider.
     for(const job of store.allJobs()) if(job.state==='running'||job.state==='queued') {
       job.state=job.dispatched&&job.effect==='write'?'needs_review':'awaiting_user';
@@ -110,7 +111,7 @@ export class Engine {
     const input=action.schema.parse(r.input) as Record<string,unknown>;
     const requestHash=hash(canonical({...r,input}));
     const old=this.store.findRequest(principal.id,r.idempotencyKey);
-    if(old){if(old.requestHash!==requestHash)throw new ActionError('IDEMPOTENCY_CONFLICT','같은 요청 키의 내용을 변경할 수 없습니다.');return old;}
+    if(old){if(old.requestHash!==requestHash)throw new ActionError('IDEMPOTENCY_CONFLICT','같은 요청 키의 내용을 변경할 수 없습니다.');return this.jobView(old,principal);}
     const job:Job={...r,input,id:randomUUID(),clientId:principal.id,requestHash,effect:action.effect,state:action.effect==='write'?'pending_approval':'queued',revision:1,dispatched:false,createdAt:now(),updatedAt:now(),interventions:0,events:[]};
     job.events.push({at:now(),state:job.state,message:action.effect==='write'?'사용자 승인 대기':'작업 접수'});
     this.store.insertJob(job);if(job.state==='queued')this.schedule(job.id);return job;
@@ -119,11 +120,17 @@ export class Engine {
     const job=this.store.job(id);if(!job||(principal.role!=='admin'&&job.clientId!==principal.id))throw new ActionError('NOT_FOUND','작업을 찾을 수 없습니다.');return this.jobView(job,principal);
   }
   private jobView(job:Job,principal:Principal):Job{
+    this.expireResult(job);
     const unavailable=this.actions.get(job.actionId)?.unavailable;
     if(principal.role==='admin'||!unavailable)return job;
     const {result,...safe}=job;return {...safe,error:{code:'RESULT_UNAVAILABLE',message:unavailable.reason}};
   }
   jobs(principal: Principal=admin):Job[]{return this.store.jobs().filter(j=>principal.role==='admin'||j.clientId===principal.id).map(j=>this.jobView(j,principal));}
+  private expireResult(job:Job):void{
+    if(job.result!==undefined&&job.resultExpiresAt&&(!Number.isFinite(Date.parse(job.resultExpiresAt))||Date.parse(job.resultExpiresAt)<=Date.now())){
+      delete job.result;job.error={code:'RESULT_EXPIRED',message:'공급자 결과의 사용기한이 만료되어 결과를 제거했습니다. 새 작업으로 다시 조회하세요.'};this.store.saveJob(job);
+    }
+  }
   digest(job:Job):string{return hash(canonical({actionId:job.actionId,version:this.action(job.actionId).version,accountId:job.accountId,input:job.input,revision:job.revision}));}
   private owner(job:Job):Principal {
     if(job.clientId===admin.id)return admin;
@@ -189,6 +196,7 @@ export class Engine {
       }});
       const latest=this.store.job(id)!;if(latest.state!=='running')return;
       latest.state='succeeded';latest.finishedAt=now();latest.result={data:redact(result.data,Object.values(secrets)),evidence:result.evidence,contentTrust:'external_data'};
+      if(action.resultTtlMs)latest.resultExpiresAt=new Date(Date.parse(latest.startedAt??latest.createdAt)+action.resultTtlMs).toISOString();
       this.save(latest,'결과 확인 완료');
       this.store.put('evidence',randomUUID(),{actionId:action.id,kind:['browser','handoff','partnership'].includes(action.method)? 'mock':this.evidenceMode,outcome:'passed',at:now(),jobId:id,connectorVersion:action.version,note:result.evidence} satisfies Evidence);
     }catch(error){

@@ -12,6 +12,7 @@ export interface Action {
   resultCheck: string; domains: string[]; version: string; maintainer: string;
   origin: 'bundled' | 'user'; implemented: boolean;
   unavailable?: { kind: 'retired' | 'policy-restricted'; reason: string; sourceUrl: string; effectiveAt: string; checkedAt: string };
+  resultTtlMs?: number;
 }
 export interface Service {
   id: string; name: string; category: string; homeUrl: string;
@@ -34,6 +35,7 @@ export interface Job {
   state: JobState; revision: number; approvalHash?: string; dispatched: boolean;
   createdAt: string; updatedAt: string; startedAt?: string; finishedAt?: string;
   result?: unknown; error?: { code: string; message: string }; handoff?: string;
+  resultExpiresAt?: string;
   workflowId?: string; stepName?: string; interventions: number;
   events: { at: string; state: JobState; message: string }[];
 }

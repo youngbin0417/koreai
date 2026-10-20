@@ -10,7 +10,7 @@
 
 전기차 충전소 1개·오피넷 3개 조회와 두 전용 계정·미리보기를 추가했습니다. EV 공식 v1.25의 지역/상태/제한/삭제·평면 JSON과 XML, 오피넷 지역코드·저가순·ID 상세/유종별 가격·KATEC를 구현했습니다. 실제 무효 키의 EV 403/30은 인증 대기, 오피넷 200의 빈 OIL은 **결과 확인 필요**로 중단합니다. 본인 키 정상 응답·최신 자료·한도·이용 조건 검증은 대기입니다. [사용 안내](VEHICLE_ENERGY.md).
 
-**네이버 검색 7개를 제외한 공식 API 구현은 24개 커넥터·43개 행동**입니다. 확장 API는 도서 2개를 제외한 **28개**, 공공파일 1개·공개 MCP 5개를 합치면 활성 확장 정의는 34개입니다. 과거 코드·규격을 보존한 중단 행동은 구현/지원 집계에서 제외합니다. 따릉이는 HTTP 전송을 운영자가 허용해야 실행되고, 신규 실행기의 실제 키 검증과 공개 지원 지정도 구분합니다. 후보의 `implementedActionIds`·`draftActionIds`·`unavailableActionIds`가 활성 구현·초안·중단 규격을 구분합니다. 미조사 후보의 홈페이지 등록은 API 존재·이용 허용을 확인했다는 뜻이 아닙니다.
+**네이버 검색 7개를 제외한 공식 API 구현은 25개 커넥터·44개 행동**입니다. 확장 API는 도서 2개를 제외한 **29개**, 공공파일 1개·공개 MCP 5개를 합치면 활성 확장 정의는 35개입니다. 과거 코드·규격을 보존한 중단 행동은 구현/지원 집계에서 제외합니다. 따릉이는 HTTP 전송을 운영자가 허용해야 실행되고, 신규 실행기의 실제 키 검증과 공개 지원 지정도 구분합니다. 후보의 `implementedActionIds`·`draftActionIds`·`unavailableActionIds`가 활성 구현·초안·중단 규격을 구분합니다. 미조사 후보의 홈페이지 등록은 API 존재·이용 허용을 확인했다는 뜻이 아닙니다.
 
 네이버 도서 `naver.search.book`·`naver.book.isbn`과 쇼핑 검색은 [공식 종료 공지](https://developers.naver.com/notice/article/32564)로 중단했습니다. 뉴스·블로그·카페글·지역 검색도 현재 검색 약관의 AI 입력 제한 때문에 이 프로젝트에서는 중단합니다. 과거 키·권한·증거가 있어도 실행하지 않습니다. [상태·API HUB 후속 조건](NAVER_AVAILABILITY.md), [과거 도서 규격](NAVER_BOOKS.md), [정보나루](LIBRARY_NARU.md)를 참고하세요.
 
@@ -28,7 +28,7 @@ TourAPI는 `tourapi.regions.list`·`tourapi.places.search`·`tourapi.festivals.s
 
 LH는 `lh.notices.search`·전용 계정·미리보기를 추가했습니다. 20260708 첨부 가이드의 날짜/지역·JSON 구조·복합 ID·순번/전체 수·링크 대조와 HTTPS 무효 키 403/30을 확인했습니다. 포털 요약과 날짜 인자 차이·문서 예제 링크 불일치는 실계정 검증과 구분해 기록했습니다. [사용·결과 안내](LH.md).
 
-KOSIS는 `kosis.aging.search`·전용 계정·미리보기를 구현했습니다. 공식 101/DT_1YL20631의 전국·시도·비율/인구·월/연·단위를 확인했고 숫자 문자열·통계부호·기준 시점·미반환 셀을 구분합니다. 최신 분당 200건 공지와 HTTPS 무효 키 200/11 인증 대기를 확인했습니다. 본인 키의 정상 응답 검증은 대기입니다. [사용 안내](KOSIS.md). 다음 신규 후보는 TMAP 경로·소요시간의 상품·키·요금·제공 범위 확인입니다.
+KOSIS는 `kosis.aging.search`·전용 계정·미리보기를 구현했습니다. 공식 101/DT_1YL20631의 전국·시도·비율/인구·월/연·단위를 확인했고 숫자 문자열·통계부호·기준 시점·미반환 셀을 구분합니다. 최신 분당 200건 공지와 HTTPS 무효 키 200/11 인증 대기를 확인했습니다. 본인 키의 정상 응답 검증은 대기입니다. [사용 안내](KOSIS.md). TMAP 자동차 요약도 구현했으며 [사용 안내](TMAP.md)에 본인 키 검증·요금·만료 조건을 기록했습니다.
 
 ## 1순위: 조회 초안을 실행기로 발전
 
@@ -83,7 +83,7 @@ KOBIS는 `kobis-api` 계정의 `apiKey`를 등록해 날짜별 최대 10개 영�
 | TourAPI | 법정동 지역·관광지·축제 찾기 | [공식 Swagger·국문 매뉴얼](https://www.data.go.kr/data/15101578/openapi.do) — 세 조회·계정·미리보기 구현, HTTPS 무효 키 오류 확인 | 본인 키·정상/빈 결과·날짜 검색 경계·페이지·한도 검증. [사용법](TOURAPI.md) |
 | 식품안전나라 | 회수·판매중지 공고 | [공식 I0490 명세](https://www.foodsafetykorea.go.kr/api/openApiInfo.do?menu_grp=MENU_GRP31&menu_no=661&svc_no=I0490&svc_type_cd=API_TYPE06) — 조회·계정·미리보기 구현, HTTPS 공개 샘플·인증 오류 확인 | 본인 키·증분 날짜·구간/전체 수·한도 검증. [사용법](FOODSAFETY.md) |
 | LH 청약플러스 | 임대·분양 공고 | [공식 API·첨부 가이드](https://www.data.go.kr/data/15058530/openapi.do) — 조회·계정·미리보기·링크 대조 구현, HTTPS 무효 키 오류 확인 | 본인 키·날짜 인자·지역/상태·페이지·한도 검증. [사용법](LH.md). 자격 판정·신청은 별도 |
-| TMAP | 경로·소요시간 | [개발자 상품](https://openapi.sk.com/products/detail?svcSeq=4) — 상세 범위 미조사 | 상품별 요금·키·조회 범위. 앱 계정의 저장 장소와 구분 |
+| TMAP | 자동차 경로·소요시간 요약 | [공식 v1 가이드](https://tmapapi.tmapmobility.com/main.html#webservice/docs/tmapRouteDoc) — POST 폼·요약 실행기·계정·미리보기·24시간 만료 구현, 무효 키 403 확인 | 본인 키 정상 응답·상품/요금/한도·후속 이동수단. [사용 안내](TMAP.md) |
 | 11번가 | 허용된 상품 정보 | [Open API 센터](https://openapi.11st.co.kr/openapi/OpenApiFrontMain.tmall) — 문서 확인 | 접근 주체·상품 검색 범위·키 만료. 판매자 주문 API를 소비자 구매내역으로 표시하지 않음 |
 | 네이버 쇼핑·스마트스토어 | 판매자 소유 상품·주문 | [커머스API](https://apicenter.commerce.naver.com/docs/commerce-api/current) — 문서 확인 | 판매자 인증·최소 출력 필드. 기존 검색 API·소비자 구매내역과 구분 |
 

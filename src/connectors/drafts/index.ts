@@ -14,6 +14,7 @@ import { tourapiActions, tourapiExample, tourapiRequestTemplate } from '../toura
 import { foodsafetyAction, foodsafetyExample, foodsafetyRequestTemplate } from '../foodsafety.js';
 import { lhAction, lhExample, lhRequestTemplate } from '../lh.js';
 import { kosisAction, kosisExample, kosisRequestTemplate } from '../kosis.js';
+import { tmapAction, tmapExample, tmapRequestTemplate } from '../tmap.js';
 import { vehicleEnergyActions, vehicleEnergyExample, vehicleEnergyRequestTemplate } from '../vehicle-energy.js';
 import { opggActions, opggExample, opggRequestTemplate } from '../opgg.js';
 import { seoulBikeAction, seoulBikeExample, seoulBikeRequestTemplate } from '../seoul-bike.js';
@@ -43,6 +44,7 @@ interface Definition {
 
 // Request templates contain no secrets and never dispatch HTTP.
 const definitions: Definition[] = [
+  {actionId:tmapAction.id,serviceId:tmapAction.serviceId,title:tmapAction.title,description:tmapAction.description,schema:tmapAction.schema,example:tmapExample(),resultCheck:tmapAction.resultCheck,request:tmapRequestTemplate},
   ...opggActions.map(action=>({actionId:action.id,serviceId:action.serviceId,title:action.title,description:action.description,schema:action.schema,
     example:opggExample(action.id),resultCheck:action.resultCheck,request:(input:Record<string,any>)=>opggRequestTemplate(action.id,input)})),
   ...vehicleEnergyActions.map(action=>({actionId:action.id,serviceId:action.serviceId,title:action.title,description:action.description,schema:action.schema,
@@ -133,6 +135,7 @@ const definitions: Definition[] = [
 ];
 
 export const planningActions: Action[] = definitions.map(definition => {
+  if(definition.actionId===tmapAction.id)return tmapAction;
   if (definition.serviceId === 'opgg') return opggActions.find(action=>action.id===definition.actionId)!;
   if (vehicleEnergyActions.some(action=>action.id===definition.actionId)) return vehicleEnergyActions.find(action=>action.id===definition.actionId)!;
   if (definition.serviceId === 'kosis') return kosisAction;

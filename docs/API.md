@@ -26,6 +26,8 @@
 
 ### 실행 요청
 
+기간 제한이 있는 행동은 `Action.resultTtlMs`를 선언하고 성공 작업에 `resultExpiresAt`을 반환합니다. 만료 후 상세/목록/같은 멱등 요청은 결과 본문을 제거하고 `RESULT_EXPIRED`를 표시합니다. 작업 성공 이력은 보존하고 재전송하지 않습니다. 해당 결과를 포함한 대화의 재개는 `CHAT_RESULT_EXPIRED`로 거절하며 모델용 프로토콜과 이후 AI 응답을 정리합니다. [TMAP 사용기한](TMAP.md#요금과-결과-사용기한)
+
 공급자 종료·이용 제한 행동은 관리자 응답의 `unavailable: {kind, reason, sourceUrl, effectiveAt, checkedAt}`와 `enabled: false`로 표시합니다. 에이전트의 `/api/actions`에서는 제외하고 신규 권한·실행·재개는 HTTP 409의 `SERVICE_RETIRED` 또는 `PROVIDER_POLICY_RESTRICTED`로 거절합니다. 이전 작업 결과는 관리자 이력에 보존하되 에이전트 응답에서는 결과 본문을 제외하고 `RESULT_UNAVAILABLE` 사유를 반환합니다. 중단 행동이 있는 이전 대화의 추가 메시지는 `CHAT_ACTION_UNAVAILABLE`로 거절합니다. [네이버 적용 범위](NAVER_AVAILABILITY.md)
 
 ```json
