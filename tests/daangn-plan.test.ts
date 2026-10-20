@@ -68,6 +68,6 @@ test('Daangn HTTP scopes plans and keeps consumer item links separate from adver
       const result = await (await api(`/jobs/${job.id}`, 'GET', undefined, client.token)).json(); assert.equal(result.state, 'succeeded'); assert.equal(result.dispatched, false); assert.equal(result.result.data.url, daangn.routes.find(route => route.id === routeId)!.url); assert.equal(result.result.data.externalActionExecuted, false);
     }
     assert.equal(calls, 0); assert.equal(r.engine.metrics().verifiedServices, 0); assert.equal(r.engine.metrics().supportedActions, 0);
-    assert.equal(r.engine.discover(admin).filter(action => action.method === 'mcp' && action.implemented).length, 0);
+    assert.equal(r.engine.discover(admin).filter(action => action.method === 'mcp' && action.origin === 'user' && action.implemented).length, 0);
   } finally { await r.close(); }
 });

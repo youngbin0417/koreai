@@ -44,7 +44,7 @@ test('preset API applies official defaults, rejects caller endpoint exceptions, 
     });
     const prepared = await runtimeApi(r, '/api/remotes/oauth/start', 'POST', body, cookie); assert.equal(prepared.status, 200); assert.equal(started.mock.callCount(), 1);
     assert.equal(r.remote.list()[0]!.presetId, preset.id); assert.equal(r.remote.list()[0]!.authStatus, 'awaiting_auth');
-    assert.equal(r.engine.accounts().length, 0); assert.equal(r.engine.discover(admin).filter(action => action.method === 'mcp').length, 0); assert.equal(r.engine.metrics().verifiedServices, 0);
+    assert.equal(r.engine.accounts().length, 0); assert.equal(r.engine.discover(admin).filter(action => action.method === 'mcp' && action.origin === 'user').length, 0); assert.equal(r.engine.metrics().verifiedServices, 0);
     await r.remote.remove((await prepared.json()).remoteId);
   } finally { await r.close(); }
 });

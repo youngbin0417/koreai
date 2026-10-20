@@ -3,7 +3,7 @@ import type { ApiCandidate } from '../src/research/app-api-backlog';
 import type { DraftPreview } from '../src/connectors/drafts';
 
 const accessLabels: Record<ApiCandidate['access'], string> = {
-  'public-key': '공개 정보 · 공급자 키 필요', 'public-file': '공공 파일 · 키 없이 조회', merchant: '판매자 API · 소비자 권한 별도', unknown: '접근 경로 조사 필요',
+  'public-key': '공개 정보 · 공급자 키 필요', 'public-file': '공공 파일 · 키 없이 조회', 'public-mcp': '공식 공개 MCP · 키 없이 조회', merchant: '판매자 API · 소비자 권한 별도', unknown: '접근 경로 조사 필요',
 };
 export function ExpansionPlan({ candidates, actionTitles, openAction }: { candidates: ApiCandidate[]; actionTitles: Record<string, string>; openAction: (id: string) => void }) {
   const [priority, setPriority] = useState('all');
@@ -23,7 +23,7 @@ export function ExpansionPlan({ candidates, actionTitles, openAction }: { candid
       <p>{accessLabels[c.access]}</p>
       <p>{c.documentedScope ?? '공식 API 제공 범위를 아직 확인하지 않았습니다.'}</p>
       {c.notice&&<p role="status" className="warning"><strong>{c.notice.title}</strong><br/>{c.notice.message} <a href={c.notice.url} target="_blank" rel="noreferrer">공식 종료 공지 ↗</a></p>}
-      <p className="muted small">{c.checkedAt ? `문서 확인: ${c.checkedAt} · ${c.access === 'public-file' ? '키 불필요 · 지역별 검증 범위 확인' : '계정 미검증'}` : '미조사 · 홈페이지를 조사 시작점으로 등록'}</p>
+      <p className="muted small">{c.checkedAt ? `문서 확인: ${c.checkedAt} · ${c.access === 'public-file' ? '키 불필요 · 지역별 검증 범위 확인' : c.access === 'public-mcp' ? '키 불필요 · 행동별 검증 범위 확인' : '계정 미검증'}` : '미조사 · 홈페이지를 조사 시작점으로 등록'}</p>
       <h3>먼저 정의할 행동</h3><ul>{c.proposedActions.map(a => <li key={a}>{a}</li>)}</ul>
       <h3>다음 작업</h3><p>{c.nextStep}</p>
       {c.connectionPlan&&<details className="requested-plan"><summary>첫 연결 초안</summary><p className="small">요청 등록: {c.connectionPlan.requestedAt} · {c.implementedActionIds.length ? c.access === 'public-file' ? '조회 실행기 구현 · 지역별 자료 검증 관리' : '조회 실행기 구현 · 연결 조건·계정 검증 필요' : '조사/설계 단계 · 자동 실행 미지원'}</p><dl><dt>첫 조회</dt><dd>{c.connectionPlan.firstRead}</dd><dt>연결 후보</dt><dd>{{'official-api':'공식 API 후보','public-data':'공개 데이터 후보',partnership:'제휴·허용 범위 확인'}[c.connectionPlan.method]}</dd><dt>필요 조건</dt><dd>{c.connectionPlan.requiredAccess}</dd><dt>결과 확인·경계</dt><dd>{c.connectionPlan.resultCheck}</dd></dl><p>{c.implementedActionIds.length ? c.nextStep : c.connectionPlan.nextStep}</p></details>}
@@ -59,9 +59,9 @@ export function DraftInspector({ actionId, input, changeInput, implemented = fal
     } finally { if (!requestController.signal.aborted) setBusy(false); }
   }
   return <section className="draft-inspector" aria-label={implemented ? '조회 요청 검토' : '연결 초안 검토'}>
-    <p>{implemented ? actionId === 'animal-hospitals.search' ? '예시와 미리보기는 외부에 전송하지 않습니다. 공식 지역 이름을 선택하고 키 없이 실행하세요. 병원명·상태·페이지 조건은 지역 CSV를 받은 뒤 적용합니다.' : `예시와 미리보기는 외부에 전송하지 않습니다. 계정을 연결한 뒤 실행 요청으로 조회하세요. ${actionId === 'kma.observation' ? '기상청 예시는 한국 표준시의 최근 발표 정시와 서울 격자를 사용합니다.' : actionId === 'airkorea.forecast' ? '에어코리아 예시는 한국 표준시 오늘의 발표 날짜를 사용합니다. 예보 대상 날짜는 결과에서 별도로 확인하세요.' : ''}` : '초안 단계입니다. 예시 입력과 요청 구조를 검토할 수 있습니다. 외부 호출·계정 검증은 후속 단계입니다.'}</p>
+    <p>{implemented ? actionId.startsWith('opgg.') ? '예시와 미리보기는 외부에 전송하지 않습니다. OP.GG 공식 공개 MCP를 키 없이 조회합니다. Riot ID는 실행할 때 공급자에 전송되며 계정 로그인·소유 확인과 다릅니다.' : actionId === 'animal-hospitals.search' ? '예시와 미리보기는 외부에 전송하지 않습니다. 공식 지역 이름을 선택하고 키 없이 실행하세요. 병원명·상태·페이지 조건은 지역 CSV를 받은 뒤 적용합니다.' : `예시와 미리보기는 외부에 전송하지 않습니다. 계정을 연결한 뒤 실행 요청으로 조회하세요. ${actionId === 'kma.observation' ? '기상청 예시는 한국 표준시의 최근 발표 정시와 서울 격자를 사용합니다.' : actionId === 'airkorea.forecast' ? '에어코리아 예시는 한국 표준시 오늘의 발표 날짜를 사용합니다. 예보 대상 날짜는 결과에서 별도로 확인하세요.' : ''}` : '초안 단계입니다. 예시 입력과 요청 구조를 검토할 수 있습니다. 외부 호출·계정 검증은 후속 단계입니다.'}</p>
     <div className="button-row"><button disabled={busy} onClick={() => void inspect(true)}>예시 입력 불러오기</button><button disabled={busy} onClick={() => void inspect(false)}>요청 구조 미리보기</button></div>
     {error?.input === input && <p role="alert" className="warning">{error.message}</p>}
-    {preview?.input === input && <><h3>요청 구조 · 외부 호출 없음</h3><p>{preview.data.request ? '공식 문서 기준 요청 템플릿입니다. 실제 키 응답 검증은 아직 수행하지 않았습니다.' : '입력 규격 제안입니다. 공급자 요청 필드 매핑은 상세 문서 검토 후 구현합니다.'}</p><pre>{JSON.stringify(preview.data, null, 2)}</pre></>}
+    {preview?.input === input && <><h3>요청 구조 · 외부 호출 없음</h3><p>{preview.data.request ? actionId.startsWith('opgg.') ? '공식 공개 MCP에 보낼 요청 구조입니다. 미리보기에서는 조회를 실행하지 않습니다.' : '공식 문서 기준 요청 템플릿입니다. 실제 키 응답 검증은 아직 수행하지 않았습니다.' : '입력 규격 제안입니다. 공급자 요청 필드 매핑은 상세 문서 검토 후 구현합니다.'}</p><pre>{JSON.stringify(preview.data, null, 2)}</pre></>}
   </section>;
 }

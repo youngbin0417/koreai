@@ -7,7 +7,7 @@ export interface ApiCandidate {
   category: string;
   homeUrl: string;
   priority: 1 | 2 | 3;
-  access: 'public-key' | 'public-file' | 'merchant' | 'unknown';
+  access: 'public-key' | 'public-file' | 'public-mcp' | 'merchant' | 'unknown';
   verification: Extract<Verification, 'documented' | 'unresearched'>;
   sourceUrl: string;
   checkedAt: string | null;
@@ -28,6 +28,10 @@ function candidate(input: CandidateInput): ApiCandidate {
 
 // Proposed actions are product ideas; documentedScope describes only the reviewed source.
 export const appApiBacklog: ApiCandidate[] = [
+  candidate({serviceId:'opgg',name:'OP.GG',category:'게임·e스포츠',homeUrl:'https://op.gg',priority:1,access:'public-mcp',checkedAt:'2026-10-20',
+    sourceUrl:'https://github.com/opgginc/opgg-mcp/blob/main/README.ko.md',documentedScope:'공식 Streamable HTTP MCP의 키 없는 도구 목록 29개와 LoL 프로필/최근 전적/라인 통계·TFT 메타 덱·발로란트 요원 응답 확인. 일부 array outputSchema 및 LoL class 데이터 표기 호환 차이는 전용 조회 어댑터로 처리.',
+    proposedActions:['LoL 소환사 프로필 조회','LoL 최근 전적 조회','LoL 라인별 챔피언 통계','TFT 메타 덱 조회','발로란트 요원 찾기'],implementedActionIds:['opgg.lol.profile','opgg.lol.matches','opgg.lol.meta','opgg.tft.meta','opgg.valorant.agents'],
+    nextStep:'검토된 공개 조회 5개·키 없는 미리보기 구현. 공식 서버의 규격·오류·갱신/패치·한도·출처와 실제 휴대폰 사용을 지속 확인. 다른 게임/지역·빌드/카운터·e스포츠는 후속 정의. 일반 상위 MCP의 승인 정책은 유지.'}),
   candidate({serviceId:'ev-chargers',name:'전기차 충전소',category:'지도·교통',homeUrl:'https://ev.or.kr',priority:1,access:'public-key',checkedAt:'2026-10-20',
     sourceUrl:'https://www.data.go.kr/data/15076352/openapi.do',documentedScope:'한국환경공단 공식 가이드 v1.25(2026-07-01)의 getChargerInfo·지역/ID·충전기 타입/상태·제한/삭제·좌표/변경시각, JSON/XML. HTTPS 무효 키 403/30 확인.',
     proposedActions:['지역별 충전소·충전기 상태 찾기'],implementedActionIds:['ev-chargers.search'],nextStep:'조회·전용 계정·미리보기 구현. 본인 키로 정상/빈·지역/ID·페이지·응답 구조·제한/삭제/상태 시각·한도 검증. 이름/타입/삭제 필터는 받은 페이지 안에서 적용. 반경/거리순·차량 호환·요금·예약은 후속 정의.'}),

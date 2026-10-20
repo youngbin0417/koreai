@@ -15,6 +15,7 @@ import { foodsafetyAction, foodsafetyExample, foodsafetyRequestTemplate } from '
 import { lhAction, lhExample, lhRequestTemplate } from '../lh.js';
 import { kosisAction, kosisExample, kosisRequestTemplate } from '../kosis.js';
 import { vehicleEnergyActions, vehicleEnergyExample, vehicleEnergyRequestTemplate } from '../vehicle-energy.js';
+import { opggActions, opggExample, opggRequestTemplate } from '../opgg.js';
 import { seoulBikeAction, seoulBikeExample, seoulBikeRequestTemplate } from '../seoul-bike.js';
 import { naverBooksActions, naverBooksExample, naverBooksRequestTemplate } from '../naver-books.js';
 import { naruActions, naruExample, naruRequestTemplate } from '../library-naru.js';
@@ -22,11 +23,12 @@ import { chzzkActions, chzzkExample, chzzkRequestTemplate } from '../chzzk.js';
 import { animalHospitalsAction, animalHospitalsExample, animalHospitalsRequestTemplate } from '../animal-hospitals.js';
 
 export interface DraftRequest {
-  method: 'GET';
+  method: 'GET' | 'POST';
   endpoint: string;
   query: Record<string, string | number | string[]>;
   authentication: { secretField: 'serviceKey' | 'apiKey'; queryParameter: string } | { secretField: 'apiKey'; pathParameter: string } | { headers: Record<string, { secretField: string }> } | { type: 'none' };
-  responseFormat: 'json' | 'xml' | 'csv';
+  responseFormat: 'json' | 'xml' | 'csv' | 'mcp';
+  body?: Record<string, unknown>;
 }
 interface Definition {
   actionId?: string;
@@ -41,6 +43,8 @@ interface Definition {
 
 // Request templates contain no secrets and never dispatch HTTP.
 const definitions: Definition[] = [
+  ...opggActions.map(action=>({actionId:action.id,serviceId:action.serviceId,title:action.title,description:action.description,schema:action.schema,
+    example:opggExample(action.id),resultCheck:action.resultCheck,request:(input:Record<string,any>)=>opggRequestTemplate(action.id,input)})),
   ...vehicleEnergyActions.map(action=>({actionId:action.id,serviceId:action.serviceId,title:action.title,description:action.description,schema:action.schema,
     example:vehicleEnergyExample(action.id),resultCheck:action.resultCheck,request:(input:Record<string,any>)=>vehicleEnergyRequestTemplate(action.id,input)})),
   { actionId:kosisAction.id, serviceId:kosisAction.serviceId, title:kosisAction.title, description:kosisAction.description,
@@ -129,6 +133,7 @@ const definitions: Definition[] = [
 ];
 
 export const planningActions: Action[] = definitions.map(definition => {
+  if (definition.serviceId === 'opgg') return opggActions.find(action=>action.id===definition.actionId)!;
   if (vehicleEnergyActions.some(action=>action.id===definition.actionId)) return vehicleEnergyActions.find(action=>action.id===definition.actionId)!;
   if (definition.serviceId === 'kosis') return kosisAction;
   if (definition.serviceId === 'lh') return lhAction;

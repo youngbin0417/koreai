@@ -15,11 +15,11 @@ import { TestVault } from './helpers.js';
 import { kobisAction } from '../src/connectors/kobis.js';
 
 test('expansion candidates and draft actions reference unique catalog services and reviewed evidence', () => {
-  assert.equal(appApiBacklog.length, 61);
+  assert.equal(appApiBacklog.length, 62);
   assert.equal(new Set(appApiBacklog.map(c => c.serviceId)).size, appApiBacklog.length);
-  assert.equal(services.length, 101);
+  assert.equal(services.length, 102);
   assert.equal(draftActions.length, 0);
-  assert.equal(planningActions.length, 31);
+  assert.equal(planningActions.length, 36);
   for (const candidate of appApiBacklog) {
     assert(services.some(s => s.id === candidate.serviceId));
     assert(candidate.sourceUrl.startsWith('https://'));
@@ -110,10 +110,10 @@ test('HTTP restricts planning to admins and prevents unconfigured scoped actions
     assert.equal(bootstrap.status, 200);
     const cookie = bootstrap.headers.get('set-cookie')!.split(';')[0]!;
     const call = (path: string, method = 'GET', body?: unknown, token?: string) => fetch(`${r.baseUrl}/api${path}`, { method, headers: { Origin: r.baseUrl, ...(token ? { Authorization: `Bearer ${token}` } : { Cookie: cookie }), ...(body === undefined ? {} : { 'Content-Type': 'application/json' }) }, ...(body === undefined ? {} : { body: JSON.stringify(body) }) });
-    const backlog = await (await call('/backlog')).json(); assert.equal(backlog.length, 61);
+    const backlog = await (await call('/backlog')).json(); assert.equal(backlog.length, 62);
     const state = await (await call('/state')).json();
     assert.equal(state.actions.filter((a: { method: string; implemented: boolean }) => a.method === 'api' && a.implemented).length, 50);
-    assert.equal(state.backlog.length, 61);
+    assert.equal(state.backlog.length, 62);
     const example = await (await call('/drafts/kma.observation/example')).json();
     const preview = await call('/drafts/kma.observation/preview', 'POST', example);
     assert.equal(preview.status, 200); assert.equal((await preview.json()).networkDispatched, false);

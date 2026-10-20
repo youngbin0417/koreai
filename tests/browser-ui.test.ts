@@ -8,7 +8,22 @@ import { createRuntime } from '../src/http.js';
 import { admin } from '../src/core/engine.js';
 import { TestVault,tempDir,providerMock } from './helpers.js';
 import { browserDefaults, type BrowserChannel } from '../src/core/platform.js';
+import { opggActions } from '../src/connectors/opgg.js';
+import { opggMock } from './opgg-fixture.js';
 const testChannel=(process.env.KOREAI_TEST_BROWSER_CHANNEL??browserDefaults().channel) as BrowserChannel;
+
+test('OP.GG mobile UI previews and executes five official public MCP reads without keys or user-server approval changes',async()=>{
+  const mock=opggMock(),r=await createRuntime({dataDir:tempDir('opgg-ui'),port:0,vault:new TestVault(),bootstrapCode:'opgg-ui-bootstrap',evidenceMode:'mock',fetcher:mock.fetcher});const browser=await chromium.launch({channel:testChannel,headless:true});
+  try{
+    const page=await browser.newPage({viewport:{width:390,height:844}}),errors:string[]=[];page.on('pageerror',error=>errors.push(error.message));await page.goto(`${r.baseUrl}/#setup=opgg-ui-bootstrap`);await page.getByRole('button',{name:'엔진 연결'}).click();
+    for(const[index,action]of opggActions.entries()){
+      await page.getByRole('button',{name:'확장 계획',exact:false}).click();const card=page.getByRole('article',{name:'OP.GG 확장 계획'});assert((await card.innerText()).includes('공식 공개 MCP · 키 없이 조회'));await card.getByRole('button',{name:action.title,exact:true}).click();assert.equal(await page.getByRole('dialog').getByRole('button',{name:'계정 관리',exact:true}).count(),0);assert(await page.getByRole('button',{name:'실행 요청',exact:false}).isEnabled());await page.getByRole('button',{name:'예시 입력 불러오기'}).click();await page.waitForFunction((field)=>document.querySelector<HTMLTextAreaElement>('textarea.code-input')?.value.includes(field),index<2?'gameName':index===2?'position':index===3?'limit':'제트');
+      await page.getByRole('button',{name:'요청 구조 미리보기'}).click();await page.getByRole('heading',{name:'요청 구조 · 외부 호출 없음'}).waitFor();assert((await page.locator('.draft-inspector').innerText()).includes('공식 공개 MCP에 보낼 요청 구조입니다.'));const preview=await page.locator('.draft-inspector pre').innerText();assert(preview.includes('https://mcp-api.op.gg/mcp'));assert(preview.includes('tools/call'));assert(preview.includes('"type": "none"'));assert.equal(mock.record.calls.length,index);
+      await page.getByRole('button',{name:'실행 요청',exact:false}).click();await page.getByRole('heading',{name:'실행 결과',exact:true}).waitFor();const text=await page.getByRole('dialog').innerText();assert(text.includes('출처: OP.GG'));assert(text.includes(['GOLD','"deaths": 0','"winRate": 0.51','시험 덱','상승기류'][index]!));assert(!text.includes('omit-unrequested-private-id'));assert(!text.includes('unit-opgg-private-secret'));assert(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth));if(index===4){const dir=resolve('.test-data/screenshots');mkdirSync(dir,{recursive:true});await page.screenshot({path:resolve(dir,'opgg-mobile.png'),fullPage:true});}await page.getByRole('button',{name:'닫기',exact:true}).click();
+    }
+    assert.equal(mock.record.calls.length,5);assert.equal(r.engine.accounts().length,0);assert.equal(r.engine.metrics().verifiedServices,0);assert.equal(r.engine.metrics().supportedActions,0);assert.deepEqual(errors,[]);
+  }finally{await browser.close();await r.close();}
+});
 
 test('vehicle energy mobile UI connects separate keys, previews four actions and shows restricted chargers, fuel prices and ambiguous empty results',async()=>{
   let calls=0,empty=false;const r=await createRuntime({dataDir:tempDir('vehicle-energy-ui'),port:0,vault:new TestVault(),bootstrapCode:'energy-ui-bootstrap',evidenceMode:'mock',fetcher:async address=>{
@@ -498,10 +513,10 @@ test('React dashboard supports onboarding, expanded catalog, basic connections, 
     assert.equal(new URL(page.url()).hash,'');
     const screenshotDir=resolve('.test-data/screenshots');mkdirSync(screenshotDir,{recursive:true});await page.screenshot({path:resolve(screenshotDir,'dashboard.png'),fullPage:true});
     assert.equal(await page.locator('.stat').filter({hasText:'구현된 API 행동'}).locator('strong').textContent(),'50↗');
-    await page.getByRole('button',{name:'서비스 카탈로그',exact:false}).click();assert.equal(await page.locator('.service-card').count(),101);
+    await page.getByRole('button',{name:'서비스 카탈로그',exact:false}).click();assert.equal(await page.locator('.service-card').count(),102);
     await page.getByRole('button',{name:'확장 계획',exact:false}).click();
-    assert.equal(await page.locator('.expansion-card').count(),61);
-    await page.getByLabel('확장 우선순위').selectOption('1');assert.equal(await page.locator('.expansion-card').count(),8);
+    assert.equal(await page.locator('.expansion-card').count(),62);
+    await page.getByLabel('확장 우선순위').selectOption('1');assert.equal(await page.locator('.expansion-card').count(),9);
     await page.getByRole('article',{name:'기상청 날씨 확장 계획'}).getByRole('button',{name:'조회 기능 열기'}).click();
     assert(await page.getByRole('button',{name:'실행 요청',exact:false}).isDisabled());
     await page.getByRole('button',{name:'예시 입력 불러오기'}).click();
