@@ -43,18 +43,9 @@ export function DraftInspector({ actionId, input, changeInput, implemented = fal
   const [busy, setBusy] = useState(false);
   const [preview, setPreview] = useState<{ input: string; data: DraftPreview }>();
   const [error, setError] = useState<{ input: string; message: string }>();
-  const [monthNote, setMonthNote] = useState<{ input: string; message: string }>();
   let parsedInput: Record<string, unknown> | undefined;
   try { const value: unknown = JSON.parse(input); if (value && typeof value === 'object' && !Array.isArray(value)) parsedInput = value as Record<string, unknown>; } catch { /* Keep manual JSON errors visible. */ }
   const selectedMonth = parsedInput ? champriceSnapshots.find(s => s.month === (parsedInput.month ?? champriceDefaultMonth))?.month ?? '' : '';
-  function selectMonth(month: string) {
-    if (!parsedInput) { setError({ input, message: 'JSON 입력을 수정한 뒤 조사월을 선택하세요.' }); return; }
-    const next: Record<string, unknown> = { ...parsedInput, month };
-    const cleared = typeof next.surveyDate === 'string' && !next.surveyDate.startsWith(month + '-');
-    if (cleared) delete next.surveyDate;
-    const changed = JSON.stringify(next, null, 2); changeInput(changed); setError(undefined);
-    setMonthNote({ input: changed, message: cleared ? '다른 월의 조사일 조건을 지웠습니다. 원하는 조사일을 다시 입력할 수 있습니다.' : '선택한 월의 자료를 조회합니다.' });
-  }
   const controller = useRef<AbortController | null>(null);
   useEffect(() => () => controller.current?.abort(), []);
   async function inspect(example: boolean) {
@@ -80,7 +71,6 @@ export function DraftInspector({ actionId, input, changeInput, implemented = fal
     } finally { if (!requestController.signal.aborted) setBusy(false); }
   }
   return <section className="draft-inspector" aria-label={implemented ? '조회 요청 검토' : '연결 초안 검토'}>
-    {actionId === 'champrice.prices.search' && <div className="field"><label htmlFor="champrice-month">참가격 조사월</label><select id="champrice-month" value={selectedMonth} disabled={busy} onChange={event => selectMonth(event.target.value)}>{!selectedMonth && <option value="">입력의 조사월을 확인하세요</option>}{champriceSnapshots.map(s => <option key={s.month} value={s.month}>{s.label} · {s.publishedOn} 공개</option>)}</select><p className="muted small">검토한 두 달 중에서 선택합니다. 조회 결과에 조사월·파일 다운로드 시각·캐시 재사용 여부를 표시합니다.</p>{monthNote?.input === input && <p role="status" className="muted small">{monthNote.message}</p>}</div>}
     <p>{['naver.search.book','naver.book.isbn'].includes(actionId) ? '종료된 API의 과거 입력·요청 구조 검토용입니다. 미리보기는 외부에 전송하지 않으며 계정 등록·실행은 차단합니다.' : implemented ? actionId.startsWith('opgg.') ? '예시와 미리보기는 외부에 전송하지 않습니다. OP.GG 공식 공개 MCP를 키 없이 조회합니다. Riot ID는 실행할 때 공급자에 전송되며 계정 로그인·소유 확인과 다릅니다.' : fileActionHelp[actionId] ?? `예시와 미리보기는 외부에 전송하지 않습니다. 계정을 연결한 뒤 실행 요청으로 조회하세요. ${actionId === 'kma.observation' ? '기상청 예시는 한국 표준시의 최근 발표 정시와 서울 격자를 사용합니다.' : actionId === 'airkorea.forecast' ? '에어코리아 예시는 한국 표준시 오늘의 발표 날짜를 사용합니다. 예보 대상 날짜는 결과에서 별도로 확인하세요.' : ''}` : '초안 단계입니다. 예시 입력과 요청 구조를 검토할 수 있습니다. 외부 호출·계정 검증은 후속 단계입니다.'}</p>
     <div className="button-row"><button disabled={busy} onClick={() => void inspect(true)}>예시 입력 불러오기</button><button disabled={busy} onClick={() => void inspect(false)}>요청 구조 미리보기</button></div>
     {error?.input === input && <p role="alert" className="warning">{error.message}</p>}
