@@ -13,7 +13,7 @@
 | 메서드 | 경로 | 동작 |
 |---|---|---|
 | GET | `/api/health` | 인증 없이 로컬 엔진 상태 확인 |
-| GET | `/api/services` | 104개 조사 대상·후보 행동과 클라이언트에게 허용된 행동·초안 |
+| GET | `/api/services` | 105개 조사 대상·후보 행동과 클라이언트에게 허용된 행동·초안 |
 | GET | `/api/connections` | 클라이언트의 행동 범위에 포함된 기본 커넥터의 준비 상태·진입 경로 |
 | GET | `/api/actions?q=검색어&service=서비스ID` | 허용된 행동 검색 |
 | GET | `/api/actions/:id` | JSON Schema, 계정 요구사항, 범위, 근거·검증 상태 |
@@ -35,6 +35,8 @@
 고용24 조회는 `actionId: "work24.jobs.search"`, 승인된 `work24-api` 계정 ID, `input: {"keyword":"개발자","page":1,"limit":10}`을 사용합니다. HTTP 200의 공급자 서비스 미등록 오류도 작업 `awaiting_auth`·`WORK24_SERVICE_ACCESS_REQUIRED`로 반환합니다. [기업회원 신청 조건과 전체 입력](WORK24.md)
 
 고용24 지역 코드는 `actionId: "work24.regions.list"`, `input: {}`, 해당 행동을 명시적으로 허용한 `work24-api` 계정 ID와 클라이언트 권한으로 조회합니다. 기존 채용공고 권한만으로는 실행할 수 없습니다. `result.data.regions`는 `code/name/parentCode/depth`, `counts`는 공급자 total·수신/상위/하위 건수를 제공합니다. `providerTotalBasis: "unconfirmed"`·`completenessVerified: false`로 집계 범위 미확인을 표시하며 정적 XLS 목록을 변경하지 않습니다. `GET /api/drafts/work24.regions.list/example`와 `POST /api/drafts/work24.regions.list/preview`는 키·외부 호출 없이 사용합니다. [입력·결과·승인 조건](WORK24.md#공통코드-지역-조회)
+
+지하철은 `seoul-subway.arrivals`와 `seoul-subway.timetable`이며 `seoul-subway-api` 계정과 각각의 행동 권한을 사용합니다. `/api/state.runtime.seoulSubwayHttpAllowed`는 운영자의 HTTP 허용 여부입니다. 서버 설정 전에는 `TRANSPORT_DISABLED`로 차단하고 preview는 계속 제공합니다. 또타라커의 `tlocker.connection.status/open`은 링크 안내이며 `tlocker.availability`는 비활성 규격으로 `NOT_IMPLEMENTED`입니다. [입력·시간·지도·사물함 안내](SEOUL_TRANSIT.md)
 
 기간 제한이 있는 행동은 `Action.resultTtlMs`를 선언하고 성공 작업에 `resultExpiresAt`을 반환합니다. 만료 후 상세/목록/같은 멱등 요청은 결과 본문을 제거하고 `RESULT_EXPIRED`를 표시합니다. 작업 성공 이력은 보존하고 재전송하지 않습니다. 해당 결과를 포함한 대화의 재개는 `CHAT_RESULT_EXPIRED`로 거절하며 모델용 프로토콜과 이후 AI 응답을 정리합니다. [TMAP 사용기한](TMAP.md#요금과-결과-사용기한)
 
@@ -121,7 +123,7 @@
 
 - `PUT /api/connections/:serviceId`: `{ "routeId": "consumer" }`로 기본 연결 준비를 저장합니다. 등록된 경로 ID만 받으며 키·쿠키·임의 URL은 받지 않습니다.
 - `DELETE /api/connections/:serviceId`: 연결 준비를 해제합니다. 서비스 계정의 로그아웃이나 권한 회수를 수행하는 API는 아닙니다.
-- `GET /api/state`의 `connections`: 5개 기본 커넥터의 정의·준비 상태·후속 단계 목록입니다.
+- `GET /api/state`의 `connections`: 7개 기본 커넥터의 정의·준비 상태·후속 단계 목록입니다.
 
 강남언니의 `routeId: hospitals`는 병원 목록, 당근의 `routeId: items`는 중고거래 목록, 마켓컬리의 `routeId: products`·쿠팡의 기존 `routeId: consumer`는 공식 홈에서 상품을 직접 찾는 경로입니다. 토스의 기존 `routeId: consumer`는 공식 안내 링크이며 앱의 계좌 화면을 자동으로 열지 않습니다. `connections[].firstRead`는 선택 필드로 첫 조회의 제안 입력/결과 JSON Schema·예시·계정 조건·다음 확인 사항·`manualUrl`·서비스별 `manualLabel`을 담습니다. 현재 다섯 기본 서비스에 제공하며 `stages[].state: defined`는 정의 완료·실행 미지원입니다. 기본 행동의 `automaticActions: 0`·`accountVerified: false`를 바꾸지 않습니다.
 
@@ -138,7 +140,7 @@
 기본 행동은 `<서비스ID>.connection.status`, `<서비스ID>.connection.open`입니다. `gangnamunni`, `daangn`, `kurly`, `coupang`, `toss`에 제공하며 입력은 `{}`입니다. 상태 조회는 준비 전에도 실행됩니다. 진입 안내는 준비 전 `awaiting_user`로 대기하며, 사용자가 준비 저장 후 재개할 수 있습니다. 안내 결과는 `url`, `requiresUser: true`, `externalActionExecuted: false`, `accountVerified: false`를 포함합니다. 이 작업의 `succeeded`는 진입 안내 완료이며 외부 서비스 작업 완료를 뜻하지 않습니다. `handoff` 행동 증거는 실제 지원 실적에서 제외됩니다.
 
 - `GET /api/state`: 카탈로그·계정·작업·검증 지표·MCP 연결 설정, `runtime.platform`·`runtime.vault`, 브라우저 `headless` 상태.
-- `GET /api/backlog`: 추가 API·공개 파일·MCP 후보 64개의 우선순위·공식 근거·검증 상태·다음 작업. `/api/state.backlog`에도 포함합니다. 요청 앱 36개에는 `connectionPlan: {requestedAt, aliases, method, firstRead, requiredAccess, resultCheck, nextStep}`을 제공합니다. 이는 제안이며 실행 가능한 행동이나 계정 권한을 만들지 않습니다. [목록](REQUESTED_APPS.md).
+- `GET /api/backlog`: 추가 API·공개 파일·MCP 후보 65개의 우선순위·공식 근거·검증 상태·다음 작업. `/api/state.backlog`에도 포함합니다. 요청 앱 36개에는 `connectionPlan: {requestedAt, aliases, method, firstRead, requiredAccess, resultCheck, nextStep}`을 제공합니다. 이는 제안이며 실행 가능한 행동이나 계정 권한을 만들지 않습니다. [목록](REQUESTED_APPS.md).
 - `GET /api/drafts/:id/example`: 등록된 조회 행동·후속 초안의 예시 입력. 실행기로 전환한 기상청·에어코리아·TAGO·E-Gen·나이스·KOBIS도 제공합니다.
 - `POST /api/drafts/:id/preview`: 본문에 입력 JSON을 보내 요청 템플릿 확인. 외부 요청·작업 생성·비밀 키 조회 없이 동작합니다.
 - `POST /api/accounts`: 계정 생성 또는 `id`로 권한·비밀 키 갱신. 키를 생략하면 기존 값을 유지.

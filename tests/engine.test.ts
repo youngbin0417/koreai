@@ -12,8 +12,8 @@ function fixture(executor?:Executor){const store=new Store(':memory:');const eng
 async function account(engine:Engine,actionId:string){const a=engine.action(actionId);return engine.saveAccount({label:'시험 계정',credentialType:a.credentialType,allowedActions:[a.id],secrets:secretsFor(a)});}
 function approve(engine:Engine,job:Job){return engine.approve(admin,job.id,job.revision,engine.digest(job));}
 
-test('catalog has 104 unique services, 8 core official API connectors, 20 core official actions',()=>{
-  assert.equal(services.length,104);assert.equal(new Set(services.map(s=>s.id)).size,104);assert.equal(officialActions.length,20);assert.equal(new Set(officialActions.map(a=>a.connectorId)).size,8);
+test('catalog has 105 unique services, 8 core official API connectors, 20 core official actions',()=>{
+  assert.equal(services.length,105);assert.equal(new Set(services.map(s=>s.id)).size,105);assert.equal(officialActions.length,20);assert.equal(new Set(officialActions.map(a=>a.connectorId)).size,8);
   assert(officialActions.every(a=>a.sourceUrl.startsWith('https://')&&a.verification==='documented'));
 });
 test('15 available core actions form requests and validate documented provider responses',async t=>{

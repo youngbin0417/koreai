@@ -1,0 +1,15 @@
+import { z } from 'zod';
+import { zodToJsonSchema } from 'zod-to-json-schema';
+import { ActionError, type Action, type Executor } from '../../types.js';
+import { tlockerGuideUrl } from '../../research/seoul-subway.js';
+import type { FirstReadPlan } from './types.js';
+
+export const tlockerAvailabilityInput=z.object({stationName:z.string().trim().min(1).max(50),size:z.enum(['small','medium','large','any']).default('any')}).strict();
+export const tlockerAvailabilityOutput=z.object({stationName:z.string().min(1).max(100),observedAt:z.string().datetime({offset:true}).nullable(),retrievedAt:z.string().datetime({offset:true}),
+  lockers:z.array(z.object({providerId:z.string().min(1).max(100),location:z.string().max(500).nullable(),size:z.enum(['small','medium','large','unknown']),installedCount:z.number().int().nonnegative().nullable(),availableCount:z.number().int().nonnegative().nullable(),status:z.enum(['reported','unknown','out_of_service'])}).strict()).max(500)}).strict()
+  .refine(value=>new Set(value.lockers.map(row=>row.providerId)).size===value.lockers.length&&value.lockers.every(row=>row.availableCount===null||(value.observedAt!==null&&row.status==='reported'&&(row.installedCount===null||row.availableCount<=row.installedCount))),'빈칸 수에는 고유 ID·공급자 관측 시각·상태와 수량 검증이 필요합니다.');
+export const tlockerAvailabilityPlan:FirstReadPlan={actionId:'tlocker.availability',title:'역별 사물함 빈칸 확인',description:'역과 크기에 따른 설치 위치·관측 시각·사용 가능한 칸 수를 조회하는 제안 규격입니다. 공개 소비자 API를 확인하지 못해 자동 빈칸 조회는 비활성입니다.',state:'defined',access:'provider-confirmation-required',checkedAt:'2026-10-22',manualUrl:tlockerGuideUrl,manualLabel:'공식 또타라커 앱·이용 안내',
+  inputSchema:zodToJsonSchema(tlockerAvailabilityInput,{$refStrategy:'none'}) as Record<string,unknown>,outputSchema:zodToJsonSchema(tlockerAvailabilityOutput,{$refStrategy:'none'}) as Record<string,unknown>,example:{stationName:'서울',size:'any'},accountRequirement:'운영사의 승인된 실시간 조회 경로·키·권한·이용 조건을 확인한 뒤 연결합니다. 개인 전화번호·비밀번호·쿠키를 받지 않습니다.',
+  resultCheck:'설치 수량과 실제 빈칸을 분리하고 공급자 보관함 ID·크기·중복·사용중/고장 상태·관측 시각을 검증합니다. 미조회·접근 거절·관측 시각 부재를 빈칸 0개로 바꾸지 않습니다.',nextChecks:['서울도시철도ENG의 소비자 빈칸 조회 API/제휴 제공 여부·승인 범위 확인','설치수량 분기 자료와 실시간 현황의 공급자 ID·역·크기 매핑 확인','승인된 시험 환경에서 빈칸 0개·미제공·오래된 상태·고장·권한 만료 검증','예약·결제·문 열기는 별도 행동과 사용자 승인 단계로 정의']};
+export const tlockerAvailabilityAction:Action={id:tlockerAvailabilityPlan.actionId,serviceId:'tlocker',connectorId:'tlocker-read-plan',title:'또타라커 빈칸 확인 · 초안',description:tlockerAvailabilityPlan.description,category:'지도·교통',effect:'read',method:'partnership',schema:tlockerAvailabilityInput,inputSchema:tlockerAvailabilityPlan.inputSchema,requiredSecrets:[],scopes:[],sourceUrl:tlockerGuideUrl,checkedAt:'2026-10-22',verification:'documented',resultCheck:tlockerAvailabilityPlan.resultCheck,domains:['www.smrte.co.kr'],version:'0.1.0-draft.1',maintainer:'KoreAI',origin:'bundled',implemented:false};
+export const tlockerReadExecutor:Executor=async()=>{throw new ActionError('NOT_IMPLEMENTED','또타라커 실시간 빈칸 조회는 운영사의 승인된 제공 경로를 확인해야 합니다. 공식 앱에서 직접 확인하세요.');};

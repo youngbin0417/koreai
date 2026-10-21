@@ -29,6 +29,7 @@ function candidate(input: CandidateInput): ApiCandidate {
 
 // Proposed actions are product ideas; documentedScope describes only the reviewed source.
 export const appApiBacklog: ApiCandidate[] = [
+  candidate({serviceId:'seoul-subway',name:'서울·수도권 지하철',category:'지도·교통',homeUrl:'https://www.seoulmetro.co.kr',priority:1,access:'public-key',checkedAt:'2026-10-22',sourceUrl:'https://data.seoul.go.kr/dataList/OA-12764/A/1/datasetView.do',documentedScope:'공식 도착정보·현행 getTrainSch 명세와 공개 sample JSON 확인. 시간표 실제 response/header/body 구조·과거 유효기간·HTTP 주소와 생성 시각 지연 확인. HTTPS 접속은 확인되지 않음.',proposedActions:['역별 도착정보 조회','역·호선·방향·요일별 예정 시간표','공식 노선도 직접 확인'],implementedActionIds:['seoul-subway.arrivals','seoul-subway.timetable'],nextStep:'도착·시간표·공식 노선도 기본 연결 구현. 본인 키·역명 별칭·빈 응답·실제 유효 시간표·한도/이용 조건 검증. 자체 노선도·전국 역·경로/환승 계산은 후속. HTTP 키 전송은 운영자의 KOREAI_ALLOW_SEOUL_SUBWAY_HTTP=1 필요.'}),
   candidate({serviceId:'champrice',name:'참가격',category:'쇼핑·중고',homeUrl:'https://www.price.go.kr',priority:2,access:'public-file',checkedAt:'2026-10-21',
     sourceUrl:'https://www.data.go.kr/data/15083256/fileData.do',documentedScope:'한국소비자원 공식 현재/과거 2026년 8월·9월 CSV·키 없는 다운로드 확인. 실제 CP949·8월 246,543행/9월 235,632행·한글 헤더 7개·조사일·빈 할인 정보 확인. 월 선택·파일 검증/7일·64MB 캐시·동시 다운로드 공유 구현. 월간 제공·이용허락 제한 없음. 변환 API는 별도 신청.',
     proposedActions:['상품·판매업소·조사일별 생필품 조사 가격 찾기'],implementedActionIds:['champrice.prices.search'],nextStep:'검토된 8월·9월 선택·상품/제조사/업소/조사일 필터·미리보기·검증된 캐시·모바일 조건 입력/가격·할인·출처 카드·페이지 이동 구현. 새 월은 공식 파일 검토 후 등록하고 상품/용량/단위 식별·가격 비교는 별도 정의. 현재 결제가·재고·최저가를 보장하지 않음.'}),

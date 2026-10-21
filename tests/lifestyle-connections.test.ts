@@ -8,7 +8,7 @@ import type { BasicConnection } from '../src/connectors/lifestyle/types.js';
 import type { Evidence, Job } from '../src/types.js';
 import { TestVault, tempDir } from './helpers.js';
 
-test('five basic connections enforce preparation, action scopes and fixed routes without inflating live coverage', async () => {
+test('seven basic connections enforce preparation, action scopes and fixed routes without inflating live coverage', async () => {
   const runtime = await createRuntime({ dataDir: tempDir('connections'), port: 0, vault: new TestVault(), fetcher: async () => { throw new Error('기본 연결은 공급자 API를 호출하지 않습니다.'); } });
   try {
     const bootstrap = await fetch(`${runtime.baseUrl}/api/bootstrap`, { method: 'POST', headers: { Origin: runtime.baseUrl, 'Content-Type': 'application/json' }, body: JSON.stringify({ code: runtime.bootstrapCode }) });

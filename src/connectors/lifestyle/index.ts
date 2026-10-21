@@ -7,9 +7,11 @@ import { daangn } from './daangn.js';
 import { kurly } from './kurly.js';
 import { coupang } from './coupang.js';
 import { toss } from './toss.js';
+import { tlocker } from './tlocker.js';
+import { seoulSubway } from './seoul-subway.js';
 import type { BasicConnection, ConnectionDefinition, ConnectionProfile } from './types.js';
 
-export const connectionDefinitions: readonly ConnectionDefinition[] = [gangnamunni, daangn, kurly, coupang, toss];
+export const connectionDefinitions: readonly ConnectionDefinition[] = [gangnamunni, daangn, kurly, coupang, toss, seoulSubway, tlocker];
 const schema = z.object({}).strict();
 const profileSchema = z.object({ routeId: z.string().min(1).max(64) }).strict();
 const stages: BasicConnection['stages'] = [

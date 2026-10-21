@@ -62,7 +62,7 @@ test('HTTP hides restricted actions from legacy agent discovery and rejects gran
     const stored=r.store.get<ClientRecord>('client',client.id)!;r.store.put('client',client.id,{...stored,allowedActions:actions.map(a=>a.id)});
     const api=(path:string,method='GET',body?:unknown,agent=false)=>runtimeApi(r,'/api'+path,method,body,cookie,agent?{Authorization:`Bearer ${client.token}`}:{ });
     assert.equal((await(await api('/actions','GET',undefined,true)).json()).length,0);
-    const state=await(await api('/state')).json(),active=state.actions.filter((a:any)=>a.method==='api'&&a.implemented&&!a.unavailable);assert.equal(active.length,46);assert.equal(new Set(active.map((a:any)=>a.connectorId)).size,26);
+    const state=await(await api('/state')).json(),active=state.actions.filter((a:any)=>a.method==='api'&&a.implemented&&!a.unavailable);assert.equal(active.length,48);assert.equal(new Set(active.map((a:any)=>a.connectorId)).size,27);
     for(const action of actions){
       const response=await api('/jobs','POST',{actionId:action.id,input:{},idempotencyKey:randomUUID()},true);assert.equal(response.status,409);assert.equal((await response.json()).error.code,expected(action.id));
       const grant=await api('/clients','POST',{name:'blocked',allowedActions:[action.id]});assert.equal(grant.status,409);

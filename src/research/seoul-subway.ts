@@ -1,0 +1,8 @@
+export const subwayArrivalDocs = 'https://data.seoul.go.kr/dataList/OA-12764/A/1/datasetView.do';
+export const subwayTimetableDocs = 'https://data.seoul.go.kr/dataList/OA-22750/A/1/datasetView.do';
+export const subwayMapUrl = 'https://www.seoulmetro.co.kr/kr/cyberStation.do';
+export const subwayMapFilesUrl = 'https://www.data.go.kr/data/15120713/fileData.do';
+export const tlockerGuideUrl = 'https://www.smrte.co.kr/support/happybox';
+export const tlockerInventoryUrl = 'https://www.data.go.kr/data/15044235/fileData.do';
+export const tlockerAndroidUrl = 'https://play.google.com/store/apps/details?id=io.mobinity.locker';
+export const tlockerIosUrl = 'https://apps.apple.com/kr/app/id1503291383';
