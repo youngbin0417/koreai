@@ -16,6 +16,7 @@ import { lhAction, lhExample, lhRequestTemplate } from '../lh.js';
 import { kosisAction, kosisExample, kosisRequestTemplate } from '../kosis.js';
 import { tmapAction, tmapExample, tmapRequestTemplate } from '../tmap.js';
 import { work24Action, work24Example, work24RequestTemplate } from '../work24.js';
+import { champriceAction, champriceExample, champriceRequestTemplate } from '../champrice.js';
 import { vehicleEnergyActions, vehicleEnergyExample, vehicleEnergyRequestTemplate } from '../vehicle-energy.js';
 import { opggActions, opggExample, opggRequestTemplate } from '../opgg.js';
 import { seoulBikeAction, seoulBikeExample, seoulBikeRequestTemplate } from '../seoul-bike.js';
@@ -45,6 +46,7 @@ interface Definition {
 
 // Request templates contain no secrets and never dispatch HTTP.
 const definitions: Definition[] = [
+  {actionId:champriceAction.id,serviceId:champriceAction.serviceId,title:champriceAction.title,description:champriceAction.description,schema:champriceAction.schema,example:champriceExample(),resultCheck:champriceAction.resultCheck,request:champriceRequestTemplate},
   {actionId:work24Action.id,serviceId:work24Action.serviceId,title:work24Action.title,description:work24Action.description,schema:work24Action.schema,example:work24Example(),resultCheck:work24Action.resultCheck,request:work24RequestTemplate},
   {actionId:tmapAction.id,serviceId:tmapAction.serviceId,title:tmapAction.title,description:tmapAction.description,schema:tmapAction.schema,example:tmapExample(),resultCheck:tmapAction.resultCheck,request:tmapRequestTemplate},
   ...opggActions.map(action=>({actionId:action.id,serviceId:action.serviceId,title:action.title,description:action.description,schema:action.schema,
@@ -137,6 +139,7 @@ const definitions: Definition[] = [
 ];
 
 export const planningActions: Action[] = definitions.map(definition => {
+  if(definition.actionId===champriceAction.id)return champriceAction;
   if(definition.actionId===work24Action.id)return work24Action;
   if(definition.actionId===tmapAction.id)return tmapAction;
   if (definition.serviceId === 'opgg') return opggActions.find(action=>action.id===definition.actionId)!;

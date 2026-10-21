@@ -13,7 +13,7 @@
 | 메서드 | 경로 | 동작 |
 |---|---|---|
 | GET | `/api/health` | 인증 없이 로컬 엔진 상태 확인 |
-| GET | `/api/services` | 103개 조사 대상·후보 행동과 클라이언트에게 허용된 행동·초안 |
+| GET | `/api/services` | 104개 조사 대상·후보 행동과 클라이언트에게 허용된 행동·초안 |
 | GET | `/api/connections` | 클라이언트의 행동 범위에 포함된 기본 커넥터의 준비 상태·진입 경로 |
 | GET | `/api/actions?q=검색어&service=서비스ID` | 허용된 행동 검색 |
 | GET | `/api/actions/:id` | JSON Schema, 계정 요구사항, 범위, 근거·검증 상태 |
@@ -25,6 +25,8 @@
 | POST | `/api/jobs/:id/cancel` | 취소 요청 |
 
 ### 실행 요청
+
+참가격은 `actionId: "champrice.prices.search"`, `input: {"productName":"우유","surveyDate":"2026-09-25","page":1,"limit":10}`과 멱등키로 실행하며 `accountId`는 필요하지 않습니다. 고정 2026년 9월 조사 파일의 로컬 필터이며 검색어를 공급자에게 보내지 않습니다. [입력·결과·파일 시점](CHAMPRICE.md)
 
 고용24 조회는 `actionId: "work24.jobs.search"`, 승인된 `work24-api` 계정 ID, `input: {"keyword":"개발자","page":1,"limit":10}`을 사용합니다. HTTP 200의 공급자 서비스 미등록 오류도 작업 `awaiting_auth`·`WORK24_SERVICE_ACCESS_REQUIRED`로 반환합니다. [기업회원 신청 조건과 전체 입력](WORK24.md)
 
@@ -130,7 +132,7 @@
 기본 행동은 `<서비스ID>.connection.status`, `<서비스ID>.connection.open`입니다. `gangnamunni`, `daangn`, `kurly`, `coupang`, `toss`에 제공하며 입력은 `{}`입니다. 상태 조회는 준비 전에도 실행됩니다. 진입 안내는 준비 전 `awaiting_user`로 대기하며, 사용자가 준비 저장 후 재개할 수 있습니다. 안내 결과는 `url`, `requiresUser: true`, `externalActionExecuted: false`, `accountVerified: false`를 포함합니다. 이 작업의 `succeeded`는 진입 안내 완료이며 외부 서비스 작업 완료를 뜻하지 않습니다. `handoff` 행동 증거는 실제 지원 실적에서 제외됩니다.
 
 - `GET /api/state`: 카탈로그·계정·작업·검증 지표·MCP 연결 설정, `runtime.platform`·`runtime.vault`, 브라우저 `headless` 상태.
-- `GET /api/backlog`: 추가 API 후보 58개의 우선순위·공식 근거·검증 상태·다음 작업. `/api/state.backlog`에도 포함합니다. 요청 앱 36개에는 `connectionPlan: {requestedAt, aliases, method, firstRead, requiredAccess, resultCheck, nextStep}`을 제공합니다. 이는 제안이며 실행 가능한 행동이나 계정 권한을 만들지 않습니다. [목록](REQUESTED_APPS.md).
+- `GET /api/backlog`: 추가 API·공개 파일·MCP 후보 64개의 우선순위·공식 근거·검증 상태·다음 작업. `/api/state.backlog`에도 포함합니다. 요청 앱 36개에는 `connectionPlan: {requestedAt, aliases, method, firstRead, requiredAccess, resultCheck, nextStep}`을 제공합니다. 이는 제안이며 실행 가능한 행동이나 계정 권한을 만들지 않습니다. [목록](REQUESTED_APPS.md).
 - `GET /api/drafts/:id/example`: 등록된 조회 행동·후속 초안의 예시 입력. 실행기로 전환한 기상청·에어코리아·TAGO·E-Gen·나이스·KOBIS도 제공합니다.
 - `POST /api/drafts/:id/preview`: 본문에 입력 JSON을 보내 요청 템플릿 확인. 외부 요청·작업 생성·비밀 키 조회 없이 동작합니다.
 - `POST /api/accounts`: 계정 생성 또는 `id`로 권한·비밀 키 갱신. 키를 생략하면 기존 값을 유지.

@@ -25,6 +25,7 @@ import { lhAction, lhExecutor } from './connectors/lh.js';
 import { kosisAction, kosisExecutor } from './connectors/kosis.js';
 import { tmapAction, tmapExecutor } from './connectors/tmap.js';
 import { work24Action, work24Executor } from './connectors/work24.js';
+import { champriceAction, champriceExecutor } from './connectors/champrice.js';
 import { vehicleEnergyActions, vehicleEnergyExecutor } from './connectors/vehicle-energy.js';
 import { opggActions, opggExecutor } from './connectors/opgg.js';
 import { seoulBikeAction, seoulBikeExecutor } from './connectors/seoul-bike.js';
@@ -80,6 +81,7 @@ async function createUnlockedRuntime(options:RuntimeOptions){
     engine.register([kosisAction],kosisExecutor(options.fetcher));
     engine.register([tmapAction],tmapExecutor(options.fetcher));
     engine.register([work24Action],work24Executor(options.fetcher));
+    engine.register([champriceAction],champriceExecutor(options.fetcher));
     engine.register(vehicleEnergyActions,vehicleEnergyExecutor(options.fetcher));
     engine.register(opggActions,opggExecutor(options.fetcher));
     engine.register([seoulBikeAction],seoulBikeExecutor(options.fetcher,options.allowSeoulBikeHttp===true));
