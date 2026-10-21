@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { work24Docs, work24Regions, work24RegionSource, work24RegionApiDocs, work24ReferenceCheckedAt, work24EmploymentTypes, work24SourceLink } from '../src/research/work24-reference';
 import { work24InputState, work24ResultData, work24Time } from './work24-model';
+import type { Work24RegionSelection } from './work24-model';
 
-export function Work24Form({ input, changeInput, busy, submit }: { input: string; changeInput: (value: string) => void; busy: boolean; submit: () => void }) {
+export function Work24Form({ input, changeInput, busy, submit, regionSelection }: { input: string; changeInput: (value: string) => void; busy: boolean; submit: () => void; regionSelection?: Work24RegionSelection }) {
   const { value, error } = work24InputState(input);
   const [regionQuery, setRegionQuery] = useState('');
   const selected = work24Regions.find(region => region.code === value?.regionCode);
@@ -10,6 +11,7 @@ export function Work24Form({ input, changeInput, busy, submit }: { input: string
   const options = selected && !matching.includes(selected) ? [selected, ...matching] : matching;
   const text = (key: string, fallback = '') => typeof value?.[key] === 'string' || typeof value?.[key] === 'number' ? String(value[key]) : fallback;
   const unknownCode = !selected && typeof value?.regionCode === 'string' ? value.regionCode : '';
+  const apiRegion = regionSelection?.code === value?.regionCode ? regionSelection : undefined;
   function change(key: string, next: unknown) {
     if (!value) return;
     const updated = { ...value, [key]: next };
@@ -25,11 +27,12 @@ export function Work24Form({ input, changeInput, busy, submit }: { input: string
       <label>지역 이름·코드 검색 <span className="muted">목록 필터</span><input value={regionQuery} maxLength={100} onChange={event => setRegionQuery(event.target.value)} placeholder="예: 강남, 11680" aria-describedby="work24-region-help" /></label>
       <label htmlFor="work24-region">근무지역 <span className="muted">선택</span></label>
       <select id="work24-region" value={selected?.code ?? unknownCode} onChange={event => change('regionCode', event.target.value)} aria-describedby="work24-region-help">
-        <option value="">지역 조건 없음</option>{unknownCode && <option value={unknownCode}>코드표 미확인 · {unknownCode}</option>}{options.map(region => <option key={region.code} value={region.code}>{region.name} · {region.code}</option>)}
+        <option value="">지역 조건 없음</option>{apiRegion && <option value={apiRegion.code}>API 선택 · {apiRegion.name} · {apiRegion.code}</option>}{unknownCode && !apiRegion && <option value={unknownCode}>코드표 미확인 · {unknownCode}</option>}{options.filter(region => region.code !== apiRegion?.code).map(region => <option key={region.code} value={region.code}>{region.name} · {region.code}</option>)}
       </select>
       <p id="work24-region-help" className="small">공식 XLS {work24Regions.length}개 코드 · 확인 {work24ReferenceCheckedAt}. 목록 검색은 선택 지역을 바꾸지 않습니다. 지역 조건 없음은 필터를 보내지 않으며 ‘지역무관(00000)’은 공급자의 별도 코드입니다.</p>
       {matching.length === 0 && <p role="status">검색된 지역이 없습니다. 목록 검색어를 바꿔 보세요.</p>}
-      {unknownCode && <p role="status">JSON에 입력한 지역 코드는 검토한 목록에 없습니다. 공식 코드표와 승인 범위를 확인하세요.</p>}
+      {apiRegion && <p role="status" className="work24-notice">공통코드 API에서 선택: {apiRegion.parentName ? `${apiRegion.parentName} / ` : ''}{apiRegion.name} · {apiRegion.code}<br />API 조회 시각: {work24Time(apiRegion.retrievedAt)}<br />정적 XLS 코드표와 별도 자료입니다. 조건만 채웠으며 채용공고 조회는 실행하지 않았습니다.</p>}
+      {unknownCode && !apiRegion && <p role="status">JSON에 입력한 지역 코드는 검토한 목록에 없습니다. 공식 코드표와 승인 범위를 확인하세요.</p>}
       <label htmlFor="work24-employment">고용형태 <span className="muted">선택</span></label>
       <select id="work24-employment" value={text('employmentType')} onChange={event => change('employmentType', event.target.value)}><option value="">고용형태 조건 없음</option>{work24EmploymentTypes.map(type => <option key={type.code} value={type.code}>{type.label} · {type.code}</option>)}</select>
       <p className="small">채용구분은 공급자의 기본값인 상용직 검색을 사용합니다. 조회 요약만으로 조건의 전체 일치를 확정하지 않습니다.</p>

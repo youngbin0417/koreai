@@ -4,6 +4,14 @@ const object = (value: unknown): value is Record<string, unknown> => !!value && 
 const integer = (value: unknown, min: number, max: number): value is number => Number.isSafeInteger(value) && Number(value) >= min && Number(value) <= max;
 const nullableText = (value: unknown) => value === null || typeof value === 'string';
 
+export interface Work24RegionSelection { code: string; name: string; parentName: string | null; retrievedAt?: string }
+export function applyWork24Region(input: string, selection: Work24RegionSelection): string {
+  let value: unknown;
+  try { value = JSON.parse(input); } catch { throw new Error('기존 채용공고 검색의 JSON 입력을 수정한 뒤 지역을 다시 선택하세요.'); }
+  if (!object(value) || !/^\d{5}$/.test(selection.code)) throw new Error('채용공고 조건과 지역 코드를 확인하세요.');
+  return JSON.stringify({ ...value, regionCode: selection.code, page: 1 }, null, 2);
+}
+
 export function work24InputState(input: string): { value: Record<string, unknown> | null; error: string | null } {
   let value: unknown;
   try { value = JSON.parse(input); } catch { return { value: null, error: 'JSON 입력을 올바르게 수정하면 조건 입력을 사용할 수 있습니다.' }; }

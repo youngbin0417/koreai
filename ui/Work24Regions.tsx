@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { work24RegionApiDocs, work24ReferenceCheckedAt } from '../src/research/work24-reference';
 import { work24Time } from './work24-model';
+import type { Work24RegionSelection } from './work24-model';
 
 export function work24RegionsInputState(input: string): { value: Record<string, unknown> | null; error: string | null } {
   try {
@@ -40,7 +41,7 @@ function resultData(result: unknown): RegionData | null {
   return data as unknown as RegionData;
 }
 
-export function Work24RegionsResult({ result }: { result: unknown; busy: boolean; onPage: (page: number) => void }) {
+export function Work24RegionsResult({ result, busy, onUseRegion }: { result: unknown; busy: boolean; onPage: (page: number) => void; onUseRegion?: (region: Work24RegionSelection) => void }) {
   const [query, setQuery] = useState('');
   const data = resultData(result);
   if (!data) return <><p className="warning">이 결과는 카드로 표시할 수 없습니다. JSON 상세에서 원문을 확인하세요.</p><details><summary>JSON 상세</summary><pre>{JSON.stringify(result, null, 2)}</pre></details></>;
@@ -55,6 +56,7 @@ export function Work24RegionsResult({ result }: { result: unknown; busy: boolean
       <p role="status">받은 {data.regions.length}개 중 {matching.length}개 표시 · 추가 API 호출 없음</p>
       <ul className="work24-list">{matching.map(row => <li key={row.code}><article className="work24-card" aria-label={`${row.name} · ${row.code}`}>
         <h4>{row.name}</h4><dl><dt>지역 코드</dt><dd>{row.code}</dd><dt>단계</dt><dd>{row.depth === 1 ? '상위' : '하위'}</dd><dt>상위 지역</dt><dd>{row.parentCode ? `${names.get(row.parentCode)} · ${row.parentCode}` : '없음'}</dd></dl>
+        {onUseRegion && <button type="button" disabled={busy} onClick={() => onUseRegion({ code: row.code, name: row.name, parentName: row.parentCode ? names.get(row.parentCode) ?? null : null, retrievedAt: data.retrievedAt })}>이 지역으로 채용공고 조건 채우기</button>}
       </article></li>)}</ul>
     </>}
     <div className="work24-source"><p><strong>출처: 고용24 공통코드 Open API · 지역</strong><br /><a href={work24RegionApiDocs} target="_blank" rel="noreferrer">공식 명세·신청 안내 ↗</a></p><dl><dt>조회 시각</dt><dd>{work24Time(data.retrievedAt)}</dd></dl></div>
