@@ -22,7 +22,7 @@
 | 치지직 | `chzzk.lives.list`, `chzzk.channels.get` | Client 인증의 라이브 페이지·공개 채널 정보 |
 | 공공 동물병원 파일 | `animal-hospitals.search` | 키 없이 선택 지역의 인허가 상태·주소·전화·갱신 원문·EPSG:5174 좌표 조회 |
 | 고용24 | `work24.jobs.search` | 기업회원 승인 키로 검색어·지역 코드·고용형태별 공고 목록, 급여/날짜 원문 조회 |
-| 참가격 공개 파일 | `champrice.prices.search` | 키 없이 2026년 9월 상품·제조사·업소·조사일별 조사 가격과 할인 제공값 조회 |
+| 참가격 공개 파일 | `champrice.prices.search` | 키 없이 검토된 2026년 8월·9월 선택, 상품·제조사·업소·조사일별 조사 가격과 할인 제공값 조회 |
 
 초기 8개 커넥터의 공식 문서 확인일은 **2026-09-29**입니다. 추가 행동의 확인일은 각 `checkedAt`과 개별 문서에 기록합니다. 모든 기본 행동의 최초 검증 상태는 `documented`입니다. 실제 공급자 검증과 운영 범위를 확인하기 전에는 배포 지원으로 표시하지 않습니다.
 
@@ -46,7 +46,7 @@ TMAP은 `tmap.route.car`로 승용차 경로 요약을 조회합니다. `tmap-ap
 
 공공파일 조회는 `method: 'public-data'`로 선언해 공식 API 수와 구분합니다. 동물병원은 계정을 요구하지 않으며 공식 한도 확인 후 고정 HTTPS 파일을 읽습니다. CSV·인코딩·지역·관리번호·필드 검증을 수행하고 자료의 시점과 범위를 결과에 남깁니다. [구현](../src/connectors/animal-hospitals.ts), [사용·검증 경계](ANIMAL_HOSPITALS.md). 모의 응답은 실제 서비스 검증으로 승격하지 않으며 공개 파일의 실제 호출도 검증한 지역/형식 범위 안에서 기록합니다.
 
-참가격도 키 없는 `public-data` 커넥터입니다. 고정 첨부파일을 60초·32MB 상한으로 받고 CP949/UTF-8·CSV·조사월·가격·할인 값을 검증합니다. 파일 전체를 순회해 일치 수를 세고 요청 페이지 행만 보관하며 조사 가격·현재 가격을 구분합니다. [구현](../src/connectors/champrice.ts), [월별 범위·검증](CHAMPRICE.md)
+참가격도 키 없는 `public-data` 커넥터입니다. 검토된 월 목록을 [`champrice-snapshots.ts`](../src/research/champrice-snapshots.ts)에 등록하며 새 월·주소를 자동 선택하지 않습니다. 고정 첨부파일을 60초·32MB 상한으로 받고 CP949/UTF-8·CSV·조사월·가격·할인 값을 검증한 뒤 `VerifiedFileCache`에 저장합니다. 파일 식별자는 월·출처·파일 상세·파서 버전을 포함합니다. 캐시는 기본 7일·64MB·완료 파일 3개, SHA-256 재검증·원자적 게시·동시 다운로드 공유·개별 취소·재시작 복구를 지원합니다. 파일 전체를 순회해 일치 수를 세고 요청 페이지 행만 보관합니다. [실행기](../src/connectors/champrice.ts), [캐시](../src/core/file-cache.ts), [월별 범위·검증](CHAMPRICE.md)
 
 초안 생성 도구:
 

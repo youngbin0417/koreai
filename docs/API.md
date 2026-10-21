@@ -26,7 +26,11 @@
 
 ### 실행 요청
 
-참가격은 `actionId: "champrice.prices.search"`, `input: {"productName":"우유","surveyDate":"2026-09-25","page":1,"limit":10}`과 멱등키로 실행하며 `accountId`는 필요하지 않습니다. 고정 2026년 9월 조사 파일의 로컬 필터이며 검색어를 공급자에게 보내지 않습니다. [입력·결과·파일 시점](CHAMPRICE.md)
+참가격은 `actionId: "champrice.prices.search"`, `input: {"month":"2026-08","productName":"우유","surveyDate":"2026-08-28","page":1,"limit":10}`과 멱등키로 실행하며 `accountId`는 필요하지 않습니다. 검토한 8월·9월 중 선택하고 `month` 생략 시 9월입니다. 조사일이 선택 월과 다르면 입력 검증에서 거절합니다. 검색어는 로컬 필터이며 공급자에게 보내지 않습니다. [입력·결과·자료 시점](CHAMPRICE.md)
+
+참가격의 `result.data.cache`는 `status: downloaded | shared | hit`, `downloadedAt`, `expiresAt`, `byteLength`, `sha256`을 제공합니다. `retrievedAt`은 파일의 다운로드·검증 완료 시각을 유지하고 `queriedAt`에 이번 검색 시각을 반환합니다. 캐시 조회는 신규 공급자 전송을 하지 않아 작업 `dispatched`가 `false`일 수 있습니다. 7일 기한은 캐시 파일의 재사용에 적용하며 기존 조사 가격 작업 이력은 보존합니다. 관리자 미리보기의 `request.availableSnapshots`에 검토한 월과 공개일·조사일·출처를 제공합니다.
+
+기존 9월 요청의 정규화·멱등 해시는 유지합니다. `month`를 생략하거나 `2026-09`로 명시해도 같은 멱등키는 기존 작업과 결과를 반환하며, 같은 키로 8월 조회로 바꾸면 `IDEMPOTENCY_CONFLICT`로 거절합니다.
 
 고용24 조회는 `actionId: "work24.jobs.search"`, 승인된 `work24-api` 계정 ID, `input: {"keyword":"개발자","page":1,"limit":10}`을 사용합니다. HTTP 200의 공급자 서비스 미등록 오류도 작업 `awaiting_auth`·`WORK24_SERVICE_ACCESS_REQUIRED`로 반환합니다. [기업회원 신청 조건과 전체 입력](WORK24.md)
 

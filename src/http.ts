@@ -10,6 +10,7 @@ import { createPlatformVault } from './core/linux-vault.js';
 import { browserDefaults, publicOrigin, type BrowserChannel } from './core/platform.js';
 import { OAuth } from './core/oauth.js';
 import { acquireLock } from './core/lock.js';
+import { VerifiedFileCache } from './core/file-cache.js';
 import { officialActions, officialExecutor } from './connectors/official.js';
 import { kmaAction, kmaExecutor } from './connectors/kma.js';
 import { airkoreaAction, airkoreaExecutor } from './connectors/airkorea.js';
@@ -63,6 +64,7 @@ export async function createRuntime(options:RuntimeOptions){
 }
 async function createUnlockedRuntime(options:RuntimeOptions){
   const store=new Store(join(options.dataDir,'koreai.sqlite'));
+  const champriceCache=new VerifiedFileCache(join(options.dataDir,options.evidenceMode==='mock'?'champrice-cache-mock':'champrice-cache'));
   let vault:Vault;
   let engine:Engine;let browser:BrowserRunner;let connections:LifestyleConnections;
   try{vault=options.vault??createPlatformVault(options.dataDir,options.masterKeyFile??process.env.KOREAI_MASTER_KEY_FILE,{allowCreate:!existsSync(join(options.dataDir,'deepseek.secret.json'))});engine=new Engine(store,vault,options.evidenceMode??'live');
@@ -81,7 +83,8 @@ async function createUnlockedRuntime(options:RuntimeOptions){
     engine.register([kosisAction],kosisExecutor(options.fetcher));
     engine.register([tmapAction],tmapExecutor(options.fetcher));
     engine.register([work24Action],work24Executor(options.fetcher));
-    engine.register([champriceAction],champriceExecutor(options.fetcher));
+    await champriceCache.prepare();
+    engine.register([champriceAction],champriceExecutor(options.fetcher,champriceCache));
     engine.register(vehicleEnergyActions,vehicleEnergyExecutor(options.fetcher));
     engine.register(opggActions,opggExecutor(options.fetcher));
     engine.register([seoulBikeAction],seoulBikeExecutor(options.fetcher,options.allowSeoulBikeHttp===true));
@@ -247,6 +250,6 @@ async function createUnlockedRuntime(options:RuntimeOptions){
   const address=server!.address();if(!address||typeof address==='string')throw new Error('주소를 확인할 수 없습니다.');
   baseUrl=`http://127.0.0.1:${address.port}`;browser.baseUrl=baseUrl;oauth.baseUrl=publicUrl??baseUrl;remote.oauth.baseUrl=publicUrl??baseUrl;
   return {app,server:server!,engine,store,browser,remote,oauth,chats,baseUrl,publicUrl,bootstrapCode,
-    close:async()=>{await chats.close();await engine.close();await remote.close();await browser.close();server!.closeAllConnections();await new Promise<void>((resolveClose,reject)=>server!.close(e=>e?reject(e):resolveClose()));store.close();},
+    close:async()=>{await chats.close();await engine.close();await champriceCache.close();await remote.close();await browser.close();server!.closeAllConnections();await new Promise<void>((resolveClose,reject)=>server!.close(e=>e?reject(e):resolveClose()));store.close();},
   };
 }
