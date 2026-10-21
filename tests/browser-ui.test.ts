@@ -190,12 +190,12 @@ test('animal hospital mobile UI previews and queries public files without accoun
     await page.goto(`${r.baseUrl}/#setup=animal-ui-bootstrap`);await page.getByRole('button',{name:'엔진 연결'}).click();
     await page.getByRole('button',{name:'확장 계획',exact:false}).click();await page.getByLabel('추가 요청 앱만 보기').check();
     const card=page.getByRole('article',{name:'공공 동물병원 정보 확장 계획'});assert((await card.innerText()).includes('키 없이 조회'));await card.getByRole('button',{name:'조회 기능 열기'}).click();
-    const dialog=page.getByRole('dialog');assert.equal(await dialog.getByRole('button',{name:'계정 관리',exact:true}).count(),0);assert(await dialog.getByRole('button',{name:'실행 요청',exact:false}).isEnabled());
+    const dialog=page.getByRole('dialog');assert.equal(await dialog.getByRole('button',{name:'계정 관리',exact:true}).count(),0);assert(await dialog.getByRole('button',{name:'실행 요청',exact:false}).isDisabled());
     await page.getByRole('button',{name:'예시 입력 불러오기'}).click();await page.waitForFunction(()=>document.querySelector<HTMLTextAreaElement>('textarea.code-input')?.value.includes('서울강남구'));
     await page.getByRole('button',{name:'요청 구조 미리보기'}).click();await page.getByRole('heading',{name:'요청 구조 · 외부 호출 없음'}).waitFor();
     const preview=await page.locator('.draft-inspector pre').innerText();assert(preview.includes('file.localdata.go.kr'));assert(preview.includes('download-count'));assert(preview.includes('EPSG:5174'));assert.equal(calls,0);
     await page.getByRole('button',{name:'실행 요청',exact:false}).click();await page.getByRole('heading',{name:'실행 결과',exact:true}).waitFor();
-    const text=await page.getByRole('dialog').innerText();assert(text.includes('시험동물병원'));assert(text.includes('"currentlyTreating": null'));assert(text.includes('"latitude": null'));assert(text.includes('EPSG:5174'));assert.equal(calls,2);
+    await page.getByText('JSON 상세',{exact:true}).click();const text=await page.getByRole('dialog').innerText();assert(text.includes('시험동물병원'));assert(text.includes('"currentlyTreating": null'));assert(text.includes('"latitude": null'));assert(text.includes('EPSG:5174'));assert.equal(calls,2);
     assert.equal(r.engine.accounts().length,0);assert.equal(r.engine.metrics().verifiedServices,0);assert.deepEqual(errors,[]);assert(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth));
     const dir=resolve('.test-data/screenshots');mkdirSync(dir,{recursive:true});await page.screenshot({path:resolve(dir,'animal-hospitals-mobile.png'),fullPage:true});
   }finally{await browser.close();await r.close();}
