@@ -2,8 +2,9 @@ import { z } from 'zod';
 import { zodToJsonSchema } from 'zod-to-json-schema';
 import { XMLParser, XMLValidator } from 'fast-xml-parser';
 import { ActionError, type Action, type Executor } from '../types.js';
+import { work24Docs, work24SourceLink } from '../research/work24-reference.js';
 export const work24Endpoint = 'https://www.work24.go.kr/cm/openApi/call/wk/callOpenApiSvcInfo210L01.do';
-export const work24Docs = 'https://www.work24.go.kr/cm/e/a/0110/selectOpenApiSvcInfo.do?apiSvcId=000000000000000000000000000060&fullApiSvcId=000000000000000000000000000000%5E000000000000000000000000000001&upprApiSvcId=000000000000000000000000000059';
+export { work24Docs } from '../research/work24-reference.js';
 export const work24Schema = z.object({ keyword: z.string().min(1).max(100).refine(v => !/[|,\p{C}]/u.test(v), '검색어는 제어문자·다중 구분자 없이 입력하세요.').transform(v => v.trim()).pipe(z.string().min(1)), regionCode: z.string().regex(/^\d{5}$/).optional(), employmentType: z.enum(['10', '11', '20', '21']).optional(), page: z.number().int().min(1).max(1000).default(1), limit: z.number().int().min(1).max(100).default(10) }).strict();
 export const work24Action: Action = { id: 'work24.jobs.search', serviceId: 'work24', connectorId: 'work24-jobs-api', title: '고용24 채용공고 찾기', description: '승인받은 기업회원 API 키로 검색어·지역 코드·고용형태에 따른 채용공고 목록 한 페이지를 조회합니다. 회사·제목·근무지역·급여/마감 원문과 검증 가능한 원문 링크를 반환하며 이력서·지원·개인 추천은 수행하지 않습니다.', category: '교육·취업', effect: 'read', method: 'api', schema: work24Schema, inputSchema: zodToJsonSchema(work24Schema, { $refStrategy: 'none' }) as Record<string, unknown>, credentialType: 'work24-api', requiredSecrets: ['authKey'], scopes: [], sourceUrl: work24Docs, checkedAt: '2026-10-21', verification: 'documented', resultCheck: 'XML·공급자 오류·페이지/출력 수·총건수·구인인증번호 중복·제공된 고용형태와 원문 링크의 인증번호를 검증합니다. 급여·날짜·채용시까지는 원문으로 보존하며 검색어/지역의 전체 내용 일치는 미확인입니다.', domains: ['www.work24.go.kr'], version: '0.1.0', maintainer: 'KoreAI', origin: 'bundled', implemented: true };
 export function work24Example() { return { keyword: '개발자', page: 1, limit: 10 }; }
@@ -12,16 +13,6 @@ const invalid = () => new ActionError('INVALID_RESPONSE', '고용24 응답의 XM
 const text = z.string().max(4000), id = z.string().regex(/^[A-Za-z0-9_-]{1,80}$/), integer = z.string().regex(/^\d+$/).transform(Number).pipe(z.number().int().nonnegative().max(100000000));
 const rowSchema = z.object({ wantedAuthNo: id, company: text.min(1), title: text.min(1), region: text.min(1), salTpNm: text.nullish(), sal: text.nullish(), minSal: text.nullish(), maxSal: text.nullish(), holidayTpNm: text.nullish(), minEdubg: text.nullish(), maxEdubg: text.nullish(), career: text.nullish(), regDt: text.nullish(), closeDt: text.nullish(), infoSvc: text.nullish(), wantedInfoUrl: text.nullish(), empTpCd: z.string().regex(/^(?:\d{1,3})?$/).nullish(), jobsCd: z.string().regex(/^(?:\d{1,10})?$/).nullish(), smodifyDtm: text.nullish() });
 const parser = new XMLParser({ parseTagValue: false, trimValues: true, ignoreAttributes: true, ignoreDeclaration: true, processEntities: { enabled: true, maxTotalExpansions: 10000, maxExpandedLength: 100000 } });
-function sourceLink(raw: string | null | undefined, authNo: string) { if (!raw)
-    return null; try {
-    const u = new URL(raw);
-    if (u.protocol !== 'https:' || u.username || u.password || u.hash || !['www.work24.go.kr', 'www.work.go.kr', 'www.worknet.go.kr'].includes(u.hostname) || u.searchParams.getAll('wantedAuthNo').length !== 1 || u.searchParams.get('wantedAuthNo') !== authNo || [...u.searchParams.keys()].some(k => /token|authkey|secret|cookie|password/i.test(k)))
-        return null;
-    return u.href;
-}
-catch {
-    return null;
-} }
 const optional = (value: string | null | undefined) => value || null;
 export function normalizeWork24Response(raw: string, rawInput: unknown) {
     const input = work24Schema.parse(rawInput);
@@ -59,7 +50,7 @@ export function normalizeWork24Response(raw: string, rawInput: unknown) {
         if (seen.has(row.wantedAuthNo) || input.employmentType && row.empTpCd && row.empTpCd !== input.employmentType)
             throw invalid();
         seen.add(row.wantedAuthNo);
-        const link = sourceLink(row.wantedInfoUrl, row.wantedAuthNo);
+        const link = work24SourceLink(row.wantedInfoUrl, row.wantedAuthNo);
         return { jobId: row.wantedAuthNo, company: row.company, title: row.title, regionRaw: row.region,
             salary: { formRaw: optional(row.salTpNm), textRaw: optional(row.sal), minimumRaw: optional(row.minSal), maximumRaw: optional(row.maxSal), normalizedAmount: null, normalizedUnit: null }, workScheduleRaw: optional(row.holidayTpNm), educationMinimumRaw: optional(row.minEdubg), educationMaximumRaw: optional(row.maxEdubg), careerRaw: optional(row.career), registeredOnRaw: optional(row.regDt), deadlineRaw: optional(row.closeDt), providerModifiedAtRaw: optional(row.smodifyDtm), sourceProviderRaw: optional(row.infoSvc), employmentTypeRaw: optional(row.empTpCd), occupationCodeRaw: optional(row.jobsCd), url: link, sourceLinkVerified: link !== null, currentlyAcceptingApplications: null };
     });
