@@ -10,10 +10,12 @@ import { champriceInputState } from './champrice-model';
 import { AnimalHospitalsForm, AnimalHospitalsResult } from './AnimalHospitals';
 import { animalHospitalInputState } from './animal-hospitals-model';
 import { Work24Form, Work24Result } from './Work24';
+import { Work24RegionsForm, Work24RegionsResult, work24RegionsInputState } from './Work24Regions';
 import { work24InputState } from './work24-model';
 import type { ApiCandidate } from '../src/research/app-api-backlog';
 
 const actionViews = new Map([
+  ['work24.regions.list', { Form: Work24RegionsForm, Result: Work24RegionsResult, inputState: work24RegionsInputState, formId: 'work24-regions' }],
   ['champrice.prices.search', { Form: ChampriceForm, Result: ChampriceResult, inputState: champriceInputState, formId: 'champrice-search' }],
   ['animal-hospitals.search', { Form: AnimalHospitalsForm, Result: AnimalHospitalsResult, inputState: animalHospitalInputState, formId: 'animal-hospitals-search' }],
   ['work24.jobs.search', { Form: Work24Form, Result: Work24Result, inputState: work24InputState, formId: 'work24-search' }],
@@ -28,7 +30,7 @@ interface State{ai:{model:string;configured:boolean};mcpOAuthRedirectUri:string}
 interface State{services:Service[];actions:PublicAction[];accounts:Omit<Account,'sealed'>[];clients:Omit<ClientRecord,'tokenHash'>[];jobs:PublicJob[];metrics:{jobs:number;pending:number;verifiedServices:number;supportedActions:number;byAction:{actionId:string;requests:number;succeeded:number;failed:number;needsReview:number;interventions:number}[]};evidence:Evidence[];runtime:{platform:string;vault:string;seoulBikeHttpAllowed:boolean};browser:{open:boolean;channel:string;headless:boolean;busy:boolean};remotes:Omit<RemoteServer,'sealed'>[];oauthRedirectUri:string;defaultTimezone:string}
 const labels:Record<string,string>={pending_approval:'승인 대기',queued:'접수됨',running:'실행 중',awaiting_auth:'인증 필요',awaiting_user:'사용자 작업 대기',needs_review:'결과 확인 필요',succeeded:'완료',failed:'실패',cancelled:'취소됨',unresearched:'미조사',documented:'문서 확인',account_verified:'실제 응답 검증',supported:'배포 지원',suspended:'중단',api:'공식 API','public-data':'공공파일 조회',browser:'브라우저',mcp:'MCP 연결',handoff:'사용자 직접 진행',partnership:'제휴·허용 범위 확인'};
 const credentials:Record<string,{name:string;fields:string[];help:string}>={
-  'work24-api':{name:'고용24 채용정보',fields:['authKey'],help:'고용24 기업회원 가입 후 채용정보 Open API를 신청하고 심사를 통과해 발급받은 인증키를 등록하세요. 개인회원 로그인이나 공공데이터포털·LLM 키로는 연결할 수 없습니다. 공개 채용공고만 조회하며 이력서·입사 지원은 처리하지 않습니다.'},
+  'work24-api':{name:'고용24 채용정보',fields:['authKey'],help:'고용24 기업회원 가입 후 사용할 채용정보·공통코드 Open API의 신청/심사 상태와 키를 확인하세요. 지역 코드 조회는 채용공고 조회와 별도로 허용해야 합니다. 개인회원 로그인이나 공공데이터포털·LLM 키로는 연결할 수 없습니다. 공개 채용공고만 조회하며 이력서·입사 지원은 처리하지 않습니다.'},
   'tmap-api':{name:'TMAP 자동차 경로',fields:['appKey'],help:'SK open API의 TMAP 상품을 신청하고 본인 appKey를 등록하세요. 경로안내 Free 일 1,000건 안내와 유료 요금제는 별도입니다. 좌표를 공급자에 전송하며 결과는 24시간 이후 사용하지 않습니다.'},
   'ev-chargers-api':{name:'전기차 충전소 정보',fields:['serviceKey'],help:'공공데이터포털에서 한국환경공단 전기자동차 충전소 정보를 활용 신청하고 일반 인증키(Decoding)를 등록하세요. 지역 코드·충전기 종류·보고 상태·변경 시각과 이용 제한을 확인합니다. 이름/타입 필터는 받은 한 페이지에만 적용하며 도착 시 충전 가능은 확정하지 않습니다.'},
   'opinet-api':{name:'오피넷 주유소',fields:['apiKey'],help:'오피넷 유가정보 API 신청 후 발급받은 본인 키를 등록하세요. 공공데이터포털 키와 다릅니다. 지역코드 조회부터 진행하고 보고 가격·기준 시각을 확인하세요. 일반 API 하루 300회 안내와 상업적 이용 조건을 확인해야 합니다. 빈 응답은 무효 키와 결과 부재를 구분할 수 없어 결과 확인 필요로 중단합니다.'},

@@ -1,8 +1,25 @@
 import assert from 'node:assert/strict';
 import { work24Endpoint } from '../src/connectors/work24.js';
+import { work24RegionsEndpoint } from '../src/connectors/work24-regions.js';
 
 export const work24Secret='unit-work24-private-key+/%';
 export const work24AccessError='<GO24><error>신청하신 OpenApi 서비스가 존재하지 않습니다</error></GO24>';
+export function work24RegionTree(childName='강남구') {
+  return `<oneDepth><regionCd>11000</regionCd><regionNm>서울</regionNm><twoDepth><regionCd>11680</regionCd><regionNm>${escape(childName)}</regionNm><superCd>11000</superCd></twoDepth></oneDepth><oneDepth><regionCd>00000</regionCd><regionNm>지역무관</regionNm></oneDepth>`;
+}
+export function work24RegionsXml(tree=work24RegionTree(),total=3) {
+  return `<?xml version="1.0" encoding="UTF-8"?><cmcdRegion><total>${total}</total><codeName>지역코드</codeName>${tree}</cmcdRegion>`;
+}
+export function work24RegionsMock() {
+  const calls:URL[]=[],flags={status:200,body:work24RegionsXml()};
+  const fetcher:typeof fetch=async(address,init)=>{
+    const url=new URL(String(address));assert.equal(url.origin+url.pathname,work24RegionsEndpoint);
+    assert.deepEqual([...url.searchParams.keys()].sort(),['authKey','dtlGb','returnType','target']);
+    assert.equal(url.searchParams.get('authKey'),work24Secret);assert.equal(url.searchParams.get('dtlGb'),'1');assert.equal(url.searchParams.get('returnType'),'XML');assert.equal(url.searchParams.get('target'),'CMCD');
+    assert.equal(init?.method,'GET');assert.equal(init.redirect,'error');assert.equal(init.cache,'no-store');assert.equal(init.body,undefined);assert.equal(new Headers(init.headers).get('Authorization'),null);calls.push(url);
+    return new Response(flags.body,{status:flags.status});
+  };return{calls,flags,fetcher};
+}
 const escape=(value:unknown)=>String(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[c]!));
 export function work24Row(patch:Record<string,string>={}) {
   const row={wantedAuthNo:'K000000001',company:'시험 & 회사',title:'개발자 모집',region:'서울 시험구',salTpNm:'월급',sal:'250만원 ~ 300만원',minSal:'002500000',maxSal:'3000000',holidayTpNm:'주 5일 근무',minEdubg:'학력무관',career:'관계없음',regDt:'26-10-20',closeDt:'채용시까지',infoSvc:'고용24',empTpCd:'10',jobsCd:'001234',smodifyDtm:'20261021120000',wantedInfoUrl:'https://www.work24.go.kr/wk/a/b/1500/empDetailAuthView.do?wantedAuthNo=K000000001',busino:'private-business-number',basicAddr:'private-address',detailAddr:'private-detail-address',...patch};

@@ -16,6 +16,7 @@ import { lhAction, lhExample, lhRequestTemplate } from '../lh.js';
 import { kosisAction, kosisExample, kosisRequestTemplate } from '../kosis.js';
 import { tmapAction, tmapExample, tmapRequestTemplate } from '../tmap.js';
 import { work24Action, work24Example, work24RequestTemplate } from '../work24.js';
+import { work24RegionsAction, work24RegionsExample, work24RegionsRequestTemplate } from '../work24-regions.js';
 import { champriceAction, champriceExample, champriceRequestTemplate } from '../champrice.js';
 import { vehicleEnergyActions, vehicleEnergyExample, vehicleEnergyRequestTemplate } from '../vehicle-energy.js';
 import { opggActions, opggExample, opggRequestTemplate } from '../opgg.js';
@@ -46,6 +47,7 @@ interface Definition {
 
 // Request templates contain no secrets and never dispatch HTTP.
 const definitions: Definition[] = [
+  {actionId:work24RegionsAction.id,serviceId:work24RegionsAction.serviceId,title:work24RegionsAction.title,description:work24RegionsAction.description,schema:work24RegionsAction.schema,example:work24RegionsExample(),resultCheck:work24RegionsAction.resultCheck,request:work24RegionsRequestTemplate},
   {actionId:champriceAction.id,serviceId:champriceAction.serviceId,title:champriceAction.title,description:champriceAction.description,schema:champriceAction.schema,example:champriceExample(),resultCheck:champriceAction.resultCheck,request:champriceRequestTemplate},
   {actionId:work24Action.id,serviceId:work24Action.serviceId,title:work24Action.title,description:work24Action.description,schema:work24Action.schema,example:work24Example(),resultCheck:work24Action.resultCheck,request:work24RequestTemplate},
   {actionId:tmapAction.id,serviceId:tmapAction.serviceId,title:tmapAction.title,description:tmapAction.description,schema:tmapAction.schema,example:tmapExample(),resultCheck:tmapAction.resultCheck,request:tmapRequestTemplate},
@@ -139,6 +141,7 @@ const definitions: Definition[] = [
 ];
 
 export const planningActions: Action[] = definitions.map(definition => {
+  if(definition.actionId===work24RegionsAction.id)return work24RegionsAction;
   if(definition.actionId===champriceAction.id)return champriceAction;
   if(definition.actionId===work24Action.id)return work24Action;
   if(definition.actionId===tmapAction.id)return tmapAction;

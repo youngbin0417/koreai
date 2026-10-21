@@ -26,6 +26,7 @@ import { lhAction, lhExecutor } from './connectors/lh.js';
 import { kosisAction, kosisExecutor } from './connectors/kosis.js';
 import { tmapAction, tmapExecutor } from './connectors/tmap.js';
 import { work24Action, work24Executor } from './connectors/work24.js';
+import { work24RegionsAction, work24RegionsExecutor } from './connectors/work24-regions.js';
 import { champriceAction, champriceExecutor } from './connectors/champrice.js';
 import { vehicleEnergyActions, vehicleEnergyExecutor } from './connectors/vehicle-energy.js';
 import { opggActions, opggExecutor } from './connectors/opgg.js';
@@ -83,6 +84,7 @@ async function createUnlockedRuntime(options:RuntimeOptions){
     engine.register([kosisAction],kosisExecutor(options.fetcher));
     engine.register([tmapAction],tmapExecutor(options.fetcher));
     engine.register([work24Action],work24Executor(options.fetcher));
+    engine.register([work24RegionsAction],work24RegionsExecutor(options.fetcher));
     await champriceCache.prepare();
     engine.register([champriceAction],champriceExecutor(options.fetcher,champriceCache));
     engine.register(vehicleEnergyActions,vehicleEnergyExecutor(options.fetcher));

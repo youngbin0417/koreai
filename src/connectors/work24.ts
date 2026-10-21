@@ -9,13 +9,13 @@ export const work24Schema = z.object({ keyword: z.string().min(1).max(100).refin
 export const work24Action: Action = { id: 'work24.jobs.search', serviceId: 'work24', connectorId: 'work24-jobs-api', title: '고용24 채용공고 찾기', description: '승인받은 기업회원 API 키로 검색어·지역 코드·고용형태에 따른 채용공고 목록 한 페이지를 조회합니다. 회사·제목·근무지역·급여/마감 원문과 검증 가능한 원문 링크를 반환하며 이력서·지원·개인 추천은 수행하지 않습니다.', category: '교육·취업', effect: 'read', method: 'api', schema: work24Schema, inputSchema: zodToJsonSchema(work24Schema, { $refStrategy: 'none' }) as Record<string, unknown>, credentialType: 'work24-api', requiredSecrets: ['authKey'], scopes: [], sourceUrl: work24Docs, checkedAt: '2026-10-21', verification: 'documented', resultCheck: 'XML·공급자 오류·페이지/출력 수·총건수·구인인증번호 중복·제공된 고용형태와 원문 링크의 인증번호를 검증합니다. 급여·날짜·채용시까지는 원문으로 보존하며 검색어/지역의 전체 내용 일치는 미확인입니다.', domains: ['www.work24.go.kr'], version: '0.1.0', maintainer: 'KoreAI', origin: 'bundled', implemented: true };
 export function work24Example() { return { keyword: '개발자', page: 1, limit: 10 }; }
 export function work24RequestTemplate(raw: unknown) { const input = work24Schema.parse(raw); return { method: 'GET' as const, endpoint: work24Endpoint, query: { callTp: 'L', returnType: 'XML', startPage: input.page, display: input.limit, keyword: input.keyword, sortOrderBy: 'DESC', ...(input.regionCode ? { region: input.regionCode } : {}), ...(input.employmentType ? { empTp: input.employmentType } : {}) }, authentication: { secretField: 'authKey' as const, queryParameter: 'authKey' }, responseFormat: 'xml' as const }; }
-const invalid = () => new ActionError('INVALID_RESPONSE', '고용24 응답의 XML·목록·페이지·구인인증번호가 유효하지 않습니다.');
+const invalid = () => new ActionError('INVALID_RESPONSE', '고용24 응답의 XML·목록·필수 항목이 유효하지 않습니다.');
 const text = z.string().max(4000), id = z.string().regex(/^[A-Za-z0-9_-]{1,80}$/), integer = z.string().regex(/^\d+$/).transform(Number).pipe(z.number().int().nonnegative().max(100000000));
 const rowSchema = z.object({ wantedAuthNo: id, company: text.min(1), title: text.min(1), region: text.min(1), salTpNm: text.nullish(), sal: text.nullish(), minSal: text.nullish(), maxSal: text.nullish(), holidayTpNm: text.nullish(), minEdubg: text.nullish(), maxEdubg: text.nullish(), career: text.nullish(), regDt: text.nullish(), closeDt: text.nullish(), infoSvc: text.nullish(), wantedInfoUrl: text.nullish(), empTpCd: z.string().regex(/^(?:\d{1,3})?$/).nullish(), jobsCd: z.string().regex(/^(?:\d{1,10})?$/).nullish(), smodifyDtm: text.nullish() });
 const parser = new XMLParser({ parseTagValue: false, trimValues: true, ignoreAttributes: true, ignoreDeclaration: true, processEntities: { enabled: true, maxTotalExpansions: 10000, maxExpandedLength: 100000 } });
 const optional = (value: string | null | undefined) => value || null;
-export function normalizeWork24Response(raw: string, rawInput: unknown) {
-    const input = work24Schema.parse(rawInput);
+// Both documented Work24 read endpoints use the same bounded XML/error handling.
+export function parseWork24Xml(raw: string): any {
     if (raw.length > 2000000)
         throw new ActionError('RESULT_TOO_LARGE', '고용24 응답이 너무 큽니다.');
     if (/<!DOCTYPE|<!ENTITY/i.test(raw) || XMLValidator.validate(raw) !== true)
@@ -32,9 +32,13 @@ export function normalizeWork24Response(raw: string, rawInput: unknown) {
         if (!error.success)
             throw invalid();
         if (error.data.error.replace(/\s+/g, ' ').trim() === '신청하신 OpenApi 서비스가 존재하지 않습니다')
-            throw new ActionError('WORK24_SERVICE_ACCESS_REQUIRED', '고용24 기업회원·채용정보 서비스 심사/신청과 인증키를 확인한 뒤 재개하세요.', 'awaiting_auth');
-        throw new ActionError('WORK24_PROVIDER_ERROR', '고용24가 정상 채용정보를 반환하지 않았습니다. 조회 조건·신청 상태·서비스를 확인하세요.');
+            throw new ActionError('WORK24_SERVICE_ACCESS_REQUIRED', '고용24 기업회원·요청한 Open API 서비스의 심사/신청과 인증키를 확인한 뒤 재개하세요.', 'awaiting_auth');
+        throw new ActionError('WORK24_PROVIDER_ERROR', '고용24가 정상 정보를 반환하지 않았습니다. 조회 조건·신청 상태·서비스를 확인하세요.');
     }
+    return root;
+}
+export function normalizeWork24Response(raw: string, rawInput: unknown) {
+    const input = work24Schema.parse(rawInput), root = parseWork24Xml(raw);
     const envelope = z.object({ total: integer, startPage: integer, display: integer, wanted: z.unknown().optional() }).safeParse(root?.wantedRoot);
     if (!envelope.success)
         throw invalid();
@@ -89,15 +93,18 @@ async function readBody(response: Response) {
     }
 }
 export function work24Executor(fetcher: typeof fetch = fetch): Executor {
+    return work24XmlExecutor(work24Action, work24RequestTemplate, normalizeWork24Response, fetcher);
+}
+export function work24XmlExecutor(registered: Action, request: (input: unknown) => { endpoint: string; query: Record<string, string | number> }, normalize: (raw: string, input: unknown) => unknown, fetcher: typeof fetch = fetch): Executor {
     return async (action, context) => {
-        if (action.id !== work24Action.id)
+        if (action.id !== registered.id)
             throw new ActionError('NOT_IMPLEMENTED', '고용24 실행기에 등록되지 않은 행동입니다.');
-        const input = work24Schema.parse(context.job.input), template = work24RequestTemplate(input), key = context.secrets.authKey?.trim();
+        const input = registered.schema.parse(context.job.input), template = request(input), key = context.secrets.authKey?.trim();
         if (!key || key.length > 4096 || /[^\x21-\x7e]/.test(key))
-            throw new ActionError('AUTH_REQUIRED', '고용24에서 승인받은 채용정보 인증키를 등록하세요.', 'awaiting_auth');
+            throw new ActionError('AUTH_REQUIRED', '고용24에서 요청한 서비스의 이용을 승인받은 인증키를 등록하세요.', 'awaiting_auth');
         if (context.signal.aborted)
             throw new ActionError('CANCELLED', '작업이 취소됐습니다.', 'cancelled');
-        const url = new URL(work24Endpoint);
+        const url = new URL(template.endpoint);
         for (const [k, v] of Object.entries(template.query))
             url.searchParams.set(k, String(v));
         url.searchParams.set('authKey', key);
@@ -106,15 +113,15 @@ export function work24Executor(fetcher: typeof fetch = fetch): Executor {
             context.dispatch();
             const response = await fetcher(url, { method: 'GET', headers: { Accept: 'application/xml' }, redirect: 'error', cache: 'no-store', signal });
             if ([401, 403].includes(response.status))
-                throw new ActionError('AUTH_REQUIRED', '고용24 키·기업회원·채용정보 승인 권한을 확인하세요.', 'awaiting_auth');
+                throw new ActionError('AUTH_REQUIRED', '고용24 키·기업회원·요청한 서비스 승인 권한을 확인하세요.', 'awaiting_auth');
             if (response.status === 429)
                 throw new ActionError('PROVIDER_RATE_LIMIT', '고용24 호출 한도를 초과했습니다. 자동 재시도하지 않습니다.');
             if (!response.ok)
                 throw new ActionError(`PROVIDER_HTTP_${response.status}`, '고용24가 정상 응답을 반환하지 않았습니다.');
-            const data = normalizeWork24Response(await readBody(response), input);
+            const data = normalize(await readBody(response), input);
             if (context.signal.aborted)
                 throw new ActionError('CANCELLED', '작업이 취소됐습니다.', 'cancelled');
-            return { data, evidence: work24Action.resultCheck };
+            return { data, evidence: registered.resultCheck };
         }
         catch (error) {
             if (context.signal.aborted)

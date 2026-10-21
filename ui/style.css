@@ -16,3 +16,4 @@
 .requested-plan{margin-top:16px;overflow-wrap:anywhere}.requested-plan dt{font-weight:600;margin-top:12px}.requested-plan dd{margin:6px 0;font-size:13px}
 
 .work24-job-link{display:block;min-height:44px;padding:12px 0;margin:8px 0}.work24-card small{display:block}.work24-card dl{grid-template-columns:108px minmax(0,1fr)}
+.work24-result input{font-size:16px;min-height:44px;width:100%}

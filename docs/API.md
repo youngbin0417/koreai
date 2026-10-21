@@ -34,6 +34,8 @@
 
 고용24 조회는 `actionId: "work24.jobs.search"`, 승인된 `work24-api` 계정 ID, `input: {"keyword":"개발자","page":1,"limit":10}`을 사용합니다. HTTP 200의 공급자 서비스 미등록 오류도 작업 `awaiting_auth`·`WORK24_SERVICE_ACCESS_REQUIRED`로 반환합니다. [기업회원 신청 조건과 전체 입력](WORK24.md)
 
+고용24 지역 코드는 `actionId: "work24.regions.list"`, `input: {}`, 해당 행동을 명시적으로 허용한 `work24-api` 계정 ID와 클라이언트 권한으로 조회합니다. 기존 채용공고 권한만으로는 실행할 수 없습니다. `result.data.regions`는 `code/name/parentCode/depth`, `counts`는 공급자 total·수신/상위/하위 건수를 제공합니다. `providerTotalBasis: "unconfirmed"`·`completenessVerified: false`로 집계 범위 미확인을 표시하며 정적 XLS 목록을 변경하지 않습니다. `GET /api/drafts/work24.regions.list/example`와 `POST /api/drafts/work24.regions.list/preview`는 키·외부 호출 없이 사용합니다. [입력·결과·승인 조건](WORK24.md#공통코드-지역-조회)
+
 기간 제한이 있는 행동은 `Action.resultTtlMs`를 선언하고 성공 작업에 `resultExpiresAt`을 반환합니다. 만료 후 상세/목록/같은 멱등 요청은 결과 본문을 제거하고 `RESULT_EXPIRED`를 표시합니다. 작업 성공 이력은 보존하고 재전송하지 않습니다. 해당 결과를 포함한 대화의 재개는 `CHAT_RESULT_EXPIRED`로 거절하며 모델용 프로토콜과 이후 AI 응답을 정리합니다. [TMAP 사용기한](TMAP.md#요금과-결과-사용기한)
 
 공급자 종료·이용 제한 행동은 관리자 응답의 `unavailable: {kind, reason, sourceUrl, effectiveAt, checkedAt}`와 `enabled: false`로 표시합니다. 에이전트의 `/api/actions`에서는 제외하고 신규 권한·실행·재개는 HTTP 409의 `SERVICE_RETIRED` 또는 `PROVIDER_POLICY_RESTRICTED`로 거절합니다. 이전 작업 결과는 관리자 이력에 보존하되 에이전트 응답에서는 결과 본문을 제외하고 `RESULT_UNAVAILABLE` 사유를 반환합니다. 중단 행동이 있는 이전 대화의 추가 메시지는 `CHAT_ACTION_UNAVAILABLE`로 거절합니다. [네이버 적용 범위](NAVER_AVAILABILITY.md)
