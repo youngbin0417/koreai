@@ -1,0 +1,16 @@
+서울교통공사 국문 노선도 원본
+
+출처: 서울교통공사, 수도권 지하철 노선도 4종(국영중일)_20251208 중 국문 원본
+https://www.data.go.kr/data/15120713/fileData.do
+
+이용 조건: 공공누리 제3유형 — 출처표시·변경금지 (2026-10-25 확인)
+이 JPG에는 KoreAI 코드의 Apache-2.0 라이선스를 적용하지 않습니다.
+원본 바이트를 그대로 보존했으며 화면의 확대·스크롤만 제공합니다.
+원본을 재사용할 때도 출처와 이용 조건을 유지하세요.
+
+파일: seoul-metro-ko-20251208.jpg
+크기: 10509901바이트, 6142×6142
+SHA-256: 8c8dbb0451384a3b703a1709bafc220ca4bc7e4959868ba5bf0f6af6f3151914
+원본 ZIP: https://www.data.go.kr/cmm/cmm/fileDownload.do?atchFileId=FILE_000000003557016&fileDetailSn=1&insertDataPrcus=N
+ZIP 내 원본: 25년 노선도리뉴얼 국문(25.12.).jpg
+본 서비스에 대한 서울교통공사의 후원·공식 인증을 의미하지 않습니다.
