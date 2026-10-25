@@ -1,8 +1,9 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState, type PointerEvent } from 'react';
 import { subwayMapSnapshot as snapshot } from '../src/research/subway-map';
 import { subwayMapCenterOffset, subwayMapLayout } from './subway-map-model';
+import { SubwayStations, type SubwayStationsProps } from './SubwayStations';
 
-export function SubwayMap() {
+export function SubwayMap({ busy, onApplyStation }: SubwayStationsProps = {}) {
   const [status, setStatus] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
   const [attempt, setAttempt] = useState(0);
   const [fitWidth, setFitWidth] = useState(300);
@@ -47,7 +48,8 @@ export function SubwayMap() {
     <div className="page-heading"><div><h1>지하철 노선도</h1><p>공식 국문 원본을 확대하고 이동하며 봅니다.</p></div></div>
     <div className="info-strip">자료명 기준일 {snapshot.declaredAsOf}의 보관본입니다. 이후 개통·운행 변경은 <a href={snapshot.currentMapUrl} target="_blank" rel="noreferrer">최신 공식 노선도 ↗</a>에서 확인하세요.</div>
     <p className="subway-map-credit">{snapshot.attribution}<br/><a href={snapshot.sourceUrl} target="_blank" rel="noreferrer">{snapshot.license} · 공식 출처 ↗</a><br/><small>출처 페이지 수정일 {snapshot.pageModifiedOn} · 원본 확인일 {snapshot.checkedAt}. 페이지 수정일은 노선도 갱신일과 다릅니다.</small></p>
-    <p className="small">원본 JPG 약 10.5MB를 불러옵니다. 이 화면에서는 역 선택·경로 계산·실시간 운행 정보를 제공하지 않습니다.</p>
+    <SubwayStations busy={busy} onApplyStation={onApplyStation}/>
+    <p className="small">원본 JPG 약 10.5MB를 불러옵니다. 이미지는 원본 열람용입니다. 역 목록의 조회 조건 연결과 별개이며 경로 계산·실시간 운행 표시는 제공하지 않습니다.</p>
     {status === 'idle' ? <button className="primary" onClick={load}>국문 노선도 불러오기 · 10.5MB</button> : <>
       <div className="subway-map-tools" role="group" aria-label="노선도 확대와 이동">
         <button disabled={!ready || layout.zoom <= 100} onClick={() => changeZoom(layout.zoom / 1.5)}>축소</button>
