@@ -7,6 +7,7 @@ After=network.target
 [Service]
 Type=simple
 WorkingDirectory=%h/koreai
+# API keys: .env in WorkingDirectory, or set KOREAI_ENV_FILE to a private env file.
 ExecStart=/usr/bin/node %h/koreai/dist/server.js --headless --data-dir %h/.local/share/koreai
 Environment=NODE_ENV=production
 Environment=KOREAI_MASTER_KEY_FILE=%h/.config/koreai/master.key

@@ -1,6 +1,6 @@
 import { useId, useState } from 'react';
 import { findSubwayStation, subwayArrivalQueryName, subwayStationLines, subwayStationReference as source } from '../src/research/subway-stations';
-import { searchSubwayStations, stationDraftMatches, stationTargetAvailable, type StationTarget } from './subway-stations-model';
+import { searchSubwayStations, stationDraftMatches, stationTargetAvailable, type StationTarget, type StationDraft } from './subway-stations-model';
 
 export interface SubwayStationsProps { busy?: boolean; onApplyStation?: (target: StationTarget, stationId: string, endpoint?: 'origin' | 'destination') => void }
 export function SubwayStations({ busy = false, onApplyStation }: SubwayStationsProps) {
@@ -27,8 +27,8 @@ export function SubwayStations({ busy = false, onApplyStation }: SubwayStationsP
     <p className="small">{source.attribution}<br/><a href={source.sourceUrl} target="_blank" rel="noreferrer">{source.fileName} · {source.license} ↗</a> · 확인일 {source.checkedAt}</p>
   </section>;
 }
-export function SubwayStationNotice({ target, input, stationId }: { target: StationTarget; input: string; stationId?: string }) {
+export function SubwayStationNotice({ target, input, stationId, routeSource }: { target: StationTarget; input: string; stationId?: string; routeSource?: StationDraft['routeSource'] }) {
   const selected = stationId ? findSubwayStation(stationId) : undefined;
   if (!selected || !stationDraftMatches(target, input, stationId)) return null;
-  return <p className="info-strip">역 목록에서 적용: {selected.name} · {selected.line} (참조일 {source.asOf}). 검색 조건을 확인하세요. 역 선택은 외부 조회·계정 권한을 자동 승인하지 않습니다.</p>;
+  return <div className="info-strip"><p>역 목록에서 적용: {selected.name} · {selected.line} (참조일 {source.asOf}). 검색 조건을 확인하세요. 역 선택은 외부 조회·계정 권한을 자동 승인하지 않습니다.</p>{routeSource && <p>경로 결과의 원문 역명·호선 일치 후보: {routeSource.stationName} · {routeSource.line}<br/>경로 기준 시각: {routeSource.searchAt}<br/>경로 조회 시각: {routeSource.retrievedAt}<br/>출처 작업: {routeSource.jobId}. 코드 대응은 미검증이며 시각은 출처 설명입니다. 새 조회의 기존 시간·필터는 유지합니다.</p>}</div>;
 }

@@ -2,6 +2,7 @@ import { pathToFileURL } from 'node:url';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { z } from 'zod';
+import { loadProjectEnv } from './core/project-env.js';
 
 export function createMcpBridge(baseUrl:string,credential:string){
   const url=new URL(baseUrl);
@@ -26,6 +27,6 @@ export function createMcpBridge(baseUrl:string,credential:string){
   return server;
 }
 if(process.argv[1]&&import.meta.url===pathToFileURL(process.argv[1]).href){
-  try{const server=createMcpBridge(process.env.KOREAI_URL??'http://127.0.0.1:4318',process.env.KOREAI_TOKEN??'');await server.connect(new StdioServerTransport());}
+  try{const env=loadProjectEnv();const server=createMcpBridge(env.KOREAI_URL??'http://127.0.0.1:4318',env.KOREAI_TOKEN??'');await server.connect(new StdioServerTransport());}
   catch(error){console.error(error instanceof Error?error.message:'MCP 실행 실패');process.exitCode=1;}
 }

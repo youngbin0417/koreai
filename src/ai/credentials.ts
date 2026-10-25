@@ -10,15 +10,17 @@ interface Credentials { version: 1; provider: 'deepseek'; model: typeof DEEPSEEK
 export class DeepSeekCredentials {
   readonly path: string;
   private vault: Vault;
-  constructor(dataDir = resolve('.koreai'), vault?: Vault) {
+  constructor(dataDir = resolve('.koreai'), vault?: Vault, private readonly environment: NodeJS.ProcessEnv = {}) {
     mkdirSync(dataDir, { recursive: true, mode: 0o700 });
     if (process.platform !== 'win32') {
       const directory = lstatSync(dataDir);
       if (!directory.isDirectory() || directory.isSymbolicLink() || directory.uid !== process.getuid!() || (directory.mode & 0o077) !== 0) throw new Error('DeepSeek 데이터 폴더는 현재 사용자 소유이며 권한은 700이어야 합니다.');
     }
     this.path = join(dataDir, 'deepseek.secret.json');
-    this.vault = vault ?? createPlatformVault(dataDir, process.env.KOREAI_MASTER_KEY_FILE, { allowCreate: !existsSync(this.path) });
+    this.vault = vault ?? createPlatformVault(dataDir, environment.KOREAI_MASTER_KEY_FILE ?? process.env.KOREAI_MASTER_KEY_FILE, { allowCreate: !existsSync(this.path) });
   }
+  get source() { return this.environment.DEEPSEEK_API_KEY?.trim() ? 'environment' as const : existsSync(this.path) ? 'encrypted-file' as const : null; }
+  get configured() { return this.source !== null; }
   private checkFile() {
     const stat = lstatSync(this.path);
     if (!stat.isFile() || stat.isSymbolicLink() || (process.platform !== 'win32' && (stat.uid !== process.getuid!() || (stat.mode & 0o077) !== 0))) {
@@ -26,6 +28,7 @@ export class DeepSeekCredentials {
     }
   }
   async save(apiKey: string) {
+    if (this.source === 'environment') throw new Error('DeepSeek 키는 .env의 DEEPSEEK_API_KEY를 수정하고 서버를 재시작하세요.');
     if (!/^sk-[A-Za-z0-9_-]{16,200}$/.test(apiKey)) throw new Error('DeepSeek API 키 형식을 확인하세요.');
     if (existsSync(this.path)) this.checkFile();
     const value: Credentials = { version: 1, provider: 'deepseek', model: DEEPSEEK_MODEL, sealed: await this.vault.seal({ apiKey }) };
@@ -34,6 +37,8 @@ export class DeepSeekCredentials {
     renameSync(temporary, this.path);
   }
   async load(): Promise<string> {
+    const key = this.environment.DEEPSEEK_API_KEY?.trim();
+    if (key) { if (!/^sk-[A-Za-z0-9_-]{16,200}$/.test(key)) throw new Error('DEEPSEEK_API_KEY 형식을 확인하세요.'); return key; }
     if (!existsSync(this.path)) throw new Error('DeepSeek 키가 없습니다. npm run ai:key로 등록하세요.');
     this.checkFile();
     const value = JSON.parse(readFileSync(this.path, 'utf8')) as Credentials;

@@ -1,5 +1,7 @@
 # 운영과 문제 해결
 
+API 키는 프로젝트 `.env.example`을 로컬 `.env`로 준비해 필요한 키/`_ACTIONS`만 입력합니다. 실제 `.env*`는 Git에서 제외하며 Linux 권한은 `600`으로 두고 변경 후 서비스를 재시작합니다. 기존 셸/systemd 환경변수가 파일보다 우선하고 별도 파일은 `KOREAI_ENV_FILE`로 지정합니다. [키 이름·회전/삭제·기존 DeepSeek 키](ENVIRONMENT.md)
+
 GCP Ubuntu VM과 휴대폰 접속은 [GCP 설치 안내](GCP_DEPLOYMENT.md)를 따릅니다. 사용자가 VM을 만들고 일반 SSH 사용자로 설치 스크립트를 실행하는 절차입니다.
 
 ## 시작·종료

@@ -13,5 +13,6 @@ web-dist/
 master.key
 coverage/
 *.log
+# Local API keys and env variants/backups; publish the blank template only.
 .env*
 !.env.example

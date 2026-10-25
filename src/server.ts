@@ -1,6 +1,8 @@
 import { createRuntime } from './http.js';
 import { serverOptions, serverHelp } from './core/platform.js';
-const options=serverOptions(process.argv.slice(2));
+import { loadProjectEnv } from './core/project-env.js';
+const environment=loadProjectEnv();
+const options={...serverOptions(process.argv.slice(2),environment),environment};
 if(options.help){console.log(serverHelp);process.exit(0);}
 if(process.platform!=='win32')process.umask(0o077);
 const runtime=await createRuntime(options);

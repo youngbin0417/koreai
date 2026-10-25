@@ -22,6 +22,7 @@ export interface Service {
 export interface Account {
   id: string; label: string; credentialType: string; allowedActions: string[];
   enabled: boolean; createdAt: string; updatedAt: string; sealed: string;
+  managedBy?: 'environment';
 }
 export interface Principal {
   id: string; name: string; role: 'admin' | 'agent'; allowedActions: string[];

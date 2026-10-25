@@ -4,6 +4,8 @@
 
 기본 엔진 주소는 `http://127.0.0.1:4318`입니다. 관리 화면에서 생성한 클라이언트 토큰을 `Authorization: Bearer …`로 전달합니다. 토큰은 클라이언트별 행동 ID와 계정 ID에 묶입니다. 토큰을 해제하면 대기 작업이 취소되고 실행 중인 작업도 중단을 요청합니다.
 
+환경 관리 계정은 공개 정보에 `managedBy: "environment"`를 포함하고 키·`sealed`·환경변수 값은 반환하지 않습니다. 이 계정의 수정/삭제/OAuth 갱신은 `409 MANAGED_ACCOUNT`이며 `.env` 수정 후 재시작으로 관리합니다. 클라이언트의 행동/계정 허용 목록을 자동 확장하지 않습니다. AI 설정 응답의 `keySource`는 `environment/encrypted-file/null`이며 모델은 Flash 고정입니다. 환경 키 사용 중 키 저장은 거절합니다. [환경 설정](ENVIRONMENT.md)
+
 관리자는 브라우저 일회용 코드 → HttpOnly 쿠키로 인증됩니다. 쿠키를 사용하는 변경 요청은 같은 출처의 `Origin`이 필요합니다. 클라이언트 토큰으로 관리자 API를 호출할 수 없습니다.
 
 개인 원격 접속은 `--public-url https://장비.네트워크.ts.net` 또는 `KOREAI_PUBLIC_URL`로 HTTPS 출처 한 개를 설정합니다. 경로·쿼리·인증정보가 포함된 URL은 받지 않습니다. 서버는 루프백에 바인딩하며 설정된 Host·Origin만 허용합니다. HTTPS 로그인 쿠키에 Secure를 적용하고 세션 해시·30일 만료를 SQLite에 저장해 재시작 후 유지합니다. `POST /api/logout`은 현재 세션을 해제합니다. [GCP·Tailscale 설정](GCP_DEPLOYMENT.md)

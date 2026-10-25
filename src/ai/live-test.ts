@@ -11,6 +11,8 @@ import { DeepSeekCredentials, DEEPSEEK_MODEL } from './credentials.js';
 import { DeepSeekClient } from './deepseek.js';
 import { ProjectAgent } from './project-agent.js';
 import { connectionDefinitions } from '../connectors/lifestyle/index.js';
+import { loadProjectEnv } from '../core/project-env.js';
+const environment = loadProjectEnv();
 
 const { values } = parseArgs({ options: {
   scenario: { type: 'string', default: 'owned-demo' }, url: { type: 'string', default: 'http://127.0.0.1:4318' },
@@ -31,7 +33,7 @@ Linux 브라우저 준비: npx playwright install --with-deps chromium`);
     return;
   }
   if (!['owned-demo', 'service-read', 'connections'].includes(values.scenario!)) throw new Error('scenario는 owned-demo, service-read 또는 connections여야 합니다.');
-  const key = await new DeepSeekCredentials(resolve(values['data-dir']!)).load();
+  const key = await new DeepSeekCredentials(resolve(values['data-dir']!), undefined, environment).load();
   const client = new DeepSeekClient(key);
   const model = await client.verifyModel();
   assert.equal(model.id, DEEPSEEK_MODEL);
@@ -46,7 +48,7 @@ Linux 브라우저 준비: npx playwright install --with-deps chromium`);
   let failure: string | undefined;
   try {
     if (values.scenario === 'service-read') {
-      const token = process.env.KOREAI_TOKEN;
+      const token = environment.KOREAI_TOKEN;
       if (!token || !values.action) throw new Error('실제 서비스 조회에는 KOREAI_TOKEN과 --action이 필요합니다.');
       secrets.push(token);
       const input = JSON.parse(values.input!);

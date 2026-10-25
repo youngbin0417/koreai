@@ -1,8 +1,9 @@
 import { findSubwayStation, stationLockerLines, subwayArrivalQueryName, subwayStations, type SubwayStation } from '../src/research/subway-stations';
+import type { RouteStationSource } from './subway-route-connections-model';
 
 export const stationTargets = ['seoul-subway.arrivals', 'seoul-subway.timetable', 'tlocker.inventory.search', 'seoul-subway.route'] as const;
 export type StationTarget = typeof stationTargets[number];
-export interface StationDraft { input: string; accountId: string; stationId?: string }
+export interface StationDraft { input: string; accountId: string; stationId?: string; routeSource?: RouteStationSource }
 export function isStationTarget(value: string): value is StationTarget { return stationTargets.some(target => target === value); }
 export function stationTargetAvailable(target: StationTarget, station: SubwayStation) {
   if (target === 'seoul-subway.route') return /^[1-8]호선$/.test(station.line);

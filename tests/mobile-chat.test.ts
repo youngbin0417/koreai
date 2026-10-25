@@ -36,7 +36,7 @@ async function login(r: Runtime, origin = r.baseUrl) {
 const cookiePart = (cookie: string) => cookie.split(';')[0]!;
 async function configure(r: Runtime, cookie: string) {
   const response = await api(r, '/ai/key', cookie, 'POST', { apiKey: key });
-  assert.equal(response.status, 200); assert.deepEqual(await response.json(), { configured: true, model: 'deepseek-flash' });
+  assert.equal(response.status, 200); assert.deepEqual(await response.json(), { configured: true, model: 'deepseek-flash', keySource: 'encrypted-file' });
 }
 async function createChat(r: Runtime, cookie: string, allowedActions: string[] = []) {
   const response = await api(r, '/chats', cookie, 'POST', { allowedActions });

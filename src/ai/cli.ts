@@ -3,6 +3,7 @@ import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { DeepSeekCredentials, DEEPSEEK_BASE_URL } from './credentials.js';
 import { DeepSeekClient } from './deepseek.js';
+import { loadProjectEnv } from '../core/project-env.js';
 
 async function stdin(secret = false): Promise<string> {
   if (secret && process.stdin.isTTY) {
@@ -37,7 +38,7 @@ async function stdin(secret = false): Promise<string> {
 export async function main(args = process.argv.slice(2)) {
   const { values, positionals } = parseArgs({ args, allowPositionals: true, options: { 'data-dir': { type: 'string', default: '.koreai' }, smoke: { type: 'boolean', default: false }, effort: { type: 'string', default: 'high' } } });
   const command = positionals[0];
-  const credentials = new DeepSeekCredentials(resolve(values['data-dir']!));
+  const credentials = new DeepSeekCredentials(resolve(values['data-dir']!), undefined, loadProjectEnv());
   if (command === 'key') {
     await credentials.save(await stdin(true));
     console.log('DeepSeek API 키를 암호화해 저장했습니다. 모델: deepseek-flash (V4.1 Flash)');
@@ -47,7 +48,7 @@ export async function main(args = process.argv.slice(2)) {
   const client = new DeepSeekClient(await credentials.load());
   if (command === 'check') {
     const model = await client.verifyModel();
-    console.log(JSON.stringify({ provider: 'deepseek', baseUrl: DEEPSEEK_BASE_URL, model, key: 'encrypted', fallback: false }, null, 2));
+    console.log(JSON.stringify({ provider: 'deepseek', baseUrl: DEEPSEEK_BASE_URL, model, key: credentials.source, fallback: false }, null, 2));
     if (values.smoke) {
       const result = await client.respond('Reply with only OK.', 'low', 256);
       console.log(JSON.stringify({ smoke: 'passed', model: result.model, response: result.text, usage: result.usage }, null, 2));

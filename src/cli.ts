@@ -1,5 +1,7 @@
 export {};
-const base=process.env.KOREAI_URL??'http://127.0.0.1:4318';
+import { loadProjectEnv } from './core/project-env.js';
+const environment=loadProjectEnv();
+const base=environment.KOREAI_URL??'http://127.0.0.1:4318';
 try{
   const result=await fetch(`${base}/api/health`,{signal:AbortSignal.timeout(3000)});
   if(!result.ok)throw new Error();

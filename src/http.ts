@@ -10,6 +10,7 @@ import { createPlatformVault } from './core/linux-vault.js';
 import { browserDefaults, publicOrigin, type BrowserChannel } from './core/platform.js';
 import { OAuth } from './core/oauth.js';
 import { acquireLock } from './core/lock.js';
+import { syncEnvironmentAccounts } from './core/env-accounts.js';
 import { VerifiedFileCache } from './core/file-cache.js';
 import { officialActions, officialExecutor } from './connectors/official.js';
 import { kmaAction, kmaExecutor } from './connectors/kma.js';
@@ -57,7 +58,7 @@ import { ActionError, type Evidence, type Principal } from './types.js';
 import { DeepSeekCredentials } from './ai/credentials.js';
 import { Conversations } from './ai/conversations.js';
 
-export interface RuntimeOptions {dataDir:string;port?:number;vault?:Vault;masterKeyFile?:string;fetcher?:typeof fetch;aiFetcher?:typeof fetch;publicUrl?:string;bootstrapCode?:string;headless?:boolean;channel?:BrowserChannel;dev?:boolean;uiDir?:string;evidenceMode?:'live'|'mock';allowSeoulBikeHttp?:boolean;allowSeoulSubwayHttp?:boolean}
+export interface RuntimeOptions {environment?:NodeJS.ProcessEnv;dataDir:string;port?:number;vault?:Vault;masterKeyFile?:string;fetcher?:typeof fetch;aiFetcher?:typeof fetch;publicUrl?:string;bootstrapCode?:string;headless?:boolean;channel?:BrowserChannel;dev?:boolean;uiDir?:string;evidenceMode?:'live'|'mock';allowSeoulBikeHttp?:boolean;allowSeoulSubwayHttp?:boolean}
 const escapeHtml=(v:string)=>v.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]!));
 const page=(title:string,body:string)=>`<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title}</title><style>body{font:16px system-ui;max-width:760px;margin:48px auto;padding:24px;background:#f5f7f3;color:#183126}label{display:block;margin:16px 0}input,textarea,button{font:inherit;padding:12px;border:1px solid #bbc9bc;border-radius:8px}input,textarea{display:block;width:90%;margin-top:8px}button{background:#245840;color:white;cursor:pointer}article{padding:16px;background:white;border-radius:12px;margin:12px 0;white-space:pre-wrap}a{color:#245840}</style></head><body>${body}</body></html>`;
 
@@ -114,6 +115,7 @@ async function createUnlockedRuntime(options:RuntimeOptions){
     engine.register([tossAccountAction],tossReadPlanExecutor);
     engine.register(draftActions,draftExecutor);
     registerReviewedExtensions(engine);
+    await syncEnvironmentAccounts(engine, options.environment ?? {});
   }catch(error){store.close();throw error;}
   const remote=new RemoteRegistry(engine);const oauth=new OAuth(engine,options.fetcher);
   const app=express();app.disable('x-powered-by');
@@ -121,7 +123,7 @@ async function createUnlockedRuntime(options:RuntimeOptions){
   const sessionAge=30*24*60*60*1000;let failedBootstrap=0;let attemptWindow=Date.now();
   let baseUrl='';let server:Server;
   const publicUrl=publicOrigin(options.publicUrl);
-  const chats=new Conversations(engine,store,vault!,new DeepSeekCredentials(options.dataDir,vault!),()=>baseUrl,options.aiFetcher);
+  const chats=new Conversations(engine,store,vault!,new DeepSeekCredentials(options.dataDir,vault!,options.environment ?? {}),()=>baseUrl,options.aiFetcher);
   const origins=()=>[baseUrl,...(publicUrl?[publicUrl]:[]),...(options.dev?['http://127.0.0.1:5173']:[])];
   const principal=(res:Response)=>res.locals.principal as Principal;
   app.use((req,res,next)=>{

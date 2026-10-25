@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { subwayRouteDocs } from '../src/research/seoul-subway';
+import { routeStationSelection, type RouteFollowupTarget, type RouteStationSide } from './subway-route-connections-model';
+import { stationTargetAvailable } from './subway-stations-model';
 
 export function subwayRouteInputState(input: string) {
   let value: Record<string, unknown> | null = null;
@@ -30,7 +32,7 @@ export function SubwayRouteForm({ input, changeInput, busy, submit }: { input: s
   </form>;
 }
 const display = (value: unknown) => value === null || value === undefined || value === '' ? '미제공' : String(value);
-export function SubwayRouteResult({ result }: { result: unknown; busy?: boolean; onPage?: (page: number) => void }) {
+export function SubwayRouteResult({ result, busy = false, onUseStation }: { result: unknown; busy?: boolean; onPage?: (page: number) => void; onUseStation?: (target: RouteFollowupTarget, index: number, side: RouteStationSide) => void }) {
   const [page, setPage] = useState(1), data = (result as any)?.data;
   if (data?.kind !== 'seoul-subway.route' || !Array.isArray(data.segments) || !Array.isArray(data.transfers)) return <p>카드로 표시할 수 없는 경로 결과입니다.</p>;
   const pages = Math.max(1, Math.ceil(data.segments.length / 10)), current = Math.min(page, pages), summary = data.summary;
@@ -40,10 +42,17 @@ export function SubwayRouteResult({ result }: { result: unknown; busy?: boolean;
     <p>경로 기준 시각: {display(data.searchAt)}<br/>응답 조회 시각: {display(data.retrievedAt)}<br/>공급자 관측 시각: 미제공</p>
     <p className="warning">{display(data.dataNote)}</p>
     {!!data.transfers.length && <section aria-label="공급자 환승 목록"><h4>공급자 환승 목록</h4><ul>{data.transfers.map((row: any, index: number) => <li key={index}>{display(row.stationName)} · {display(row.fromLine)} → {display(row.toLine)}</li>)}</ul></section>}
-    <ol className="work24-job-list" start={(current - 1) * 10 + 1}>{data.segments.slice((current - 1) * 10, current * 10).map((row: any) => <li key={row.index}><article className="work24-job"><h4>{display(row.from?.name)} → {display(row.to?.name)}</h4><p>{display(row.from?.line)} · 지선 {display(row.from?.branch)} → {display(row.to?.line)} · 지선 {display(row.to?.branch)}</p>
+    <ol className="work24-job-list" start={(current - 1) * 10 + 1}>{data.segments.slice((current - 1) * 10, current * 10).map((row: any, offset: number) => <li key={row.index}><article className="work24-job"><h4>{display(row.from?.name)} → {display(row.to?.name)}</h4><p>{display(row.from?.line)} · 지선 {display(row.from?.branch)} → {display(row.to?.line)} · 지선 {display(row.to?.branch)}</p>
       <dl><dt>구간 거리·시간</dt><dd>{display(row.distanceMeters)} m · {display(row.durationSeconds)}초</dd><dt>환승 표시 원문</dt><dd>{display(row.transferRaw)}</dd><dt>방향·종착역</dt><dd>{display(row.directionRaw)} · {display(row.terminalName)}</dd></dl>
       {data.query?.includeTimetable && <dl><dt>예정 출발·도착 원문</dt><dd>{display(row.departureRaw)} · {display(row.arrivalRaw)}</dd><dt>대기시간</dt><dd>{display(row.waitingSeconds)}초</dd><dt>열차·급행·무정차 원문</dt><dd>{display(row.trainNumber)} · {display(row.expressRaw)} · {display(row.nonstopRaw)}</dd></dl>}
       <details><summary>공급자 역 식별자</summary><p>{display(row.from?.code)} ({display(row.from?.number)}) → {display(row.to?.code)} ({display(row.to?.number)}). 도착·시간표·보관함 코드와 자동 연결하지 않습니다.</p></details>
+      {(['from', 'to'] as const).map(side => {
+        const index = (current - 1) * 10 + offset, selection = routeStationSelection(data, index, side);
+        const targets: [RouteFollowupTarget, string][] = [['seoul-subway.arrivals', '도착 조회 조건 채우기'], ['seoul-subway.timetable', '시간표 조건 채우기'], ['tlocker.inventory.search', '사물함 설치 조건 채우기']];
+        return <section key={side} aria-label={`${row.index}구간 ${side === 'from' ? '출발역' : '도착역'} 조회 연결`}><h5>{side === 'from' ? '출발역' : '도착역'} 다음 조회 · {display(row[side]?.name)}</h5>
+          {selection ? <><p className="small">역명·호선이 참조 목록과 일치합니다. 코드 대응은 미검증입니다. 조건만 채우며 외부 조회는 실행 요청 후 수행합니다.</p><div className="button-row">{targets.map(([target, label]) => <button key={target} disabled={busy || !onUseStation || !stationTargetAvailable(target, selection.station)} onClick={() => onUseStation?.(target, index, side)}>{label}</button>)}</div></> : <p className="small">역명·호선의 정확한 대응을 확인할 수 없습니다. 별칭이나 코드를 자동 변환하지 않습니다. <a href="/#subway-map" target="_blank" rel="noreferrer">역 찾기에서 직접 확인 ↗</a></p>}
+        </section>;
+      })}
     </article></li>)}</ol>
     {pages > 1 && <nav aria-label="경로 구간 페이지"><p>{current}/{pages}페이지 · 총 {data.segments.length}개 공급자 구간</p><button disabled={current <= 1} onClick={() => setPage(current - 1)}>이전 구간</button><button disabled={current >= pages} onClick={() => setPage(current + 1)}>다음 구간</button></nav>}
     <p className="work24-source">출처: 서울교통공사 · 최단경로이동정보 · 이용허락범위 제한 없음<br/><a href={subwayRouteDocs} target="_blank" rel="noreferrer">공식 명세 ↗</a> · 결과는 60초 뒤 만료되며 자동 갱신하지 않습니다.</p>

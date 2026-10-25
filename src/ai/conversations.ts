@@ -1,5 +1,4 @@
 import { randomUUID } from 'node:crypto';
-import { existsSync } from 'node:fs';
 import { z } from 'zod';
 import { Engine, admin } from '../core/engine.js';
 import { Store } from '../core/store.js';
@@ -35,8 +34,9 @@ export class Conversations {
       this.save(record);
     }
   }
-  settings() { return { model: DEEPSEEK_MODEL, configured: existsSync(this.credentials.path) }; }
+  settings() { return { model: DEEPSEEK_MODEL, configured: this.credentials.configured, keySource: this.credentials.source }; }
   async saveKey(raw: unknown) {
+    if (this.credentials.source === 'environment') throw new ActionError('MANAGED_ACCOUNT', '.env의 DEEPSEEK_API_KEY를 수정하고 서버를 재시작하세요.');
     const input = z.object({ apiKey: z.string().regex(/^sk-[A-Za-z0-9_-]{16,200}$/) }).strict().parse(raw);
     await this.credentials.save(input.apiKey); return this.settings();
   }

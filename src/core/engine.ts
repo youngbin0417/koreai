@@ -50,9 +50,10 @@ export class Engine {
   accounts(principal: Principal=admin): Omit<Account,'sealed'>[] {
     return this.store.list<Account>('account').filter(a=>principal.role==='admin'||principal.allowedAccountIds.includes(a.id)).map(({sealed,...account})=>account);
   }
-  async saveAccount(raw: unknown): Promise<Omit<Account,'sealed'>> {
+  async saveAccount(raw: unknown, environmentManaged = false): Promise<Omit<Account,'sealed'>> {
     const input=z.object({id:z.string().uuid().optional(),label:z.string().trim().min(1).max(80),credentialType:z.string().min(1).max(100),allowedActions:z.array(z.string()).max(100),secrets:z.record(z.string().min(1).max(10000)).optional(),enabled:z.boolean().default(true)}).strict().parse(raw);
     const previous=input.id?this.store.get<Account>('account',input.id):undefined;
+    if(previous?.managedBy==='environment'&&!environmentManaged)throw new ActionError('MANAGED_ACCOUNT','환경변수 관리 계정은 .env의 키·ACTIONS를 수정하고 서버를 재시작하세요.');
     if(input.id&&!previous)throw new ActionError('NOT_FOUND','계정을 찾을 수 없습니다.');
     if(previous&&previous.credentialType!==input.credentialType)throw new ActionError('INVALID_ACCOUNT','계정 종류는 변경할 수 없습니다.');
     if(!previous&&!input.secrets)throw new ActionError('MISSING_CREDENTIALS','계정 키를 입력하세요.');
@@ -66,12 +67,13 @@ export class Engine {
     }
     const allowedKeys=new Set(eligible.flatMap(a=>a.requiredSecrets).concat(['clientId','clientSecret','refreshToken']));
     if(Object.keys(secrets).some(k=>!allowedKeys.has(k)))throw new ActionError('INVALID_CREDENTIALS','지원하지 않는 키 필드입니다.');
-    const account: Account={id:previous?.id??randomUUID(),label:input.label,credentialType:input.credentialType,allowedActions:input.allowedActions,enabled:input.enabled,createdAt:previous?.createdAt??now(),updatedAt:now(),sealed:await this.vault.seal(secrets)};
+    const account: Account={id:previous?.id??randomUUID(),label:input.label,credentialType:input.credentialType,allowedActions:input.allowedActions,enabled:input.enabled,createdAt:previous?.createdAt??now(),updatedAt:now(),sealed:await this.vault.seal(secrets),...(environmentManaged?{managedBy:'environment' as const}:{})};
     this.store.put('account',account.id,account);
     for(const job of this.store.allJobs())if(job.accountId===account.id&&(!account.enabled||!account.allowedActions.includes(job.actionId))&&!terminal.has(job.state))await this.cancel(admin,job.id);
     const {sealed,...result}=account; return result;
   }
-  async removeAccount(id: string): Promise<void> {
+  async removeAccount(id: string, environmentManaged = false): Promise<void> {
+    if(this.store.get<Account>('account',id)?.managedBy==='environment'&&!environmentManaged)throw new ActionError('MANAGED_ACCOUNT','환경변수 관리 계정은 .env에서 키를 지우고 서버를 재시작하세요.');
     for(const job of this.store.allJobs())if(job.accountId===id&&!terminal.has(job.state))await this.cancel(admin,job.id);
     this.store.delete('account',id);
   }
