@@ -19,7 +19,7 @@ test('expansion candidates and draft actions reference unique catalog services a
   assert.equal(new Set(appApiBacklog.map(c => c.serviceId)).size, appApiBacklog.length);
   assert.equal(services.length, 105);
   assert.equal(draftActions.length, 0);
-  assert.equal(planningActions.length, 43);
+  assert.equal(planningActions.length, 44);
   for (const candidate of appApiBacklog) {
     assert(services.some(s => s.id === candidate.serviceId));
     assert(candidate.sourceUrl.startsWith('https://'));
@@ -112,7 +112,7 @@ test('HTTP restricts planning to admins and prevents unconfigured scoped actions
     const call = (path: string, method = 'GET', body?: unknown, token?: string) => fetch(`${r.baseUrl}/api${path}`, { method, headers: { Origin: r.baseUrl, ...(token ? { Authorization: `Bearer ${token}` } : { Cookie: cookie }), ...(body === undefined ? {} : { 'Content-Type': 'application/json' }) }, ...(body === undefined ? {} : { body: JSON.stringify(body) }) });
     const backlog = await (await call('/backlog')).json(); assert.equal(backlog.length, 65);
     const state = await (await call('/state')).json();
-    assert.equal(state.actions.filter((a: { method: string; implemented: boolean; unavailable?:unknown }) => a.method === 'api' && a.implemented && !a.unavailable).length, 48);
+    assert.equal(state.actions.filter((a: { method: string; implemented: boolean; unavailable?:unknown }) => a.method === 'api' && a.implemented && !a.unavailable).length, 49);
     assert.equal(state.backlog.length, 65);
     const example = await (await call('/drafts/kma.observation/example')).json();
     const preview = await call('/drafts/kma.observation/preview', 'POST', example);

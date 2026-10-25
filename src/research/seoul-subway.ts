@@ -1,5 +1,6 @@
 export const subwayArrivalDocs = 'https://data.seoul.go.kr/dataList/OA-12764/A/1/datasetView.do';
 export const subwayTimetableDocs = 'https://data.seoul.go.kr/dataList/OA-22750/A/1/datasetView.do';
+export const subwayRouteDocs = 'https://www.data.go.kr/data/15143842/openapi.do';
 export const subwayMapUrl = 'https://www.seoulmetro.co.kr/kr/cyberStation.do';
 export const subwayMapFilesUrl = 'https://www.data.go.kr/data/15120713/fileData.do';
 export const tlockerGuideUrl = 'https://www.smrte.co.kr/support/happybox';

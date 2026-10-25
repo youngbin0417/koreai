@@ -28,6 +28,7 @@ import { tmapAction, tmapExecutor } from './connectors/tmap.js';
 import { work24Action, work24Executor } from './connectors/work24.js';
 import { work24RegionsAction, work24RegionsExecutor } from './connectors/work24-regions.js';
 import { subwayActions,subwayExecutor } from './connectors/seoul-subway.js';
+import { subwayRouteAction, subwayRouteExecutor } from './connectors/subway-route.js';
 import { tlockerAvailabilityAction,tlockerReadExecutor } from './connectors/lifestyle/tlocker-read.js';
 import { tlockerInventoryAction,tlockerInventoryExecutor } from './connectors/tlocker-inventory.js';
 import { champriceAction, champriceExecutor } from './connectors/champrice.js';
@@ -90,6 +91,7 @@ async function createUnlockedRuntime(options:RuntimeOptions){
     engine.register([work24Action],work24Executor(options.fetcher));
     engine.register([work24RegionsAction],work24RegionsExecutor(options.fetcher));
     engine.register(subwayActions,subwayExecutor(options.fetcher,options.allowSeoulSubwayHttp===true));
+    engine.register([subwayRouteAction], subwayRouteExecutor(options.fetcher));
     engine.register([tlockerAvailabilityAction],tlockerReadExecutor);
     await lockerCache.prepare();
     engine.register([tlockerInventoryAction],tlockerInventoryExecutor(options.fetcher,lockerCache));
