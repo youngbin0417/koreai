@@ -44,7 +44,7 @@ const groups: [string, Row[]][] = [
   ['지도·교통', [
     ['seoul-bike','서울 따릉이','https://www.bikeseoul.com','대여소별 잔여 자전거 확인','요청 구간의 대여소 ID·잔여 수·조회 시각을 반환. 관측 시각은 미제공. HTTP 전송 운영자 설정 필요. 대여 보장·잠금 해제·결제는 별도.',['따릉이','seoul bike']],
     ['tmoney','티머니','https://www.tmoney.co.kr','교통카드·이용내역 확인 경로 안내','공개 이용 안내와 개인 카드 잔액·이용내역·충전 권한을 분리.',['티머니GO','tmoney']],
-    ['tlocker','또타라커','https://www.seoulmetro.co.kr','역별 보관함 위치·이용 안내 찾기','보관함 위치와 실시간 빈칸·개인 예약을 구분. 문 열기·결제·예약은 별도 승인.',['또타락커','T-Locker','t locker']],
+    ['tlocker','또타라커','https://www.seoulmetro.co.kr','역·보관함 이름별 설치 수량 검색','설치 수량과 실시간 빈칸·개인 예약을 구분. 문 열기·결제·예약은 별도 승인.',['또타락커','T-Locker','t locker']],
   ]],
   ['반려동물', [
     ['petplanet','펫플래닛','https://petplanet.co','지역·날짜별 돌봄 후보 찾기','돌봄 조건·가격·반려동물 정보·주소를 분리. 예약/돌봄 일지 접근은 사용자 동의 필요.',['petplanet']],
@@ -75,14 +75,14 @@ const evidence: Record<string, {url:string;scope?:string;method?:ConnectionPlan[
   chzzk: {url:'https://chzzk.gitbook.io/chzzk',scope:'공식 개발자 문서의 라이브 목록·채널 조회 및 권한별 API 안내.',method:'official-api'},
   'seoul-bike': {url:'https://data.seoul.go.kr/dataList/OA-15493/A/1/datasetView.do',method:'official-api'},
   'animal-hospitals': {url:'https://www.data.go.kr/data/15045050/fileData.do',scope:'공식 지역별 인허가 CSV: 지역·관리번호·병원명·주소·상태·행별 갱신시점. 실제 파일은 CP949, 원좌표 EPSG:5174. 자료는 약 2일 전 기준으로 일일 갱신되며 현재 진료·예약 정보는 아님.',method:'public-data'},
-  tlocker: {url:'https://www.smrte.co.kr/support/happybox',scope:'운영사 공식 안내·Android/iOS 앱 링크와 설치수량 분기 자료 확인. 공개 소비자 실시간 빈칸 API는 미확인. 기본 연결과 비활성 빈칸 조회 규격 구현.'},
+  tlocker: {url:'https://www.data.go.kr/data/15044235/fileData.do',scope:'서울교통공사 설치수량 CSV: 호선·보관함 이름·크기별 설치 수량. 키 없는 로컬 검색 구현. 실시간 빈칸·층/출구·예약 가능은 미확인.',method:'public-data'},
 };
 export const requestedApps: RequestedApp[] = groups.flatMap(([category,rows]) => rows.map(([serviceId,name,homeUrl,firstRead,boundary,aliases=[]]) => {
   const source = evidence[serviceId], method = source?.method ?? 'partnership';
   return {serviceId,name,category,homeUrl,sourceUrl:source?.url??homeUrl,priority:method==='partnership'?3:2,documentedScope:source?.scope??null,
     ...(serviceId==='aladin'?{notice:aladinNotice,checkedAt:'2026-10-19'}:{}), ...(serviceId==='chzzk'?{checkedAt:'2026-10-19',implementedActionIds:['chzzk.lives.list','chzzk.channels.get']}:{}),
     ...(serviceId==='animal-hospitals'?{checkedAt:'2026-10-19',implementedActionIds:['animal-hospitals.search']}:{}),
-    ...(serviceId==='tlocker'?{checkedAt:'2026-10-22'}:{}),
-    plan:{requestedAt:'2026-10-16',aliases,method,firstRead,requiredAccess:serviceId==='animal-hospitals'?'키 없이 공식 지역별 CSV 다운로드. 공식 한도 확인 후 요청하며 245개 지역 중 선택':serviceId==='aladin'?'신규 키 발급 종료로 신규 연결 미지원. 대체 공급자 조건을 별도로 확인':serviceId==='chzzk'?'치지직 개발자 앱의 Client ID·Client Secret과 해당 API 접근 권한':serviceId==='seoul-bike'?'서울 열린데이터광장 일반 인증키·행동 권한·운영자의 HTTP 키 전송 허용 설정':method==='official-api'?'사용자 소유 개발자 키·권한·이용 조건 확인':method==='public-data'?'공개 데이터의 이용 조건·파일 형식·갱신일 확인':'소비자용 공식 API/제휴·자동 접근 허용 확인. 확보 전 사용자 직접 진행',
-      resultCheck:boundary,nextStep:serviceId==='tlocker'?'공식 앱·설치 수량 자료의 기본 연결과 비활성 빈칸 조회 규격 구현. 운영사의 승인된 실시간 API·관측 시각·크기/상태·한도 확인 후 조회 활성화. 설치 수량은 빈칸 수가 아님.':serviceId==='animal-hospitals'?'CSV 조회 실행기·모바일 지역/병원명/상태 폼·인허가/주소/전화/갱신/출처 카드·페이지 이동·JSON 상세 구현. 실제 강남구 파일 확인. 다른 지역·갱신/빈 파일·한도 검증과 공식 지역 목록 변경 확인. 지도 좌표 변환·현재 진료·예약은 별도.':serviceId==='aladin'?'종료 공지 반영 완료. 기존 키의 신규 연동은 구현하지 않고 도서관 정보나루·네이버 도서 검색의 첫 조회/이용 조건을 별도로 검토.':serviceId==='chzzk'?'라이브 한 페이지·공개 채널 ID 조회 실행기 구현 완료. 본인 개발자 앱으로 반복 channelIds·커서·권한·한도 검증. 채팅·후원·방송 설정은 별도.':serviceId==='seoul-bike'?'구간 조회 실행기 구현 완료. 본인 키·빈 구간·한도 검증과 공식 HTTPS 제공 여부 재확인.':method==='partnership'?'공식 제공 경로·권한·한도·보관/LLM 전달 조건 확인 후 첫 조회 규격 확정. 예약·결제·전송은 이후 별도 승인 단계.':'최신 요청/파일 규격·자료 기준일·한도·출처/캐시 조건을 검증한 뒤 조회 실행기 구현. 실제 키/계정 검증은 별도.'}};
+    ...(serviceId==='tlocker'?{checkedAt:'2026-10-25',implementedActionIds:['tlocker.inventory.search']}:{}),
+    plan:{requestedAt:'2026-10-16',aliases,method,firstRead,requiredAccess:serviceId==='tlocker'?'키 없이 공식 설치 CSV 다운로드. 실시간 조회는 별도 승인 API 필요':serviceId==='animal-hospitals'?'키 없이 공식 지역별 CSV 다운로드. 공식 한도 확인 후 요청하며 245개 지역 중 선택':serviceId==='aladin'?'신규 키 발급 종료로 신규 연결 미지원. 대체 공급자 조건을 별도로 확인':serviceId==='chzzk'?'치지직 개발자 앱의 Client ID·Client Secret과 해당 API 접근 권한':serviceId==='seoul-bike'?'서울 열린데이터광장 일반 인증키·행동 권한·운영자의 HTTP 키 전송 허용 설정':method==='official-api'?'사용자 소유 개발자 키·권한·이용 조건 확인':method==='public-data'?'공개 데이터의 이용 조건·파일 형식·갱신일 확인':'소비자용 공식 API/제휴·자동 접근 허용 확인. 확보 전 사용자 직접 진행',
+      resultCheck:boundary,nextStep:serviceId==='tlocker'?'키 없는 설치 목록 검색·호선/크기 필터·파일 지문/기준일·캐시·모바일 결과 구현. 운영사의 승인된 실시간 API·관측 시각·크기/상태·한도 확인 후 조회 활성화. 설치 수량은 빈칸 수가 아님.':serviceId==='animal-hospitals'?'CSV 조회 실행기·모바일 지역/병원명/상태 폼·인허가/주소/전화/갱신/출처 카드·페이지 이동·JSON 상세 구현. 실제 강남구 파일 확인. 다른 지역·갱신/빈 파일·한도 검증과 공식 지역 목록 변경 확인. 지도 좌표 변환·현재 진료·예약은 별도.':serviceId==='aladin'?'종료 공지 반영 완료. 기존 키의 신규 연동은 구현하지 않고 도서관 정보나루·네이버 도서 검색의 첫 조회/이용 조건을 별도로 검토.':serviceId==='chzzk'?'라이브 한 페이지·공개 채널 ID 조회 실행기 구현 완료. 본인 개발자 앱으로 반복 channelIds·커서·권한·한도 검증. 채팅·후원·방송 설정은 별도.':serviceId==='seoul-bike'?'구간 조회 실행기 구현 완료. 본인 키·빈 구간·한도 검증과 공식 HTTPS 제공 여부 재확인.':method==='partnership'?'공식 제공 경로·권한·한도·보관/LLM 전달 조건 확인 후 첫 조회 규격 확정. 예약·결제·전송은 이후 별도 승인 단계.':'최신 요청/파일 규격·자료 기준일·한도·출처/캐시 조건을 검증한 뒤 조회 실행기 구현. 실제 키/계정 검증은 별도.'}};
 }));

@@ -13,10 +13,12 @@ import { Work24Form, Work24Result } from './Work24';
 import { Work24RegionsForm, Work24RegionsResult, work24RegionsInputState } from './Work24Regions';
 import { work24InputState, applyWork24Region, type Work24RegionSelection } from './work24-model';
 import { SubwayArrivalsForm,SubwayTimetableForm,SubwayResult,subwayArrivalsInputState,subwayTimetableInputState } from './Subway';
+import { TlockerInventoryForm,TlockerInventoryResult,tlockerInventoryInputState } from './TlockerInventory';
 import type { ApiCandidate } from '../src/research/app-api-backlog';
 
 interface ActionView { Form: ComponentType<{ input: string; changeInput: (value: string) => void; busy: boolean; submit: () => void; regionSelection?: Work24RegionSelection }>; Result: ComponentType<{ result: unknown; busy: boolean; onPage: (page: number) => void; onUseRegion?: (region: Work24RegionSelection) => void }>; inputState: (input: string) => { error: string | null }; formId: string }
 const actionViews = new Map<string, ActionView>([
+  ['tlocker.inventory.search',{Form:TlockerInventoryForm,Result:TlockerInventoryResult,inputState:tlockerInventoryInputState,formId:'tlocker-inventory-search'}],
   ['seoul-subway.arrivals',{Form:SubwayArrivalsForm,Result:SubwayResult,inputState:subwayArrivalsInputState,formId:'subway-arrivals'}],
   ['seoul-subway.timetable',{Form:SubwayTimetableForm,Result:SubwayResult,inputState:subwayTimetableInputState,formId:'subway-timetable'}],
   ['work24.regions.list', { Form: Work24RegionsForm, Result: Work24RegionsResult, inputState: work24RegionsInputState, formId: 'work24-regions' }],

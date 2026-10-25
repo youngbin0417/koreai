@@ -7,6 +7,7 @@ const accessLabels: Record<ApiCandidate['access'], string> = {
   'public-key': '공개 정보 · 공급자 키 필요', 'public-file': '공공 파일 · 키 없이 조회', 'public-mcp': '공식 공개 MCP · 키 없이 조회', merchant: '판매자 API · 소비자 권한 별도', unknown: '접근 경로 조사 필요',
 };
 const fileActionHelp: Record<string, string> = {
+  'tlocker.inventory.search':'키 없이 검토한 2026-09-30 설치 목록을 조회합니다. 호선·보관함 이름·설치 수량을 제공하며 실시간 빈칸은 미확인입니다. 검색 조건은 로컬에서 적용하고 검증 파일을 최대 7일 재사용합니다.',
   'animal-hospitals.search': '예시와 미리보기는 외부에 전송하지 않습니다. 공식 지역 이름을 선택하고 키 없이 실행하세요. 병원명·상태·페이지 조건은 지역 CSV를 받은 뒤 적용합니다.',
   'champrice.prices.search': '키 없이 검토된 2026년 8월·9월 조사 가격을 조회합니다. 선택한 월의 파일을 검증해 최대 7일 재사용하며 검색 조건은 로컬에서 적용합니다. 실시간 판매가·재고가 아니며 할인 빈 값은 미확인입니다.',
 };
@@ -32,7 +33,7 @@ export function ExpansionPlan({ candidates, actionTitles, openAction }: { candid
       <h3>먼저 정의할 행동</h3><ul>{c.proposedActions.map(a => <li key={a}>{a}</li>)}</ul>
       <h3>다음 작업</h3><p>{c.nextStep}</p>
       {!!c.unavailableActionIds?.length&&<div className="button-row">{c.unavailableActionIds.map(id=><button key={id} onClick={()=>openAction(id)}>{actionTitles[id]??id} · 중단 안내</button>)}</div>}
-      {c.connectionPlan&&<details className="requested-plan"><summary>첫 연결 초안</summary><p className="small">요청 등록: {c.connectionPlan.requestedAt} · {c.implementedActionIds.length ? c.access === 'public-file' ? '조회 실행기 구현 · 지역별 자료 검증 관리' : '조회 실행기 구현 · 연결 조건·계정 검증 필요' : '조사/설계 단계 · 자동 실행 미지원'}</p><dl><dt>첫 조회</dt><dd>{c.connectionPlan.firstRead}</dd><dt>연결 후보</dt><dd>{{'official-api':'공식 API 후보','public-data':'공개 데이터 후보',partnership:'제휴·허용 범위 확인'}[c.connectionPlan.method]}</dd><dt>필요 조건</dt><dd>{c.connectionPlan.requiredAccess}</dd><dt>결과 확인·경계</dt><dd>{c.connectionPlan.resultCheck}</dd></dl><p>{c.implementedActionIds.length ? c.nextStep : c.connectionPlan.nextStep}</p></details>}
+      {c.connectionPlan&&<details className="requested-plan"><summary>첫 연결 초안</summary><p className="small">요청 등록: {c.connectionPlan.requestedAt} · {c.implementedActionIds.length ? c.access === 'public-file' ? '조회 실행기 구현 · 원본 자료 검증 관리' : '조회 실행기 구현 · 연결 조건·계정 검증 필요' : '조사/설계 단계 · 자동 실행 미지원'}</p><dl><dt>첫 조회</dt><dd>{c.connectionPlan.firstRead}</dd><dt>연결 후보</dt><dd>{{'official-api':'공식 API 후보','public-data':'공개 데이터 후보',partnership:'제휴·허용 범위 확인'}[c.connectionPlan.method]}</dd><dt>필요 조건</dt><dd>{c.connectionPlan.requiredAccess}</dd><dt>결과 확인·경계</dt><dd>{c.connectionPlan.resultCheck}</dd></dl><p>{c.implementedActionIds.length ? c.nextStep : c.connectionPlan.nextStep}</p></details>}
       <div className="button-row">{c.implementedActionIds.map(id => <button key={id} onClick={() => openAction(id)}>{c.implementedActionIds.length > 1 ? actionTitles[id] ?? '조회 기능 열기' : '조회 기능 열기'}</button>)}{c.draftActionIds.map(id => <button key={id} onClick={() => openAction(id)}>조회 초안 열기</button>)}<a href={c.sourceUrl} target="_blank" rel="noreferrer">{c.checkedAt ? '공식 근거' : '공식 서비스'} ↗</a></div>
     </article>)}</div>
     {visible.length === 0 && <p role="status">검색 조건에 맞는 확장 후보가 없습니다.</p>}

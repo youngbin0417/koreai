@@ -38,6 +38,10 @@
 
 지하철은 `seoul-subway.arrivals`와 `seoul-subway.timetable`이며 `seoul-subway-api` 계정과 각각의 행동 권한을 사용합니다. `/api/state.runtime.seoulSubwayHttpAllowed`는 운영자의 HTTP 허용 여부입니다. 서버 설정 전에는 `TRANSPORT_DISABLED`로 차단하고 preview는 계속 제공합니다. 또타라커의 `tlocker.connection.status/open`은 링크 안내이며 `tlocker.availability`는 비활성 규격으로 `NOT_IMPLEMENTED`입니다. [입력·시간·지도·사물함 안내](SEOUL_TRANSIT.md)
 
+키 없는 `tlocker.inventory.search`는 `input: {"query":"서울","line":"1","size":"large","page":1,"limit":10}`과 멱등키로 실행합니다. `accountId`는 필요 없고 클라이언트별 행동 권한은 적용됩니다. 고정 공식 설치 CSV를 전체 검증한 뒤 로컬 검색하며 미리보기는 외부 호출을 하지 않습니다. `rows[].installed/installedTotal/columnCount`는 설치 수량/열, `lockerNameRaw/sourceSerial/lineRaw`는 원문 행 식별 정보입니다. `availableCount/providerObservedAt/locationDetail/operatorLockerId`는 `null`이며 실시간 빈칸이나 층/출구로 해석하지 않습니다.
+
+`snapshot.matchesReviewedFile`이 참일 때만 `asOf: "2026-09-30"`을 반환하며 파일이 바뀌면 구조 검증 후 `asOf: null`과 `declaredAsOf`를 구분합니다. `file`은 실제 `encoding/byteLength/sha256/sourceRows`, `pagination`은 `page/limit/total/returnedCount/nextPage`입니다. `status`는 `available/no_data/empty_page`. 7일 캐시의 `retrievedAt/queriedAt/cache`와 `dispatched: false`는 참가격과 같은 다운로드/검색 구분을 사용합니다. 현재 파일은 보관함 묶음 341행이며 개별 빈칸 수가 아닙니다. [설치 목록·캐시·자료 검증](SEOUL_TRANSIT.md#설치-목록-검색)
+
 기간 제한이 있는 행동은 `Action.resultTtlMs`를 선언하고 성공 작업에 `resultExpiresAt`을 반환합니다. 만료 후 상세/목록/같은 멱등 요청은 결과 본문을 제거하고 `RESULT_EXPIRED`를 표시합니다. 작업 성공 이력은 보존하고 재전송하지 않습니다. 해당 결과를 포함한 대화의 재개는 `CHAT_RESULT_EXPIRED`로 거절하며 모델용 프로토콜과 이후 AI 응답을 정리합니다. [TMAP 사용기한](TMAP.md#요금과-결과-사용기한)
 
 공급자 종료·이용 제한 행동은 관리자 응답의 `unavailable: {kind, reason, sourceUrl, effectiveAt, checkedAt}`와 `enabled: false`로 표시합니다. 에이전트의 `/api/actions`에서는 제외하고 신규 권한·실행·재개는 HTTP 409의 `SERVICE_RETIRED` 또는 `PROVIDER_POLICY_RESTRICTED`로 거절합니다. 이전 작업 결과는 관리자 이력에 보존하되 에이전트 응답에서는 결과 본문을 제외하고 `RESULT_UNAVAILABLE` 사유를 반환합니다. 중단 행동이 있는 이전 대화의 추가 메시지는 `CHAT_ACTION_UNAVAILABLE`로 거절합니다. [네이버 적용 범위](NAVER_AVAILABILITY.md)

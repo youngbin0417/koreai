@@ -19,6 +19,7 @@ import { work24Action, work24Example, work24RequestTemplate } from '../work24.js
 import { subwayActions,subwayExample,subwayRequestTemplate } from '../seoul-subway.js';
 import { work24RegionsAction, work24RegionsExample, work24RegionsRequestTemplate } from '../work24-regions.js';
 import { champriceAction, champriceExample, champriceRequestTemplate } from '../champrice.js';
+import { tlockerInventoryAction,tlockerInventoryExample,tlockerInventoryRequestTemplate } from '../tlocker-inventory.js';
 import { vehicleEnergyActions, vehicleEnergyExample, vehicleEnergyRequestTemplate } from '../vehicle-energy.js';
 import { opggActions, opggExample, opggRequestTemplate } from '../opgg.js';
 import { seoulBikeAction, seoulBikeExample, seoulBikeRequestTemplate } from '../seoul-bike.js';
@@ -48,6 +49,7 @@ interface Definition {
 
 // Request templates contain no secrets and never dispatch HTTP.
 const definitions: Definition[] = [
+  {actionId:tlockerInventoryAction.id,serviceId:tlockerInventoryAction.serviceId,title:tlockerInventoryAction.title,description:tlockerInventoryAction.description,schema:tlockerInventoryAction.schema,example:tlockerInventoryExample(),resultCheck:tlockerInventoryAction.resultCheck,request:tlockerInventoryRequestTemplate},
   ...subwayActions.map(action=>({actionId:action.id,serviceId:action.serviceId,title:action.title,description:action.description,schema:action.schema,example:subwayExample(action.id),resultCheck:action.resultCheck,request:(input:Record<string,any>)=>subwayRequestTemplate(action.id,input)})),
   {actionId:work24RegionsAction.id,serviceId:work24RegionsAction.serviceId,title:work24RegionsAction.title,description:work24RegionsAction.description,schema:work24RegionsAction.schema,example:work24RegionsExample(),resultCheck:work24RegionsAction.resultCheck,request:work24RegionsRequestTemplate},
   {actionId:champriceAction.id,serviceId:champriceAction.serviceId,title:champriceAction.title,description:champriceAction.description,schema:champriceAction.schema,example:champriceExample(),resultCheck:champriceAction.resultCheck,request:champriceRequestTemplate},
@@ -143,6 +145,7 @@ const definitions: Definition[] = [
 ];
 
 export const planningActions: Action[] = definitions.map(definition => {
+  if(definition.actionId===tlockerInventoryAction.id)return tlockerInventoryAction;
   if(definition.serviceId==='seoul-subway')return subwayActions.find(action=>action.id===definition.actionId)!;
   if(definition.actionId===work24RegionsAction.id)return work24RegionsAction;
   if(definition.actionId===champriceAction.id)return champriceAction;

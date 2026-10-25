@@ -15,7 +15,7 @@ test('all 36 requested apps merge into unique catalog/backlog entries and retain
   for (const request of requestedApps) {
     const service = services.find(item => item.id === request.serviceId), candidate = appApiBacklog.find(item => item.serviceId === request.serviceId);
     assert(service); assert(candidate); assert.deepEqual(candidate.connectionPlan, request.plan); assert(candidate.proposedActions.includes(request.plan.firstRead));
-    assert.equal(candidate.implementedActionIds.length, request.serviceId === 'seoul-bike' ? 1 : request.serviceId === 'chzzk' ? 2 : request.serviceId === 'animal-hospitals' ? 1 : 0); assert.equal(candidate.draftActionIds.length, 0);
+    assert.equal(candidate.implementedActionIds.length, request.serviceId === 'seoul-bike' ? 1 : request.serviceId === 'chzzk' ? 2 : ['animal-hospitals', 'tlocker'].includes(request.serviceId) ? 1 : 0); assert.equal(candidate.draftActionIds.length, 0);
     assert(request.sourceUrl.startsWith('https://')); assert(request.plan.resultCheck.length > 20); assert(request.plan.requiredAccess); assert(request.plan.nextStep);
   }
   assert.equal(services.filter(service => service.id === 'nol').length, 1); assert(services.find(service => service.id === 'nol')!.aliases!.includes('야놀자'));
@@ -34,7 +34,7 @@ test('HTTP exposes requested plans and reviewed actions without provider calls, 
     assert.equal(state.services.length, 105); assert.equal(state.backlog.filter((entry: {connectionPlan?:unknown}) => entry.connectionPlan).length, 36);
     assert.equal(r.engine.discover(admin).filter(action => action.method === 'api' && action.implemented && !action.unavailable).length, 48);
     assert.equal(r.engine.discover(admin).filter(action => action.method === 'handoff').length, 14);
-    const ids = new Set(requestedApps.map(item => item.serviceId)); assert.deepEqual(r.engine.discover(admin).filter(action => ids.has(action.serviceId)).map(action => action.id).sort(), ['animal-hospitals.search', 'chzzk.channels.get', 'chzzk.lives.list', 'seoul-bike.stations', 'tlocker.availability', 'tlocker.connection.open', 'tlocker.connection.status']);
+    const ids = new Set(requestedApps.map(item => item.serviceId)); assert.deepEqual(r.engine.discover(admin).filter(action => ids.has(action.serviceId)).map(action => action.id).sort(), ['animal-hospitals.search', 'chzzk.channels.get', 'chzzk.lives.list', 'seoul-bike.stations', 'tlocker.availability', 'tlocker.connection.open', 'tlocker.connection.status', 'tlocker.inventory.search']);
     for (const id of ['musinsa.products.search', 'gasapp.bills.list']) assert.equal((await runtimeApi(r, '/api/jobs', 'POST', { actionId: id, input: {}, idempotencyKey: randomUUID() }, cookie)).status, 404);
     assert.equal(calls, 0); assert.equal(r.engine.jobs().length, 0); assert.equal(r.engine.metrics().verifiedServices, 0); assert.equal(r.store.list('evidence').length, 0);
   } finally { await r.close(); }

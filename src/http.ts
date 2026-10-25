@@ -29,6 +29,7 @@ import { work24Action, work24Executor } from './connectors/work24.js';
 import { work24RegionsAction, work24RegionsExecutor } from './connectors/work24-regions.js';
 import { subwayActions,subwayExecutor } from './connectors/seoul-subway.js';
 import { tlockerAvailabilityAction,tlockerReadExecutor } from './connectors/lifestyle/tlocker-read.js';
+import { tlockerInventoryAction,tlockerInventoryExecutor } from './connectors/tlocker-inventory.js';
 import { champriceAction, champriceExecutor } from './connectors/champrice.js';
 import { vehicleEnergyActions, vehicleEnergyExecutor } from './connectors/vehicle-energy.js';
 import { opggActions, opggExecutor } from './connectors/opgg.js';
@@ -68,6 +69,7 @@ export async function createRuntime(options:RuntimeOptions){
 async function createUnlockedRuntime(options:RuntimeOptions){
   const store=new Store(join(options.dataDir,'koreai.sqlite'));
   const champriceCache=new VerifiedFileCache(join(options.dataDir,options.evidenceMode==='mock'?'champrice-cache-mock':'champrice-cache'));
+  const lockerCache=new VerifiedFileCache(join(options.dataDir,options.evidenceMode==='mock'?'locker-cache-mock':'locker-cache'),{maxBytes:2100000,maxEntryBytes:1000000,maxEntries:1,ttlMs:7*24*60*60*1000});
   let vault:Vault;
   let engine:Engine;let browser:BrowserRunner;let connections:LifestyleConnections;
   try{vault=options.vault??createPlatformVault(options.dataDir,options.masterKeyFile??process.env.KOREAI_MASTER_KEY_FILE,{allowCreate:!existsSync(join(options.dataDir,'deepseek.secret.json'))});engine=new Engine(store,vault,options.evidenceMode??'live');
@@ -89,6 +91,8 @@ async function createUnlockedRuntime(options:RuntimeOptions){
     engine.register([work24RegionsAction],work24RegionsExecutor(options.fetcher));
     engine.register(subwayActions,subwayExecutor(options.fetcher,options.allowSeoulSubwayHttp===true));
     engine.register([tlockerAvailabilityAction],tlockerReadExecutor);
+    await lockerCache.prepare();
+    engine.register([tlockerInventoryAction],tlockerInventoryExecutor(options.fetcher,lockerCache));
     await champriceCache.prepare();
     engine.register([champriceAction],champriceExecutor(options.fetcher,champriceCache));
     engine.register(vehicleEnergyActions,vehicleEnergyExecutor(options.fetcher));
@@ -256,6 +260,6 @@ async function createUnlockedRuntime(options:RuntimeOptions){
   const address=server!.address();if(!address||typeof address==='string')throw new Error('주소를 확인할 수 없습니다.');
   baseUrl=`http://127.0.0.1:${address.port}`;browser.baseUrl=baseUrl;oauth.baseUrl=publicUrl??baseUrl;remote.oauth.baseUrl=publicUrl??baseUrl;
   return {app,server:server!,engine,store,browser,remote,oauth,chats,baseUrl,publicUrl,bootstrapCode,
-    close:async()=>{await chats.close();await engine.close();await champriceCache.close();await remote.close();await browser.close();server!.closeAllConnections();await new Promise<void>((resolveClose,reject)=>server!.close(e=>e?reject(e):resolveClose()));store.close();},
+    close:async()=>{await chats.close();await engine.close();await champriceCache.close();await lockerCache.close();await remote.close();await browser.close();server!.closeAllConnections();await new Promise<void>((resolveClose,reject)=>server!.close(e=>e?reject(e):resolveClose()));store.close();},
   };
 }
