@@ -123,7 +123,7 @@ async function createUnlockedRuntime(options:RuntimeOptions){
   const sessionAge=30*24*60*60*1000;let failedBootstrap=0;let attemptWindow=Date.now();
   let baseUrl='';let server:Server;
   const publicUrl=publicOrigin(options.publicUrl);
-  const chats=new Conversations(engine,store,vault!,new DeepSeekCredentials(options.dataDir,vault!,options.environment ?? {}),()=>baseUrl,options.aiFetcher);
+  const chats=new Conversations(engine,store,vault!,new DeepSeekCredentials(options.dataDir,vault!,options.environment ?? {}),()=>baseUrl,options.aiFetcher,options.environment ?? {});
   const origins=()=>[baseUrl,...(publicUrl?[publicUrl]:[]),...(options.dev?['http://127.0.0.1:5173']:[])];
   const principal=(res:Response)=>res.locals.principal as Principal;
   app.use((req,res,next)=>{

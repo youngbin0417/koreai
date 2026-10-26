@@ -4,7 +4,7 @@
 
 기본 엔진 주소는 `http://127.0.0.1:4318`입니다. 관리 화면에서 생성한 클라이언트 토큰을 `Authorization: Bearer …`로 전달합니다. 토큰은 클라이언트별 행동 ID와 계정 ID에 묶입니다. 토큰을 해제하면 대기 작업이 취소되고 실행 중인 작업도 중단을 요청합니다.
 
-환경 관리 계정은 공개 정보에 `managedBy: "environment"`를 포함하고 키·`sealed`·환경변수 값은 반환하지 않습니다. 이 계정의 수정/삭제/OAuth 갱신은 `409 MANAGED_ACCOUNT`이며 `.env` 수정 후 재시작으로 관리합니다. 클라이언트의 행동/계정 허용 목록을 자동 확장하지 않습니다. AI 설정 응답의 `keySource`는 `environment/encrypted-file/null`이며 모델은 Flash 고정입니다. 환경 키 사용 중 키 저장은 거절합니다. [환경 설정](ENVIRONMENT.md)
+환경 관리 계정은 공개 정보에 `managedBy: "environment"`를 포함하고 키·`sealed`·환경변수 값은 반환하지 않습니다. 이 계정의 수정/삭제/OAuth 갱신은 `409 MANAGED_ACCOUNT`이며 `.env` 수정 후 재시작으로 관리합니다. 클라이언트의 행동/계정 허용 목록을 자동 확장하지 않습니다. AI 설정 응답의 `keySource`는 `environment/encrypted-file/null`이며 기본 공급자(DeepSeek)의 모델은 Flash 고정입니다. 환경 키 사용 중 키 저장은 거절합니다. `GET /api/ai`의 `providers`는 `deepseek`·`motif`의 모델·키 설정 여부·`keySource`·`keyEnv`를 나열하고, `POST /api/chats`의 `provider`(기본 `deepseek`)로 대화별 공급자를 고정합니다. 선택한 공급자의 키가 없으면 `409 AI_KEY_REQUIRED`이며 다른 공급자로 대체하지 않습니다. [Motif 안내](MOTIF.md) [환경 설정](ENVIRONMENT.md)
 
 관리자는 브라우저 일회용 코드 → HttpOnly 쿠키로 인증됩니다. 쿠키를 사용하는 변경 요청은 같은 출처의 `Origin`이 필요합니다. 클라이언트 토큰으로 관리자 API를 호출할 수 없습니다.
 

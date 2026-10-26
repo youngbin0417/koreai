@@ -8,7 +8,7 @@ export function loadProjectEnv(base: NodeJS.ProcessEnv = process.env, cwd = proc
   try {
     if (statSync(path).size > 1_000_000) throw Error('ENV_TOO_LARGE');
     const parsed = parseEnv(readFileSync(path, 'utf8'));
-    const allowed = Object.fromEntries(Object.entries(parsed).filter(([key]) => key === 'DEEPSEEK_API_KEY' || key.startsWith('KOREAI_')));
+    const allowed = Object.fromEntries(Object.entries(parsed).filter(([key]) => ['DEEPSEEK_API_KEY', 'MORPH_API_KEY'].includes(key) || key.startsWith('KOREAI_')));
     return { ...allowed, ...Object.fromEntries(Object.entries(base).filter(([, value]) => value !== undefined)) };
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === 'ENOENT' && !base.KOREAI_ENV_FILE) return { ...base };

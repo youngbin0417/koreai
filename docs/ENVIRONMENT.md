@@ -23,6 +23,7 @@ KOREAI_SEOUL_SUBWAY_ROUTE_ACTIONS=seoul-subway.route
 KOREAI_SEOUL_SUBWAY_API_KEY=
 KOREAI_SEOUL_SUBWAY_ACTIONS=seoul-subway.arrivals,seoul-subway.timetable
 DEEPSEEK_API_KEY=
+MORPH_API_KEY=
 ```
 
 지하철 경로는 공공데이터포털 일반 인증키(Decoding)로 HTTPS 호출합니다. 도착·시간표는 별도 서울시 키이며 HTTP 허용 기본값은 `0`입니다. 필요한 경우 키 전송 조건을 확인한 운영자가 `KOREAI_ALLOW_SEOUL_SUBWAY_HTTP=1`로 바꿉니다. 키를 넣는 것만으로 HTTP 허용 설정이 변경되지 않습니다. 공공파일·OP.GG 공개 MCP에는 API 키가 필요하지 않습니다. [지하철 사용 안내](SEOUL_TRANSIT.md)
@@ -31,7 +32,7 @@ DEEPSEEK_API_KEY=
 
 - 서버·AI CLI·MCP 실행기·진단 명령은 **작업 폴더의 `.env`**를 읽습니다. 다른 위치는 실행 환경의 `KOREAI_ENV_FILE=/absolute/path/server.env`로 지정합니다. 이 경로 설정은 `.env` 안에서 재귀적으로 처리하지 않습니다.
 - **이미 설정된 셸/systemd 환경변수가 파일보다 우선**합니다. 빈 문자열로 설정된 셸 변수도 파일 값을 덮습니다. GCP 서비스의 기존 `~/.config/koreai/server.env`는 systemd가 읽으므로 같은 이름이 있으면 프로젝트 `.env`보다 우선합니다. 작업 폴더와 파일 경로를 고정하세요.
-- Node의 [`util.parseEnv`](https://nodejs.org/docs/latest-v22.x/api/util.html#utilparseenvcontent)로 따옴표·주석을 처리합니다. 애플리케이션은 파일의 `KOREAI_*`와 `DEEPSEEK_API_KEY`만 읽고 `process.env`를 수정하지 않습니다. API 키를 `VITE_*` 이름에 넣지 마세요. 프론트엔드 공개 설정과 키를 구분합니다.
+- Node의 [`util.parseEnv`](https://nodejs.org/docs/latest-v22.x/api/util.html#utilparseenvcontent)로 따옴표·주석을 처리합니다. 애플리케이션은 파일의 `KOREAI_*`·`DEEPSEEK_API_KEY`·`MORPH_API_KEY`만 읽고 `process.env`를 수정하지 않습니다. API 키를 `VITE_*` 이름에 넣지 마세요. 프론트엔드 공개 설정과 키를 구분합니다.
 - 변경 후 서버를 재시작합니다. `npm start`는 빌드된 코드를 쓰므로 코드 변경 후에는 먼저 빌드합니다. systemd 사용 시 해당 사용자 서비스를 재시작합니다. 명시한 파일을 읽지 못하면 값이나 원문을 출력하지 않고 시작 오류로 처리합니다.
 
 ## 환경 관리 계정과 권한
@@ -47,3 +48,9 @@ DEEPSEEK_API_KEY=
 `DEEPSEEK_API_KEY`가 있으면 기존 암호화 파일보다 우선합니다. 잘못된 환경 키는 오류로 처리하며 다른 키나 모델로 자동 전환하지 않습니다. 환경 키가 비어 있으면 기존 암호화 키를 계속 사용할 수 있습니다. 기존 키를 복호화해 `.env`로 자동 이전하지 않습니다. 모델은 계속 **`deepseek-flash`(V4.1 Flash)**로 고정합니다.
 
 환경 키 사용 시 대화 화면은 `.env` 관리 상태를 표시하며 키 변경은 파일 수정·재시작으로 진행합니다. 파일·환경 키의 값은 상태 API와 진단 결과에 반환하지 않습니다.
+
+## Motif
+
+`MORPH_API_KEY`는 Motif(Morfac)의 Chat Completions 호출에 사용합니다. 이 키는 **`.env` 전용**이며 화면에서 암호화해 저장하거나 수정할 수 없습니다. 파일을 수정한 뒤 서버를 다시 시작하세요. 키가 비어 있으면 Motif 대화를 만들 수 없고 DeepSeek로 대신 실행하지 않습니다.
+
+Motif는 기본 공급자가 아니며 **새 대화에서 직접 고를 때만** 사용합니다. 대화를 만들 때 공급자가 고정되고, 공급자 정보가 없는 기존 대화는 DeepSeek로 유지됩니다. 모델은 `motif/motif-3`으로 고정합니다. [Motif 연결 정보·검증](MOTIF.md)

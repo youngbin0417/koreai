@@ -6,16 +6,23 @@ import { hash, redact, type Vault } from '../core/security.js';
 import { ActionError, type Principal } from '../types.js';
 import { DeepSeekCredentials, DEEPSEEK_MODEL } from './credentials.js';
 import { DeepSeekClient, DeepSeekError, type ChatMessage } from './deepseek.js';
+import { MotifClient, MotifError } from './motif.js';
+import { DEFAULT_PROVIDER, PROVIDERS, environmentKey, providerIds, type ProviderClient, type ProviderId } from './providers.js';
 import { ProjectAgent } from './project-agent.js';
 
 export interface VisibleMessage { id: string; role: 'user' | 'assistant'; content: string; at: string }
+export interface ProviderSettings { id: ProviderId; label: string; model: string; configured: boolean; keySource: 'environment' | 'encrypted-file' | null; environmentOnly: boolean; keyEnv: string; docs: string }
+/** `model`, `configured` and `keySource` describe the default provider; `providers` lists every choice. */
+export interface ChatSettings { model: string; configured: boolean; keySource: 'environment' | 'encrypted-file' | null; defaultProvider: ProviderId; providers: ProviderSettings[] }
 export interface Conversation {
-  id: string; title: string; allowedActions: string[]; clientId?: string;
+  id: string; title: string; allowedActions: string[]; clientId?: string; provider: ProviderId;
   status: 'ready' | 'running' | 'failed' | 'interrupted';
   messages: VisibleMessage[]; jobIds: string[]; createdAt: string; updatedAt: string;
   error?: string;
 }
-interface Record extends Conversation {
+interface Record extends Omit<Conversation, 'provider'> {
+  /** Absent on conversations stored before provider selection existed; those stay on DeepSeek. */
+  provider?: ProviderId;
   sealed?: string;
   expiredResultsAt?: string;
   protocol: ChatMessage[];
@@ -28,13 +35,29 @@ export class Conversations {
   private active = new Map<string, { controller: AbortController; task: Promise<void> }>();
   private closed = false;
   constructor(private readonly engine: Engine, private readonly store: Store, private readonly vault: Vault,
-    private readonly credentials: DeepSeekCredentials, private readonly baseUrl: () => string, private readonly fetcher?: typeof fetch) {
+    private readonly credentials: DeepSeekCredentials, private readonly baseUrl: () => string, private readonly fetcher?: typeof fetch,
+    private readonly environment: NodeJS.ProcessEnv = {}) {
     for (const record of store.list<Record>('chat')) if (record.status === 'running') {
       record.status = 'interrupted'; record.error = '서버가 다시 시작됐습니다. 작업 상태를 확인한 뒤 대화를 이어가세요.';
       this.save(record);
     }
   }
-  settings() { return { model: DEEPSEEK_MODEL, configured: this.credentials.configured, keySource: this.credentials.source }; }
+  private providerOf(record: Record): ProviderId { return record.provider ?? DEFAULT_PROVIDER; }
+  private providerConfigured(provider: ProviderId) { return provider === 'motif' ? environmentKey('motif', this.environment) !== null : this.credentials.configured; }
+  private requireConfigured(provider: ProviderId) {
+    if (this.providerConfigured(provider)) return;
+    throw new ActionError('AI_KEY_REQUIRED', provider === 'motif'
+      ? 'Motif 키가 없습니다. .env의 MORPH_API_KEY를 설정하고 서버를 다시 시작하세요.'
+      : 'DeepSeek 키를 먼저 등록하세요.');
+  }
+  settings(): ChatSettings {
+    const providers = providerIds.map((id): ProviderSettings => {
+      const definition = PROVIDERS[id], configured = this.providerConfigured(id);
+      return { id, label: definition.label, model: definition.model, configured, environmentOnly: definition.environmentOnly, keyEnv: definition.keyEnv, docs: definition.docs,
+        keySource: id === 'deepseek' ? this.credentials.source : configured ? 'environment' : null };
+    });
+    return { model: DEEPSEEK_MODEL, configured: this.credentials.configured, keySource: this.credentials.source, defaultProvider: DEFAULT_PROVIDER, providers };
+  }
   async saveKey(raw: unknown) {
     if (this.credentials.source === 'environment') throw new ActionError('MANAGED_ACCOUNT', '.env의 DEEPSEEK_API_KEY를 수정하고 서버를 재시작하세요.');
     const input = z.object({ apiKey: z.string().regex(/^sk-[A-Za-z0-9_-]{16,200}$/) }).strict().parse(raw);
@@ -58,17 +81,18 @@ export class Conversations {
   private view(record: Record): Conversation {
     this.expireTranscript(record);
     const { sealed, protocol, requests, expiredResultsAt, ...visible } = record;
-    return visible;
+    return { ...visible, provider: this.providerOf(record) };
   }
   list() { return this.store.list<Record>('chat').map(record => this.view(record)); }
   get(id: string) { return this.view(this.load(id)); }
   async create(raw: unknown) {
-    const input = z.object({ title: z.string().trim().min(1).max(80).default('새 대화'), allowedActions: z.array(z.string()).max(100).default([]) }).strict().parse(raw);
+    const input = z.object({ title: z.string().trim().min(1).max(80).default('새 대화'), allowedActions: z.array(z.string()).max(100).default([]), provider: z.enum(providerIds).default(DEFAULT_PROVIDER) }).strict().parse(raw);
     const allowedActions = [...new Set(input.allowedActions)];
     const available = this.engine.discover(admin);
     if (allowedActions.some(id => !available.some(action => action.id === id && action.enabled))) throw new ActionError('INVALID_GRANT', '현재 연결된 계정으로 실행 가능한 행동만 선택하세요.');
+    // A conversation keeps one provider so replayed history is never sent to a different model.
     const id = randomUUID();
-    const record: Record = { id, title: input.title, allowedActions, status: 'ready', messages: [], jobIds: [], protocol: [{ role: 'system', content: instructions }], requests: [], createdAt: stamp(), updatedAt: stamp() };
+    const record: Record = { id, title: input.title, allowedActions, provider: input.provider, status: 'ready', messages: [], jobIds: [], protocol: [{ role: 'system', content: instructions }], requests: [], createdAt: stamp(), updatedAt: stamp() };
     if (allowedActions.length) {
       const accountIds = [...new Set(available.filter(action => allowedActions.includes(action.id)).flatMap(action => action.accountIds))];
       const client = this.engine.createClient({ name: `대화 ${input.title.slice(0, 50)}`, allowedActions, allowedAccountIds: accountIds });
@@ -87,7 +111,7 @@ export class Conversations {
       return this.view(record);
     }
     if (this.closed || this.active.size >= 2 || record.status === 'running') throw new ActionError('CHAT_BUSY', '진행 중인 응답을 기다려주세요.');
-    if (!this.settings().configured) throw new ActionError('AI_KEY_REQUIRED', 'DeepSeek 키를 먼저 등록하세요.');
+    this.requireConfigured(this.providerOf(record));
     if (record.protocol.length > 70 || record.messages.length >= 60) throw new ActionError('CHAT_LIMIT', '대화가 길어졌습니다. 새 대화를 시작하세요.');
     record.requests.push({ id: input.requestId, digest });
     record.messages.push({ id: input.requestId, role: 'user', content: input.content, at: stamp() });
@@ -109,13 +133,15 @@ export class Conversations {
     try {
       if(this.expireTranscript(record))throw new ActionError('CHAT_RESULT_EXPIRED','공급자 결과의 사용기한이 만료됐습니다. 새 대화에서 다시 조회하세요.');
       if(record.allowedActions.some(actionId=>this.engine.actions.get(actionId)?.unavailable)) throw new ActionError('CHAT_ACTION_UNAVAILABLE','종료·이용 제한된 행동이 포함된 대화입니다. 새 대화를 시작하세요.');
-      apiKey = await this.credentials.load();
+      const provider = this.providerOf(record);
+      if (provider === 'motif') { this.requireConfigured(provider); apiKey = environmentKey('motif', this.environment)!; }
+      else apiKey = await this.credentials.load();
       if (signal.aborted) throw new Error('stopped');
       const guardedFetch:typeof fetch=async(address,init)=>{
         if(this.expireTranscript(record))throw new ActionError('CHAT_RESULT_EXPIRED','공급자 결과의 사용기한이 만료됐습니다. 새 대화에서 다시 조회하세요.');
         return (this.fetcher??fetch)(address,init);
       };
-      const client = new DeepSeekClient(apiKey, guardedFetch, signal);
+      const client: ProviderClient = provider === 'motif' ? new MotifClient(apiKey, guardedFetch, signal) : new DeepSeekClient(apiKey, guardedFetch, signal);
       let text: string, protocol: ChatMessage[];
       if (record.sealed && record.clientId) {
         clientToken = (await this.vault.open(record.sealed)).token!;
@@ -139,7 +165,7 @@ export class Conversations {
       record.status = 'ready'; captureJobs();
     } catch (error) {
       const message = signal.aborted ? '서버가 대화를 중단했습니다. 생성된 작업 상태를 확인하세요.'
-        : error instanceof DeepSeekError || error instanceof ActionError ? error.message : '대화를 완료하지 못했습니다. 키와 연결 상태를 확인하세요. 생성된 작업은 작업 목록에서 확인할 수 있습니다.';
+        : error instanceof DeepSeekError || error instanceof MotifError || error instanceof ActionError ? error.message : '대화를 완료하지 못했습니다. 키와 연결 상태를 확인하세요. 생성된 작업은 작업 목록에서 확인할 수 있습니다.';
       record.error = String(redact(message, [apiKey, clientToken]));
       record.status = signal.aborted ? 'interrupted' : 'failed';
       record.messages.push({ id: randomUUID(), role: 'assistant', content: record.error, at: stamp() });
